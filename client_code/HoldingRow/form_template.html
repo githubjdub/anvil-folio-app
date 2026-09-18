@@ -1,0 +1,8 @@
+<div class="holding-row">
+  <div class="holding-field ticker-field"><anvil-component type="m3._Components.TextInput.TextBox" name="ticker_box" bind:text="self.item['ticker']" prop:label="Ticker" prop:placeholder="AAPL" prop:appearance="outlined" prop:role="holding-field"></anvil-component></div>
+  <div class="holding-field"><anvil-component type="DatePicker" name="trade_date_picker" bind:date="self.item['trade_date']" prop:role="date-field"></anvil-component></div>
+  <div class="holding-field"><anvil-component type="DropDown" name="action_dropdown" bind:selected_value="self.item['action']" prop:items='["Buy", "Sell"]' prop:role="action-field"></anvil-component></div>
+  <div class="holding-field"><anvil-component type="m3._Components.TextInput.TextBox" name="shares_box" bind:text="self.item['shares']" prop:label="Shares" prop:type="number" prop:placeholder="0" prop:appearance="outlined" prop:role="holding-field"></anvil-component></div>
+  <div class="market-data-field"><anvil-component type="Label" name="quote_label" bind:text="self.item['quote_text']" prop:role="quote-label"></anvil-component><anvil-component type="Label" name="dividend_label" bind:text="self.item['dividend_text']" prop:role="dividend-label"></anvil-component></div>
+  <anvil-component type="m3._Components.Button" name="remove_button" prop:text="" prop:icon="mi:close" prop:appearance="text" prop:tooltip="Remove transaction" prop:role="remove-holding-action"></anvil-component>
+</div>

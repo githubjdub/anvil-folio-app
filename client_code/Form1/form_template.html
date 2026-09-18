@@ -1,1 +1,99 @@
-<anvil-form layout="m3.Layouts.NavigationRailLayout"></anvil-form>
+<section class="portfolio-app">
+  <header class="portfolio-topbar">
+    <div class="brand-lockup">
+      <div class="brand-mark">π</div>
+      <div>
+        <div class="brand-kicker">Personal finance workspace</div>
+        <div class="brand-name">Portfoli<span>o</span>ra</div>
+      </div>
+    </div>
+    <div class="topbar-status"><span class="status-dot"></span> Google Finance lookup</div>
+  </header>
+
+  <main class="portfolio-shell">
+    <section class="portfolio-hero">
+      <div>
+        <div class="eyebrow">Portfolio intelligence · 01</div>
+        <h1>Track the position, not the paperwork.</h1>
+        <p class="hero-copy">Enter what you bought or sold. Portfoliora looks up the live quote, buy-date close, and dividends so your analysis stays current.</p>
+      </div>
+      <div class="hero-note">
+        <span class="hero-note-icon">↗</span>
+        <div><strong>Google Finance connected</strong><br><span>Live quote data fills in on sync.</span></div>
+      </div>
+    </section>
+
+    <section class="workspace-grid">
+      <div class="input-column">
+        <div class="section-intro">
+          <div class="section-index">01</div>
+          <div><h2>Log your activity</h2><p>Add buys and sells as separate transactions.</p></div>
+        </div>
+
+        <section class="panel-card holdings-card">
+          <div class="card-heading">
+            <div><h3>Transactions</h3><p>Use TICKER:EXCHANGE when the default NASDAQ listing is not right.</p></div>
+            <anvil-component type="m3._Components.Button" name="sample_button" prop:text="Load sample" prop:appearance="text" prop:icon="mi:science" prop:role="quiet-action"></anvil-component>
+          </div>
+          <div class="transaction-column-headings"><span>Ticker</span><span>Date</span><span>Action</span><span>Shares</span><span>Market data</span><span></span></div>
+          <anvil-component type="RepeatingPanel" name="holdings_panel" prop:item_template="M3_App_1.HoldingRow" prop:role="holdings-list"></anvil-component>
+          <div class="add-holding-row">
+            <anvil-component type="m3._Components.Button" name="add_button" prop:text="Add transaction" prop:appearance="outlined" prop:icon="mi:add" prop:role="add-holding-action"></anvil-component>
+          </div>
+        </section>
+
+        <section class="panel-card settings-card">
+          <div class="card-heading compact-heading"><div><h3>Analysis settings</h3><p>Transactions are measured up to this date.</p></div><div class="window-badge">Live sync</div></div>
+          <div class="date-grid single-date-grid">
+            <div class="field-stack"><label>Analyze as of</label><anvil-component type="DatePicker" name="as_of_date_picker" prop:role="date-field"></anvil-component></div>
+          </div>
+          <div class="assumption-row">
+            <div><label>Risk-free rate</label><p>Used for the estimated Sharpe ratio.</p></div>
+            <div class="rate-input"><anvil-component type="m3._Components.TextInput.TextBox" name="risk_free_box" prop:text="4.50" prop:type="number" prop:appearance="outlined" prop:role="rate-field"></anvil-component><span>%</span></div>
+          </div>
+        </section>
+
+        <div anvil:name="status_region" class="status-region is-hidden">
+          <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
+        </div>
+        <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync prices &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
+        <p class="fine-print">Live quotes and dividend summaries come from Google Finance. Historical buy-date closes and dividend events use a chart-data fallback because Google Finance has no public historical API.</p>
+      </div>
+
+      <div class="results-column">
+        <div class="section-intro results-intro">
+          <div class="section-index accent-index">02</div>
+          <div><h2>Your readout</h2><p>Performance, income, and risk in one view.</p></div>
+        </div>
+
+        <section anvil:name="empty_results" class="empty-results">
+          <div class="empty-orbit"><span>✦</span></div>
+          <h3>Sync your first position</h3>
+          <p>Enter a ticker and trade date on the left, then let the app fill in the market data.</p>
+          <div class="empty-line"><span></span><span></span><span></span></div>
+        </section>
+
+        <section anvil:name="results_section" class="results-section">
+          <div class="readout-meta"><span class="live-pulse"></span><span>Live snapshot</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="365 days · 2 open holdings" prop:role="period-label"></anvil-component></div>
+          <div class="metric-grid">
+            <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Open positions at live price</div></div>
+            <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Realized + unrealized + dividends</div></div>
+            <div class="metric-card"><div class="metric-label">Annualized return</div><anvil-component type="Label" name="annualized_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Compounded from first trade</div></div>
+            <div class="metric-card metric-card-dark"><div class="metric-label">Estimated Sharpe</div><anvil-component type="Label" name="sharpe_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Risk-adjusted return proxy</div></div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-heading"><h3>Portfolio anatomy</h3><span>Inputs included</span></div>
+            <div class="detail-rows">
+              <div class="detail-row"><span>Buy capital</span><anvil-component type="Label" name="invested_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
+              <div class="detail-row"><span>Dividend income</span><anvil-component type="Label" name="dividends_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
+              <div class="detail-row"><span>Annualized volatility</span><anvil-component type="Label" name="volatility_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
+            </div>
+          </div>
+          <div class="method-note"><span class="method-icon">∿</span><div><strong>How the lookup works</strong><p>Google Finance supplies the current quote and dividend summary. Buy-date prices and dividends are taken from historical chart data so each transaction can be valued.</p></div></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="portfolio-footer"><span>Portfoliora</span><span>Built for clearer decisions.</span><span>Google lookup · Transaction aware</span></footer>
+</section>
