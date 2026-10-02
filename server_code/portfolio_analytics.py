@@ -4,12 +4,14 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time, timedelta, timezone
 import json
 import math
+import re
 import urllib.error
 import urllib.parse
+import urllib.request
 from zoneinfo import ZoneInfo
 
 import anvil.server
-from market_data import _as_date, _fetch_text, _normalise_ticker
+from .sectors import build_sector_allocation
 
 
 _EXCHANGES = {"NASDAQ", "NYSE", "NYSEARCA", "AMEX", "BATS", "NYSEAMERICAN"}
@@ -19,6 +21,31 @@ _NEW_YORK = ZoneInfo("America/New_York")
 
 class AnalysisInputError(ValueError):
   """A validation or market-data issue the user can act on."""
+
+
+def _as_date(value):
+  if isinstance(value, datetime):
+    return value.date()
+  if isinstance(value, date):
+    return value
+  return date.fromisoformat(str(value))
+
+
+def _normalise_ticker(value):
+  parts = str(value or "").strip().upper().split(":", 1)
+  symbol = parts[0].strip()
+  exchange = parts[1].strip() if len(parts) == 2 else "NASDAQ"
+  if not re.fullmatch(r"[A-Z0-9.-]{1,12}", symbol):
+    return None, None
+  return symbol, exchange
+
+
+def _fetch_text(url, timeout):
+  request = urllib.request.Request(url, headers={
+    "User-Agent": "Mozilla/5.0 (compatible; Portfoliora/1.0)",
+  })
+  with urllib.request.urlopen(request, timeout=timeout) as response:
+    return response.read().decode("utf-8", "replace")
 
 
 def _finite_number(value, label, positive=False):
@@ -122,7 +149,8 @@ def _history_from_result(symbol, result, now):
       raise AnalysisInputError("%s returned an invalid negative dividend." % symbol)
     dividends[day] = dividends.get(day, 0) + amount * later_split_factor(day)
   return {"close": prices, "splits": splits, "dividends": dividends,
-          "company_name": meta.get("longName") or meta.get("shortName") or symbol}
+          "company_name": meta.get("longName") or meta.get("shortName") or symbol,
+          "instrument_type": meta.get("instrumentType")}
 
 
 def _fetch_history(symbol, start, now):
@@ -152,8 +180,11 @@ def _build_analysis(transactions, as_of, rate, histories):
   first_trade = min(transaction["trade_date"] for transaction in transactions)
   total_history = histories["^SP500TR"]["close"]
   price_history = histories["^GSPC"]["close"]
+  # Index feeds can publish their most recent completed session at different
+  # times. Compare through their shared latest date, retaining internal-gap checks.
+  benchmark_end = min(as_of, max(total_history), max(price_history))
   sessions = sorted(day for day in set(total_history) | set(price_history)
-                    if first_trade <= day <= as_of)
+                    if first_trade <= day <= benchmark_end)
   if not sessions:
     raise AnalysisInputError("No completed US trading sessions exist in the selected period.")
   for day in sessions:
@@ -163,7 +194,7 @@ def _build_analysis(transactions, as_of, rate, histories):
   if (start - first_trade).days > 7:
     raise AnalysisInputError("S&P 500 history does not cover the beginning of this portfolio.")
   by_day = {}
-  row_summaries = [None] * len(transactions)
+  row_summaries = [{} for transaction in transactions]
   moved_dates = 0
   for transaction in sorted(transactions, key=lambda item: (item["trade_date"], item["action"] != "Buy")):
     day = next((day for day in sessions if day >= transaction["trade_date"]), None)
@@ -188,6 +219,7 @@ def _build_analysis(transactions, as_of, rate, histories):
 
   holdings = {}
   dividend_cash = buy_cost = sale_proceeds = previous_nav = 0.0
+  market_value = 0.0
   portfolio_index = 100.0
   series = []
   for day in sessions:
@@ -229,24 +261,34 @@ def _build_analysis(transactions, as_of, rate, histories):
         market_value += shares * close
     nav = market_value + dividend_cash
     denominator = previous_nav + contributions
-    if series and denominator > 0:
+    return_observed = bool(series) and denominator > 0
+    if return_observed:
       portfolio_index *= (nav + withdrawals) / denominator
     _finite_number(portfolio_index, "Portfolio return")
     series.append({"date": day.isoformat(), "portfolio_index": portfolio_index,
+                   "return_observed": return_observed,
                    "benchmark_index": 100 * total_history[day] / total_history[start],
                    "market_index": 100 * price_history[day] / price_history[start]})
     previous_nav = nav
 
   total_return = portfolio_index / 100 - 1
   days = (end - start).days
+  uninvested_sessions = sum(not point["return_observed"] for point in series[1:])
   annualized_return = None
-  if days > 0 and portfolio_index > 0:
+  if days > 0 and portfolio_index > 0 and not uninvested_sessions:
     exponent = math.log(portfolio_index / 100) * 365.25 / days
     if exponent < 700:
       annualized_return = math.expm1(exponent)
   profit = market_value + sale_proceeds + dividend_cash - buy_cost
+  open_holdings = []
+  for symbol, shares in sorted(holdings.items()):
+    if shares > 0:
+      price = histories[symbol]["close"][end]
+      value = _finite_number(shares * price, "%s market value" % symbol, True)
+      open_holdings.append({"symbol": symbol, "company_name": histories[symbol]["company_name"],
+                            "shares": shares, "price": price, "market_value": value})
   return {
-    "ok": True, "series": series, "rows": row_summaries,
+    "ok": True, "series": series, "rows": row_summaries, "open_holdings": open_holdings,
     "metrics": {"buy_cost": buy_cost, "sale_proceeds": sale_proceeds,
                 "market_value": market_value, "dividends": dividend_cash,
                 "profit": profit, "simple_return": profit / buy_cost if buy_cost else 0,
@@ -258,7 +300,9 @@ def _build_analysis(transactions, as_of, rate, histories):
                  "market_benchmark": "S&P 500 price index (^GSPC)",
                  "risk_free_rate": rate, "moved_transaction_dates": moved_dates,
                  "minimum_risk_observations": 20,
-                 "method": "Daily time-weighted returns; buys are beginning-of-day contributions and sales are end-of-day withdrawals. Dividends remain cash. First completed close is the zero-return baseline; non-trading dates use the next completed session. Splits adjust quantities. Prices and dividends use historical USD data."},
+                 "observed_return_sessions": sum(point["return_observed"] for point in series),
+                 "uninvested_sessions": uninvested_sessions,
+                 "method": "Daily time-weighted returns; buys are beginning-of-day contributions and sales are end-of-day withdrawals. Dividends remain cash. First completed close is the zero-return baseline; non-trading dates use the next completed session. Splits adjust quantities. Prices and dividends use historical USD data. Zero-capital sessions stay flat on the chart, are excluded from risk observations, and suppress annualized return when present."},
   }
 
 
@@ -272,6 +316,10 @@ def analyze_portfolio_history(transactions, as_of_date, risk_free_rate):
     now = datetime.now(timezone.utc)
     with ThreadPoolExecutor(max_workers=4) as pool:
       histories = dict(zip(symbols, pool.map(lambda symbol: _fetch_history(symbol, start, now), symbols)))
-    return _build_analysis(transactions, as_of, rate, histories)
+    analysis = _build_analysis(transactions, as_of, rate, histories)
+    analysis["sector_allocation"] = build_sector_allocation(
+      analysis.pop("open_holdings"), analysis["metadata"]["end_date"], histories
+    )
+    return analysis
   except AnalysisInputError as error:
     return {"ok": False, "message": str(error)}

@@ -54,7 +54,7 @@
       <div class="input-column">
         <div class="section-intro">
           <div class="section-index">01</div>
-          <div><h2>Log your activity</h2><p>Add buys and sells as separate transactions.</p></div>
+          <div><h2>Log your activity</h2><p>Add buys and sells separately. Collapse a transaction to keep its summary in view.</p></div>
         </div>
 
         <section class="panel-card holdings-card">
@@ -63,7 +63,6 @@
             <anvil-component type="m3._Components.Button" name="sample_button" prop:text="Load sample" prop:appearance="text" prop:icon="mi:science" prop:role="quiet-action"></anvil-component>
           </div>
           <p class="transaction-price-help">Price per share is optional. Enter what you paid or received in the stock's quote currency, or leave it blank to use the historical close.</p>
-          <div class="transaction-column-headings"><span>Ticker</span><span>Date</span><span>Action</span><span>Shares</span><span>Price / share</span><span>Market data</span><span></span></div>
           <anvil-component type="RepeatingPanel" name="holdings_panel" prop:item_template="M3_App_1.HoldingRow" prop:role="holdings-list"></anvil-component>
           <div class="add-holding-row">
             <anvil-component type="m3._Components.Button" name="add_button" prop:text="Add transaction" prop:appearance="outlined" prop:icon="mi:add" prop:role="add-holding-action"></anvil-component>
@@ -106,8 +105,8 @@
           <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="365 days · 2 open holdings" prop:role="period-label"></anvil-component></div>
           <div class="metric-grid">
             <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Open positions at last completed close</div></div>
-            <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Time-weighted · full history</div></div>
-            <div class="metric-card"><div class="metric-label">Annualized return</div><anvil-component type="Label" name="annualized_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Compounded from first daily close</div></div>
+            <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Investment profit ÷ total buy capital</div></div>
+            <div class="metric-card"><div class="metric-label">Annualized return</div><anvil-component type="Label" name="annualized_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Time-weighted · from first daily close</div></div>
             <div class="metric-card metric-card-dark"><div class="metric-label">Dividends earned</div><anvil-component type="Label" name="dividends_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Held as cash · before tax</div></div>
           </div>
           <div class="detail-card">
@@ -118,6 +117,15 @@
               <div class="detail-row"><span>Investment profit</span><anvil-component type="Label" name="profit_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
             </div>
           </div>
+          <section class="detail-card sector-card" aria-label="Sector allocation">
+            <div class="detail-heading"><h3>Sector allocation</h3><span>By market value</span></div>
+            <anvil-component type="Label" name="sector_period_label" prop:role="portfolio-help"></anvil-component>
+            <anvil-component type="Label" name="sector_empty_label" prop:text="No open holdings to chart. Add a buy transaction and sync history to see your sector allocation." prop:role="portfolio-help"></anvil-component>
+            <anvil-component type="Plot" name="sector_plot" prop:height="290px"></anvil-component>
+            <anvil-component type="RepeatingPanel" name="sector_panel" prop:item_template="M3_App_1.Components.SectorAllocationRow"></anvil-component>
+            <anvil-component type="Label" name="sector_status_label" prop:role="portfolio-help"></anvil-component>
+            <p class="fine-print">Open positions only, weighted by market value at the analysis date; sold positions and dividend cash are excluded. Current <a href="https://finviz.com/groups.ashx?g=sector" target="_blank" rel="noopener noreferrer">Finviz sector classifications</a> are used, including for historical valuations. Funds / ETFs are grouped separately, without looking through their holdings.</p>
+          </section>
           <section class="detail-card comparison-card" aria-label="Risk and benchmark analyzer">
             <div class="detail-heading"><h3>Risk &amp; benchmark analyzer</h3><span>Matching dates</span></div>
             <div class="comparison-controls">
@@ -130,10 +138,10 @@
             </div>
             <anvil-component type="Label" name="comparison_period_label" prop:role="portfolio-help"></anvil-component>
             <div class="comparison-metrics">
-              <div><span>Portfolio return</span><anvil-component type="Label" name="window_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
-              <div><span>S&amp;P 500 return</span><anvil-component type="Label" name="benchmark_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
-              <div><span>Annualized volatility</span><anvil-component type="Label" name="volatility_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
-              <div><span>Annualized Sharpe</span><anvil-component type="Label" name="sharpe_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span class="comparison-metric-label">Portfolio return</span><anvil-component type="Label" name="window_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span class="comparison-metric-label">S&amp;P 500 return</span><anvil-component type="Label" name="benchmark_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span class="comparison-metric-label">Annualized volatility</span><anvil-component type="Label" name="volatility_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span class="comparison-metric-label">Annualized Sharpe</span><anvil-component type="Label" name="sharpe_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
             </div>
             <anvil-component type="Label" name="risk_status_label" prop:role="portfolio-help"></anvil-component>
             <h4 class="chart-title">Cumulative return</h4>
@@ -142,7 +150,7 @@
             <anvil-component type="Plot" name="drawdown_plot" prop:height="240px"></anvil-component>
             <p class="fine-print">Both lines start at 0% on the first available close in the selected period. Drawdown is the decline from each line's high within that period. The total-return index reinvests dividends; your portfolio retains dividends as cash.</p>
           </section>
-          <div class="method-note"><span class="method-icon">∿</span><div><strong>How performance and risk are measured</strong><p>Daily returns adjust for purchases as contributions and sales as withdrawals. With no deposit ledger or execution times, buys are treated as beginning-of-day inflows and sells as end-of-day outflows. The first close establishes the comparison baseline; investment profit above still includes your entered execution prices. Dividends are credited on ex-dividend dates, before tax, without reinvestment. Weekend or holiday trades use the next completed trading session.</p><p>Volatility is the sample standard deviation of daily returns × √252. Sharpe is mean daily excess return divided by its standard deviation × √252, using your annual risk-free rate converted to a daily rate. Risk metrics need at least 20 daily returns; short samples remain estimates.</p></div></div>
+          <div class="method-note"><span class="method-icon">∿</span><div><strong>How performance and risk are measured</strong><p>Total return above is investment profit divided by total buy capital. The charts and annualized return use daily time-weighted performance, adjusting for purchases as contributions and sales as withdrawals. With no deposit ledger or execution times, buys are treated as beginning-of-day inflows and sells as end-of-day outflows. The first close establishes the comparison baseline; investment profit above still includes your entered execution prices. Dividends are credited on ex-dividend dates, before tax, without reinvestment. Weekend or holiday trades use the next completed trading session.</p><p>Volatility is the sample standard deviation of daily returns × √252. Sharpe is mean daily excess return divided by its standard deviation × √252, using your annual risk-free rate converted to a daily rate. Risk metrics need at least 20 daily returns with invested capital; short samples remain estimates. Sessions with no invested capital are excluded, and annualized return is not shown when history contains these gaps.</p></div></div>
         </section>
       </div>
     </section>

@@ -355,12 +355,12 @@ class Form1(Form1Template):
     last_day = (next_month - timedelta(days=1)).day
     return date(year, month, min(value.day, last_day))
 
-  def _daily_risk(self, indices):
+  def _daily_risk(self, indices, observed):
     if self._history is None:
       return None, None
     daily_returns = [
       indices[index] / indices[index - 1] - 1
-      for index in range(1, len(indices))
+      for index in range(1, len(indices)) if observed[index]
     ]
     if len(daily_returns) < 20:
       return None, None
@@ -443,11 +443,13 @@ class Form1(Form1Template):
     benchmark = [point[benchmark_key] for point in selected]
     portfolio_returns = [value / portfolio[0] - 1 for value in portfolio]
     benchmark_returns = [value / benchmark[0] - 1 for value in benchmark]
-    observations = len(selected) - 1
+    observed = [point["return_observed"] for point in selected]
+    observations = sum(1 for available in observed[1:] if available)
+    inactive_days = len(selected) - 1 - observations
     self.comparison_period_label.text = "%s – %s · %d daily returns" % (dates[0], dates[-1], observations)
     self.window_return_label.text = self._format_percent(portfolio_returns[-1])
     self.benchmark_return_label.text = self._format_percent(benchmark_returns[-1])
-    volatility, sharpe = self._daily_risk(portfolio)
+    volatility, sharpe = self._daily_risk(portfolio, observed)
     self.volatility_label.text = "—" if volatility is None else "%.2f%%" % (volatility * 100)
     self.sharpe_label.text = self._format_ratio(sharpe)
     if observations < 20:
@@ -458,9 +460,56 @@ class Form1(Form1Template):
       message = "Short sample: risk estimates use less than one trading year."
     else:
       message = "Risk estimates use daily returns from the selected period."
+    if inactive_days:
+      message += " %d sessions with no invested capital are excluded from risk metrics; the portfolio line stays flat." % inactive_days
     self.risk_status_label.text = message + " Yahoo Finance · 252 trading days/year."
     self._set_chart(self.performance_plot, dates, portfolio_returns, benchmark_returns, benchmark_name)
     self._set_chart(self.drawdown_plot, dates, self._drawdowns(portfolio), self._drawdowns(benchmark), benchmark_name)
+
+  def _render_sectors(self):
+    if self._history is None:
+      return
+    allocation = self._history["sector_allocation"]
+    colors = {
+      "Technology": "#2c9b67", "Financial": "#466b9f",
+      "Healthcare": "#8463ac", "Consumer Cyclical": "#df8054",
+      "Consumer Defensive": "#b09437", "Communication Services": "#2e9da4",
+      "Industrials": "#607386", "Energy": "#b55269",
+      "Basic Materials": "#7d9446", "Real Estate": "#ad729c",
+      "Utilities": "#64a1be", "Funds / ETFs": "#1d3344", "Unclassified": "#a0a6ad",
+    }
+    slices = allocation["slices"]
+    self.sector_period_label.text = "%s · %s in open positions" % (
+      allocation["as_of"], self._format_currency(allocation["total_value"])
+    )
+    self.sector_empty_label.visible = not bool(slices)
+    self.sector_plot.visible = bool(slices)
+    self.sector_panel.items = [dict(group,
+      color=colors.get(group["sector"], "#a0a6ad"),
+      tickers_text=", ".join(group["tickers"]),
+      weight_text="%.1f%%" % (group["weight"] * 100),
+      value_text=self._format_currency(group["market_value"]),
+    ) for group in slices]
+    self.sector_plot.data = [{
+      "type": "pie", "hole": 0.48, "sort": False, "direction": "clockwise",
+      "labels": [group["sector"] for group in slices],
+      "values": [group["market_value"] for group in slices],
+      "customdata": [", ".join(group["tickers"]) for group in slices],
+      "marker": {"colors": [colors.get(group["sector"], "#a0a6ad") for group in slices],
+                 "line": {"color": "#ffffff", "width": 2}},
+      "textinfo": "percent", "textposition": "inside",
+      "hovertemplate": "%{label}: %{percent}<br>$%{value:,.2f}<br>%{customdata}<extra></extra>",
+    }] if slices else []
+    self.sector_plot.layout = {
+      "margin": {"l": 10, "r": 10, "t": 15, "b": 15}, "showlegend": False,
+      "paper_bgcolor": "rgba(0,0,0,0)", "font": {"family": "Inter, sans-serif", "size": 12},
+    }
+    self.sector_plot.config = {"displayModeBar": False, "responsive": True}
+    unknown = allocation["unclassified_tickers"]
+    self.sector_status_label.text = (
+      "Sector unavailable for %s; its value is included under Unclassified." % ", ".join(unknown)
+      if unknown else "Classifications checked %s." % allocation["classification_as_of"]
+    )
 
   @handle("timeframe_dropdown", "change")
   @handle("benchmark_dropdown", "change")
@@ -508,7 +557,7 @@ class Form1(Form1Template):
       transactions = self._read_transactions()
       as_of_date, risk_free_rate = self._read_analysis_settings(transactions)
       self._show_results(False)
-      self._set_status("Loading daily prices, dividends, and S&P 500 history…")
+      self._set_status("Loading daily prices, dividends, sectors, and S&P 500 history…")
       document = [{
         "ticker": row["ticker"], "trade_date": row["trade_date"],
         "action": row["action"], "shares": row["shares"],
@@ -528,7 +577,7 @@ class Form1(Form1Template):
       metrics = result["metrics"]
       self.invested_label.text = self._format_currency(metrics["buy_cost"])
       self.value_label.text = self._format_currency(metrics["market_value"])
-      self.return_label.text = self._format_percent(metrics["total_return"])
+      self.return_label.text = self._format_percent(metrics["simple_return"])
       self.annualized_label.text = "—" if metrics["annualized_return"] is None else self._format_percent(metrics["annualized_return"])
       self.dividends_label.text = self._format_currency(metrics["dividends"])
       self.sale_proceeds_label.text = self._format_currency(metrics["sale_proceeds"])
@@ -540,7 +589,12 @@ class Form1(Form1Template):
       self.comparison_end_picker.date = self._date_from_iso(result["series"][-1]["date"])
       self._show_results(True)
       self._render_comparison()
-      self._set_status("Daily history synced and analysis updated.")
+      self._render_sectors()
+      message = "Daily history synced and analysis updated."
+      moved_dates = result["metadata"]["moved_transaction_dates"]
+      if moved_dates:
+        message += " %d non-trading date(s) use the next completed session." % moved_dates
+      self._set_status(message)
     except ValueError as error:
       self._set_status(str(error), is_error=True)
       self._show_results(False)

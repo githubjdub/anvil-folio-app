@@ -1,0 +1,11 @@
+<div class="sector-allocation-row">
+  <span anvil:name="swatch" class="sector-swatch" aria-hidden="true"></span>
+  <div class="sector-description">
+    <anvil-component type="Label" name="sector_label" bind:text="self.item['sector']" prop:role="sector-name"></anvil-component>
+    <anvil-component type="Label" name="tickers_label" bind:text="self.item['tickers_text']" prop:role="sector-tickers"></anvil-component>
+  </div>
+  <div class="sector-amounts">
+    <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" prop:role="sector-weight"></anvil-component>
+    <anvil-component type="Label" name="value_label" bind:text="self.item['value_text']" prop:role="sector-tickers"></anvil-component>
+  </div>
+</div>

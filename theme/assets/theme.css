@@ -214,10 +214,40 @@ html, body {
 .comparison-custom-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
 .comparison-custom-dates label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 6px; }
 .comparison-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 10px; padding: 18px 0; margin: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.comparison-metrics span { color: var(--muted); font-size: 10px; }
+.comparison-metric-label { color: var(--muted); font-size: 10px; }
 .anvil-role-comparison-value { display: block; color: var(--ink); font-size: 23px; font-weight: 750; letter-spacing: -.04em; }
 .chart-title { margin: 23px 0 0; font-size: 12px; color: var(--ink); }
 @media (max-width: 620px) {
   .comparison-controls { grid-template-columns: 1fr; }
   .comparison-card { padding: 18px 10px; }
 }
+
+/* Transaction summaries remain visible while their editors collapse. */
+.transaction-card { margin: 12px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.transaction-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.transaction-summary { flex: 1; min-width: 0; }
+.anvil-role-transaction-summary-title { display: block; color: var(--ink); font-size: 13px; font-weight: 750; overflow-wrap: anywhere; }
+.anvil-role-transaction-summary-details { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
+.anvil-role-transaction-summary-value { display: block; color: #277b50; font-size: 11px; margin-top: 4px; }
+.transaction-card-actions { display: flex; flex-shrink: 0; align-items: center; gap: 2px; }
+.transaction-card .holding-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; padding: 14px 0 0; }
+.transaction-card .holding-row .holding-field, .transaction-card .holding-row .market-data-field { grid-column: auto; grid-row: auto; }
+.transaction-card .transaction-field-caption { display: block; }
+.transaction-card.is-collapsed { background: #fbfcfc; }
+@media (max-width: 620px) {
+  .transaction-card { padding: 12px; }
+  .transaction-card-header { flex-direction: column; }
+  .transaction-card-actions { align-self: flex-end; }
+  .transaction-card .holding-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .transaction-card .holding-row .ticker-field { grid-column: span 2; }
+  .transaction-card .holding-row .market-data-field { grid-column: span 2; }
+}
+
+.sector-card { margin-bottom: 12px; }
+.sector-card .fine-print a { color: #277b50; text-decoration: underline; }
+.sector-allocation-row { display: flex; align-items: flex-start; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.sector-swatch { width: 10px; height: 10px; flex: 0 0 10px; margin-top: 5px; border-radius: 50%; }
+.sector-description { flex: 1; min-width: 0; }
+.sector-amounts { text-align: right; }
+.anvil-role-sector-name, .anvil-role-sector-weight { display: block; color: var(--ink); font-size: 12px; font-weight: 700; }
+.anvil-role-sector-tickers { display: block; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }

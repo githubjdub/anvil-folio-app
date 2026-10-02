@@ -1,9 +1,21 @@
-<div class="holding-row">
+<section class="transaction-card">
+  <header class="transaction-card-header">
+    <div class="transaction-summary">
+      <anvil-component type="Label" name="summary_title_label" prop:role="transaction-summary-title"></anvil-component>
+      <anvil-component type="Label" name="summary_details_label" prop:role="transaction-summary-details"></anvil-component>
+      <anvil-component type="Label" name="summary_value_label" prop:role="transaction-summary-value"></anvil-component>
+    </div>
+    <div class="transaction-card-actions">
+      <anvil-component type="m3._Components.Button" name="toggle_button" prop:text="Collapse" prop:icon="mi:expand_less" prop:appearance="text" prop:role="transaction-toggle"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="remove_button" prop:text="" prop:icon="mi:close" prop:appearance="text" prop:tooltip="Remove transaction" prop:role="remove-holding-action"></anvil-component>
+    </div>
+  </header>
+<div anvil:name="editor_region" class="holding-row">
   <div class="holding-field ticker-field"><anvil-component type="m3._Components.TextInput.TextBox" name="ticker_box" bind:text="self.item['ticker']" prop:label="Ticker" prop:placeholder="AAPL" prop:appearance="outlined" prop:role="holding-field"></anvil-component></div>
   <div class="holding-field trade-date-field"><div class="transaction-field-caption">Trade date</div><anvil-component type="DatePicker" name="trade_date_picker" bind:date="self.item['trade_date']" prop:role="date-field"></anvil-component></div>
   <div class="holding-field trade-action-field"><div class="transaction-field-caption">Action</div><anvil-component type="DropDown" name="action_dropdown" bind:selected_value="self.item['action']" prop:items='["Buy", "Sell"]' prop:role="action-field"></anvil-component></div>
   <div class="holding-field shares-field"><anvil-component type="m3._Components.TextInput.TextBox" name="shares_box" bind:text="self.item['shares']" prop:label="Shares" prop:type="number" prop:placeholder="0" prop:appearance="outlined" prop:role="holding-field"></anvil-component></div>
   <div class="holding-field trade-price-field"><anvil-component type="m3._Components.TextInput.TextBox" name="trade_price_box" bind:text="'' if self.item.get('trade_price') is None else self.item['trade_price']" prop:label="Price / share" prop:type="number" prop:placeholder="Auto" prop:appearance="outlined" prop:role="holding-field"></anvil-component></div>
   <div class="market-data-field"><anvil-component type="Label" name="quote_label" bind:text="self.item['quote_text']" prop:role="quote-label"></anvil-component><anvil-component type="Label" name="dividend_label" bind:text="self.item['dividend_text']" prop:role="dividend-label"></anvil-component></div>
-  <anvil-component type="m3._Components.Button" name="remove_button" prop:text="" prop:icon="mi:close" prop:appearance="text" prop:tooltip="Remove transaction" prop:role="remove-holding-action"></anvil-component>
 </div>
+</section>
