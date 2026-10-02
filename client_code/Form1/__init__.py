@@ -37,6 +37,7 @@ class Form1(Form1Template):
     self._history = None
     self._analysis_source = None
     self._selected_symbols = set()
+    self._market_status_loading = False
     self.transaction_view_dropdown.items = [("Entry order", "entry"), ("Group by security", "security")]
     self.transaction_view_dropdown.selected_value = "entry"
     self.regroup_button.visible = False
@@ -58,6 +59,24 @@ class Form1(Form1Template):
     self._load_sample_transactions()
     self._show_results(False)
     self._refresh_account()
+
+  @handle("market_status_timer", "tick")
+  def market_status_timer_tick(self, **event_args):
+    if self._market_status_loading:
+      return
+    self._market_status_loading = True
+    try:
+      status = anvil.server.call_s("get_us_market_status")
+      self.market_status_label.text = status["label"]
+      self.market_detail_label.text = status["detail"]
+      self.market_status_label.tooltip = "%s\nChecked %s\n%s" % (
+        status["scope"], status["checked_at"], status["schedule_source"]
+      )
+      for state in ("open", "closed", "unavailable"):
+        self.market_status_region.classes["is-" + state] = status["state"] == state
+    finally:
+      self._market_status_loading = False
+      self.market_status_timer.interval = 60
 
   def _security_key(self, transaction):
     parts = str(transaction.get("ticker") or "").strip().upper().split(":", 1)
@@ -502,7 +521,8 @@ class Form1(Form1Template):
   def _clear_comparison(self, message):
     self.comparison_period_label.text = message
     for label in (self.window_return_label, self.benchmark_return_label,
-                  self.volatility_label, self.sharpe_label):
+                  self.volatility_label, self.sharpe_label,
+                  self.benchmark_volatility_label, self.benchmark_sharpe_label):
       label.text = "—"
     self.risk_status_label.text = ""
     self.performance_plot.data = []
@@ -599,6 +619,12 @@ class Form1(Form1Template):
     volatility, sharpe = self._daily_risk(portfolio, observed)
     self.volatility_label.text = "—" if volatility is None else "%.2f%%" % (volatility * 100)
     self.sharpe_label.text = self._format_ratio(sharpe)
+    # A benchmark stays invested across every close, including sessions when
+    # the selected portfolio had no capital. Use its own observation mask.
+    benchmark_observations = len(benchmark) - 1
+    benchmark_volatility, benchmark_sharpe = self._daily_risk(benchmark, [True] * len(benchmark))
+    self.benchmark_volatility_label.text = "—" if benchmark_volatility is None else "%.2f%%" % (benchmark_volatility * 100)
+    self.benchmark_sharpe_label.text = self._format_ratio(benchmark_sharpe)
     if observations < 20:
       message = "At least 20 daily returns are needed for volatility and Sharpe; this period has %d." % observations
     elif sharpe is None:
@@ -608,7 +634,12 @@ class Form1(Form1Template):
     else:
       message = "Risk estimates use daily returns from the selected period."
     if inactive_days:
-      message += " %d sessions with no invested capital are excluded from risk metrics; the portfolio line stays flat." % inactive_days
+      message += " %d sessions with no invested capital are excluded from portfolio risk metrics; the portfolio line stays flat." % inactive_days
+    message += " Benchmark risk uses %d daily returns over the same dates and the same risk-free rate." % benchmark_observations
+    if benchmark_observations < 20:
+      message += " Benchmark volatility and Sharpe need at least 20 daily returns."
+    elif benchmark_sharpe is None:
+      message += " The benchmark has no measurable daily variation; its Sharpe is undefined."
     self.risk_status_label.text = message + " Yahoo Finance · 252 trading days/year."
     self._set_chart(self.performance_plot, dates, portfolio_returns, benchmark_returns, benchmark_name)
     self._set_chart(self.drawdown_plot, dates, self._drawdowns(portfolio), self._drawdowns(benchmark), benchmark_name)

@@ -305,3 +305,20 @@ html, body {
   .security-allocation-row { gap: 7px; }
   .security-amounts { max-width: 38%; }
 }
+
+/* The regular-session status remains visible on phones as well as desktop. */
+.portfolio-topbar { gap: 18px; }
+.market-status { max-width: 460px; text-align: right; padding: 12px 0; }
+.market-status-line { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.market-status-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--muted); }
+.market-status.is-open .market-status-dot { background: var(--mint-strong); box-shadow: 0 0 0 3px rgba(44,155,103,.12); }
+.market-status.is-closed .market-status-dot { background: var(--navy); }
+.anvil-role-market-status-title { font-size: 12px; color: var(--ink); font-weight: 700; }
+.anvil-role-market-status-detail { font-size: 10px; color: var(--muted); line-height: 1.5; }
+.anvil-label.anvil-role-market-status-title > span,
+.anvil-label.anvil-role-market-status-detail > span { padding-top: 0; padding-bottom: 0; }
+@media (max-width: 620px) {
+  .portfolio-topbar { flex-wrap: wrap; gap: 0; padding-top: 16px; }
+  .market-status { width: 100%; max-width: none; padding: 12px 0; text-align: left; }
+  .market-status-line { justify-content: flex-start; }
+}
