@@ -1,0 +1,12 @@
+<div class="security-allocation-row">
+  <span anvil:name="swatch" class="security-swatch" aria-hidden="true"></span>
+  <div class="security-description">
+    <anvil-component type="CheckBox" name="include_checkbox" writeback:checked="self.item['included']" bind:text="self.item['symbol']" prop:role="security-choice" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="company_label" bind:text="self.item['company_name']" prop:role="security-company" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="detail_label" bind:text="self.item['detail_text']" prop:role="security-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <div class="security-amounts">
+    <anvil-component type="Label" name="value_label" bind:text="self.item['value_text']" prop:role="security-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" prop:role="security-weight" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+</div>

@@ -5,6 +5,24 @@ import anvil.server
 import anvil.users
 from ._anvil_designer import Form1Template
 from anvil import *
+from ..analysis_selection import analyze_selection
+
+
+SECTOR_COLORS = {
+  "Technology": "#2c9b67", "Financial": "#466b9f",
+  "Healthcare": "#8463ac", "Consumer Cyclical": "#df8054",
+  "Consumer Defensive": "#b09437", "Communication Services": "#2e9da4",
+  "Industrials": "#607386", "Energy": "#b55269",
+  "Basic Materials": "#7d9446", "Real Estate": "#ad729c",
+  "Utilities": "#64a1be", "Funds / ETFs": "#1d3344", "Unclassified": "#a0a6ad",
+}
+
+BENCHMARK_CHOICES = [
+  ("S&P 500 index", "sp500"), ("Nasdaq Composite index", "nasdaq"),
+  ("SPY · S&P 500 ETF", "spy"), ("QQQ · Nasdaq-100 ETF", "qqq"),
+  ("DIA · Dow Jones ETF", "dia"), ("IWM · Russell 2000 ETF", "iwm"),
+  ("VTI · Total US market ETF", "vti"),
+]
 
 
 class Form1(Form1Template):
@@ -17,6 +35,8 @@ class Form1(Form1Template):
     self._busy = False
     self.transactions = []
     self._history = None
+    self._analysis_source = None
+    self._selected_symbols = set()
     self.transaction_view_dropdown.items = [("Entry order", "entry"), ("Group by security", "security")]
     self.transaction_view_dropdown.selected_value = "entry"
     self.regroup_button.visible = False
@@ -26,11 +46,13 @@ class Form1(Form1Template):
       ("All history", "ALL"), ("Custom dates", "CUSTOM"),
     ]
     self.timeframe_dropdown.selected_value = "ALL"
-    self.benchmark_dropdown.items = [
-      ("Total return · dividends reinvested", "benchmark_index"),
-      ("Price return · excludes dividends", "market_index"),
+    self.benchmark_dropdown.items = BENCHMARK_CHOICES
+    self.benchmark_dropdown.selected_value = "sp500"
+    self.benchmark_return_dropdown.items = [
+      ("Total return · dividends reinvested", "total"),
+      ("Price return · excludes dividends", "price"),
     ]
-    self.benchmark_dropdown.selected_value = "benchmark_index"
+    self.benchmark_return_dropdown.selected_value = "total"
     self.custom_period_region.visible = False
     self._set_dates()
     self._load_sample_transactions()
@@ -90,7 +112,15 @@ class Form1(Form1Template):
     if not self._busy:
       self.holdings_panel.raise_event_on_children("x-set-collapsed", collapsed=False)
 
+  def _show_entry_order_for_error(self, message):
+    # Validation row numbers refer to the original transaction order.
+    if message.startswith("Row ") and self.transaction_view_dropdown.selected_value == "security":
+      self.transaction_view_dropdown.selected_value = "entry"
+      self._refresh_transactions()
+
   def _set_portfolio_status(self, message, is_error=False):
+    if is_error:
+      self._show_entry_order_for_error(message)
     self.portfolio_status_label.text = message
     self.portfolio_status_region.classes["is-error"] = is_error
 
@@ -100,6 +130,7 @@ class Form1(Form1Template):
       self.portfolio_name_box, self.add_button, self.sample_button,
       self.analyze_button, self.as_of_date_picker, self.risk_free_box,
       self.timeframe_dropdown, self.benchmark_dropdown,
+      self.benchmark_return_dropdown, self.select_all_securities_button,
       self.comparison_start_picker, self.comparison_end_picker,
       self.transaction_view_dropdown, self.regroup_button,
       self.collapse_all_button, self.expand_all_button,
@@ -113,6 +144,8 @@ class Form1(Form1Template):
       "Save changes" if self._current_portfolio is not None else "Save portfolio"
     )
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
+    self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
+    self.benchmark_return_dropdown.enabled = not self._busy and len(self.benchmark_return_dropdown.items) > 1
 
   def _set_busy(self, busy):
     self._busy = busy
@@ -327,10 +360,14 @@ class Form1(Form1Template):
   def _show_results(self, visible):
     if not visible:
       self._history = None
+      self._analysis_source = None
+      self._selected_symbols = set()
     self.results_section.visible = visible
     self.empty_results.visible = not visible
 
   def _set_status(self, message, is_error=False):
+    if is_error:
+      self._show_entry_order_for_error(message)
     self.status_label.text = message
     self.status_region.classes["is-hidden"] = not bool(message)
     self.status_region.classes["is-error"] = is_error
@@ -471,10 +508,38 @@ class Form1(Form1Template):
     self.performance_plot.data = []
     self.drawdown_plot.data = []
 
+  def _update_benchmark_options(self):
+    if self._analysis_source is None:
+      return
+    benchmarks = self._analysis_source["benchmarks"]
+    available = [(label, key) for label, key in BENCHMARK_CHOICES
+                 if benchmarks.get(key + "_price", {}).get("series")
+                 or benchmarks.get(key + "_total", {}).get("series")]
+    selected = self.benchmark_dropdown.selected_value
+    self.benchmark_dropdown.items = available
+    available_keys = [key for label, key in available]
+    self.benchmark_dropdown.selected_value = selected if selected in available_keys else "sp500"
+    selected = self.benchmark_dropdown.selected_value
+    modes = []
+    for label, mode in [("Total return · dividends reinvested", "total"),
+                        ("Price return · excludes dividends", "price")]:
+      if benchmarks.get(selected + "_" + mode, {}).get("series"):
+        modes.append((label, mode))
+    previous_mode = self.benchmark_return_dropdown.selected_value
+    self.benchmark_return_dropdown.items = modes
+    self.benchmark_return_dropdown.selected_value = (
+      previous_mode if previous_mode in [mode for label, mode in modes]
+      else modes[0][1]
+    )
+    self.benchmark_return_dropdown.enabled = not self._busy and len(modes) > 1
+
   def _render_comparison(self):
     if self._history is None:
       return
     series = self._history["series"]
+    if not series:
+      self._clear_comparison("Select at least one security to compare returns.")
+      return
     timeframe = self.timeframe_dropdown.selected_value or "ALL"
     self.custom_period_region.visible = timeframe == "CUSTOM"
     end = self._date_from_iso(series[-1]["date"])
@@ -494,11 +559,35 @@ class Form1(Form1Template):
     if not selected:
       self._clear_comparison("No portfolio history is available in this period.")
       return
-    benchmark_key = self.benchmark_dropdown.selected_value or "benchmark_index"
-    benchmark_name = "S&P 500 total return" if benchmark_key == "benchmark_index" else "S&P 500 price return"
+    benchmark_key = "%s_%s" % (self.benchmark_dropdown.selected_value,
+                               self.benchmark_return_dropdown.selected_value)
+    benchmark_data = self._history["benchmarks"][benchmark_key]
+    benchmark_name = benchmark_data["name"]
+    benchmark_by_date = {point["date"]: point["index"] for point in benchmark_data["series"]}
+    available_dates = sorted(benchmark_by_date)
+    common = [point for point in selected
+              if available_dates[0] <= point["date"] <= available_dates[-1]]
+    if not common:
+      self.benchmark_status_label.text = "This benchmark has no history in the selected period. Choose another benchmark or time frame."
+      self._clear_comparison("No overlapping portfolio and benchmark dates.")
+      return
+    if any(point["date"] not in benchmark_by_date for point in common):
+      self.benchmark_status_label.text = "This benchmark has missing daily closes in the selected period. Choose another benchmark."
+      self._clear_comparison("Incomplete benchmark history; no return was estimated.")
+      return
+    notice = "Nasdaq Composite is a price index; it excludes dividends." if benchmark_key == "nasdaq_price" else ""
+    if len(common) < len(selected):
+      notice += " Both lines use their overlapping dates: %s – %s." % (common[0]["date"], common[-1]["date"])
+    missing = [label for label, key in BENCHMARK_CHOICES
+               if not self._history["benchmarks"].get(key + "_price", {}).get("series")
+               and not self._history["benchmarks"].get(key + "_total", {}).get("series")]
+    if missing:
+      notice += " Unavailable this sync: %s." % ", ".join(missing)
+    self.benchmark_status_label.text = notice.strip()
+    selected = common
     dates = [point["date"] for point in selected]
     portfolio = [point["portfolio_index"] for point in selected]
-    benchmark = [point[benchmark_key] for point in selected]
+    benchmark = [benchmark_by_date[point["date"]] for point in selected]
     portfolio_returns = [value / portfolio[0] - 1 for value in portfolio]
     benchmark_returns = [value / benchmark[0] - 1 for value in benchmark]
     observed = [point["return_observed"] for point in selected]
@@ -528,19 +617,16 @@ class Form1(Form1Template):
     if self._history is None:
       return
     allocation = self._history["sector_allocation"]
-    colors = {
-      "Technology": "#2c9b67", "Financial": "#466b9f",
-      "Healthcare": "#8463ac", "Consumer Cyclical": "#df8054",
-      "Consumer Defensive": "#b09437", "Communication Services": "#2e9da4",
-      "Industrials": "#607386", "Energy": "#b55269",
-      "Basic Materials": "#7d9446", "Real Estate": "#ad729c",
-      "Utilities": "#64a1be", "Funds / ETFs": "#1d3344", "Unclassified": "#a0a6ad",
-    }
+    colors = SECTOR_COLORS
     slices = allocation["slices"]
     self.sector_period_label.text = "%s · %s in open positions" % (
       allocation["as_of"], self._format_currency(allocation["total_value"])
     )
     self.sector_empty_label.visible = not bool(slices)
+    self.sector_empty_label.text = (
+      "Select a security below to see its allocation." if not self._selected_symbols
+      else "The selected securities have no open positions at the analysis date. Closed trades and dividends still contribute to returns."
+    )
     self.sector_plot.visible = bool(slices)
     self.sector_panel.items = [dict(group,
       color=colors.get(group["sector"], "#a0a6ad"),
@@ -569,12 +655,75 @@ class Form1(Form1Template):
       if unknown else "Classifications checked %s." % allocation["classification_as_of"]
     )
 
+  def _render_security_rows(self):
+    if self._analysis_source is None or self._history is None:
+      return
+    securities = self._analysis_source["selection_data"]["securities"]
+    total_value = self._history["metrics"]["market_value"]
+    rows = []
+    for security in sorted(securities, key=lambda row: (row["sector"], row["symbol"])):
+      included = security["symbol"] in self._selected_symbols
+      shares = security["shares"]
+      shares_text = format(shares, ",.8f").rstrip("0").rstrip(".")
+      position = "%s shares" % shares_text if shares > 0 else "Closed position"
+      count = security["transaction_count"]
+      rows.append(dict(security,
+        included=included, color=SECTOR_COLORS.get(security["sector"], "#a0a6ad"),
+        detail_text="%s · %s · %d trade%s" % (security["sector"], position, count, "" if count == 1 else "s"),
+        value_text=self._format_currency(security["market_value"]),
+        weight_text=("%.1f%% of selection" % (security["market_value"] / total_value * 100)
+                     if included and total_value else "0.0% of selection" if included else "Excluded"),
+      ))
+    self.security_panel.items = rows
+    self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
+    self.selection_status_label.text = (
+      "%d of %d securities selected · All metrics and charts use this selection." % (len(self._selected_symbols), len(securities))
+      if self._selected_symbols else "No securities selected. Check a security or choose Select all."
+    )
+
+  def _render_readout(self):
+    if self._history is None:
+      return
+    metrics = self._history["metrics"]
+    for label, key in [(self.invested_label, "buy_cost"), (self.value_label, "market_value"),
+                       (self.dividends_label, "dividends"), (self.sale_proceeds_label, "sale_proceeds"),
+                       (self.profit_label, "profit")]:
+      label.text = self._format_currency(metrics[key])
+    self.return_label.text = "—" if metrics["simple_return"] is None else self._format_percent(metrics["simple_return"])
+    self.annualized_label.text = "—" if metrics["annualized_return"] is None else self._format_percent(metrics["annualized_return"])
+    self.period_label.text = "%s · %d selected open holdings" % (
+      self._history["metadata"]["end_date"], metrics["holding_count"]
+    )
+    self._render_comparison()
+    self._render_sectors()
+    self._render_security_rows()
+
+  @handle("security_panel", "x-security-selection-changed")
+  def security_selection_change(self, symbol, included, **event_args):
+    if self._busy or self._analysis_source is None:
+      return
+    if included:
+      self._selected_symbols.add(symbol)
+    else:
+      self._selected_symbols.discard(symbol)
+    self._history = analyze_selection(self._analysis_source, self._selected_symbols)
+    self._render_readout()
+
+  @handle("select_all_securities_button", "click")
+  def select_all_securities_button_click(self, **event_args):
+    if not self._busy and self._analysis_source is not None:
+      self._selected_symbols = set(row["symbol"] for row in self._analysis_source["selection_data"]["securities"])
+      self._history = analyze_selection(self._analysis_source, self._selected_symbols)
+      self._render_readout()
+
   @handle("timeframe_dropdown", "change")
   @handle("benchmark_dropdown", "change")
+  @handle("benchmark_return_dropdown", "change")
   @handle("comparison_start_picker", "change")
   @handle("comparison_end_picker", "change")
   def comparison_inputs_change(self, **event_args):
     if not self._busy:
+      self._update_benchmark_options()
       self._render_comparison()
 
   @handle("add_button", "click")
@@ -615,7 +764,7 @@ class Form1(Form1Template):
       transactions = self._read_transactions()
       as_of_date, risk_free_rate = self._read_analysis_settings(transactions)
       self._show_results(False)
-      self._set_status("Loading daily prices, dividends, sectors, and S&P 500 history…")
+      self._set_status("Loading daily prices, dividends, sectors, and benchmark history…")
       document = [{
         "ticker": row["ticker"], "trade_date": row["trade_date"],
         "action": row["action"], "shares": row["shares"],
@@ -625,29 +774,20 @@ class Form1(Form1Template):
       if not result["ok"]:
         self._set_status(result["message"], is_error=True)
         return
-      self._history = result
+      self._analysis_source = result
+      self._selected_symbols = set(row["symbol"] for row in result["selection_data"]["securities"])
+      self._history = analyze_selection(result, self._selected_symbols)
       for transaction, synced in zip(transactions, result["rows"]):
         transaction.update(synced)
         price = synced["current_price"]
         transaction["quote_text"] = "No current holding" if price is None else "USD %s" % self._format_currency(price)
         transaction["dividend_text"] = "Daily history synced"
       self._refresh_transactions()
-      metrics = result["metrics"]
-      self.invested_label.text = self._format_currency(metrics["buy_cost"])
-      self.value_label.text = self._format_currency(metrics["market_value"])
-      self.return_label.text = self._format_percent(metrics["simple_return"])
-      self.annualized_label.text = "—" if metrics["annualized_return"] is None else self._format_percent(metrics["annualized_return"])
-      self.dividends_label.text = self._format_currency(metrics["dividends"])
-      self.sale_proceeds_label.text = self._format_currency(metrics["sale_proceeds"])
-      self.profit_label.text = self._format_currency(metrics["profit"])
-      self.period_label.text = "%s · %d open holdings" % (
-        result["series"][-1]["date"], metrics["holding_count"]
-      )
       self.comparison_start_picker.date = self._date_from_iso(result["series"][0]["date"])
       self.comparison_end_picker.date = self._date_from_iso(result["series"][-1]["date"])
       self._show_results(True)
-      self._render_comparison()
-      self._render_sectors()
+      self._update_benchmark_options()
+      self._render_readout()
       message = "Daily history synced and analysis updated."
       moved_dates = result["metadata"]["moved_transaction_dates"]
       if moved_dates:

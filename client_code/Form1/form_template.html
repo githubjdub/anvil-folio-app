@@ -15,7 +15,7 @@
       <div>
         <div class="eyebrow">Portfolio intelligence · 01</div>
         <h1>Track the position, not the paperwork.</h1>
-        <p class="hero-copy">Enter what you bought or sold and your price per share. Portfoliora tracks daily returns, dividends, and risk alongside the S&P 500.</p>
+        <p class="hero-copy">Enter what you bought or sold and your price per share. Portfoliora tracks daily returns, dividends, and risk alongside major market benchmarks.</p>
       </div>
       <div class="hero-note">
         <span class="hero-note-icon">↗</span>
@@ -99,7 +99,7 @@
           <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
         </div>
         <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync history &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
-        <p class="fine-print">Yahoo Finance supplies daily prices, dividends, splits, and S&amp;P 500 history. Entered prices take precedence over the trade-day close. Analysis uses USD-listed US securities.</p>
+        <p class="fine-print">Yahoo Finance supplies daily prices, dividends, splits, and benchmark history. Entered prices take precedence over the trade-day close. Analysis uses USD-listed US securities.</p>
 
         <section anvil:name="empty_results" class="empty-results">
           <div class="empty-orbit"><span>✦</span></div>
@@ -130,6 +130,10 @@
             <anvil-component type="Label" name="sector_empty_label" prop:text="No open holdings to chart. Add a buy transaction and sync history to see your sector allocation." prop:role="portfolio-help"></anvil-component>
             <anvil-component type="Plot" name="sector_plot" prop:height="290px"></anvil-component>
             <anvil-component type="RepeatingPanel" name="sector_panel" prop:item_template="M3_App_1.Components.SectorAllocationRow"></anvil-component>
+            <div class="security-breakdown-heading"><h4>Securities in this analysis</h4><anvil-component type="m3._Components.Button" name="select_all_securities_button" prop:text="Select all" prop:appearance="text"></anvil-component></div>
+            <p class="security-selection-help">Uncheck a security to update the entire readout and charts. Each selection includes all of that security's trades and dividends.</p>
+            <anvil-component type="Label" name="selection_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
+            <anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component>
             <anvil-component type="Label" name="sector_status_label" prop:role="portfolio-help"></anvil-component>
             <p class="fine-print">Open positions only, weighted by market value at the analysis date; sold positions and dividend cash are excluded. Current <a href="https://finviz.com/groups.ashx?g=sector" target="_blank" rel="noopener noreferrer">Finviz sector classifications</a> are used, including for historical valuations. Funds / ETFs are grouped separately, without looking through their holdings.</p>
           </section>
@@ -137,8 +141,10 @@
             <div class="detail-heading"><h3>Risk &amp; benchmark analyzer</h3><span>Matching dates</span></div>
             <div class="comparison-controls">
               <div><div class="portfolio-field-caption">Time frame</div><anvil-component type="DropDown" name="timeframe_dropdown" prop:role="portfolio-picker" prop:tooltip="Choose the period for both charts and risk metrics"></anvil-component></div>
-              <div><div class="portfolio-field-caption">S&amp;P 500 comparison</div><anvil-component type="DropDown" name="benchmark_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+              <div><div class="portfolio-field-caption">Compare against</div><anvil-component type="DropDown" name="benchmark_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+              <div class="benchmark-return-choice"><div class="portfolio-field-caption">Benchmark return</div><anvil-component type="DropDown" name="benchmark_return_dropdown" prop:role="portfolio-picker"></anvil-component></div>
             </div>
+            <anvil-component type="Label" name="benchmark_status_label" prop:role="portfolio-help"></anvil-component>
             <div anvil:name="custom_period_region" class="comparison-custom-dates">
               <div><label>Start date</label><anvil-component type="DatePicker" name="comparison_start_picker" prop:role="date-field"></anvil-component></div>
               <div><label>End date</label><anvil-component type="DatePicker" name="comparison_end_picker" prop:role="date-field"></anvil-component></div>
@@ -146,7 +152,7 @@
             <anvil-component type="Label" name="comparison_period_label" prop:role="portfolio-help"></anvil-component>
             <div class="comparison-metrics">
               <div><span class="comparison-metric-label">Portfolio return</span><anvil-component type="Label" name="window_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
-              <div><span class="comparison-metric-label">S&amp;P 500 return</span><anvil-component type="Label" name="benchmark_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span class="comparison-metric-label">Benchmark return</span><anvil-component type="Label" name="benchmark_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
               <div><span class="comparison-metric-label">Annualized volatility</span><anvil-component type="Label" name="volatility_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
               <div><span class="comparison-metric-label">Annualized Sharpe</span><anvil-component type="Label" name="sharpe_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
             </div>

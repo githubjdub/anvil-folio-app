@@ -280,3 +280,28 @@ html, body {
 .anvil-label.anvil-role-transaction-summary-value > span,
 .anvil-label.anvil-role-security-group-title > span,
 .anvil-label.anvil-role-security-group-detail > span { padding-top: 0; padding-bottom: 0; }
+
+/* Security selection updates the complete readout from synced history. */
+.security-breakdown-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 20px; }
+.security-breakdown-heading h4 { color: var(--ink); font-size: 13px; margin: 0; }
+.security-selection-help { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 4px 0 8px; }
+.security-allocation-row { display: flex; align-items: flex-start; gap: 9px; padding: 12px 0; border-top: 1px solid var(--line); }
+.security-swatch { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; margin-top: 10px; }
+.security-description { flex: 1; min-width: 0; }
+.security-amounts { flex: 0 0 auto; text-align: right; padding-top: 5px; }
+.anvil-role-security-choice { color: var(--ink); font-size: 13px; font-weight: 700; }
+.anvil-role-security-company { display: block; color: var(--ink); font-size: 11px; overflow-wrap: anywhere; }
+.anvil-role-security-detail, .anvil-role-security-weight { display: block; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.anvil-role-security-value { display: block; color: var(--ink); font-size: 12px; font-weight: 700; }
+.security-allocation-row.is-excluded .anvil-role-security-company,
+.security-allocation-row.is-excluded .security-amounts { opacity: .65; }
+.security-allocation-row.is-excluded .security-swatch { background-color: #a0a6ad !important; }
+.anvil-label.anvil-role-security-company > span,
+.anvil-label.anvil-role-security-detail > span,
+.anvil-label.anvil-role-security-value > span,
+.anvil-label.anvil-role-security-weight > span { padding-top: 1px; padding-bottom: 1px; }
+.benchmark-return-choice { grid-column: 1 / -1; }
+@media (max-width: 620px) {
+  .security-allocation-row { gap: 7px; }
+  .security-amounts { max-width: 38%; }
+}

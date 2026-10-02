@@ -1,4 +1,4 @@
-"""Daily, cash-flow-adjusted portfolio returns and matching S&P 500 history."""
+"""Daily portfolio returns, selectable benchmarks, and cached selection paths."""
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time, timedelta, timezone
@@ -17,6 +17,17 @@ from .sectors import build_sector_allocation
 _EXCHANGES = {"NASDAQ", "NYSE", "NYSEARCA", "AMEX", "BATS", "NYSEAMERICAN"}
 _YAHOO_EXCHANGES = {"NMS", "NGM", "NCM", "NYQ", "PCX", "ASE", "BTS", "BATS", "CBOE"}
 _NEW_YORK = ZoneInfo("America/New_York")
+
+# Benchmark identities follow the issuers' index/fund descriptions. Prices are
+# daily Yahoo history; ETF total returns use its dividend-adjusted close series.
+_OPTIONAL_BENCHMARKS = (
+  ("nasdaq", "^IXIC", "Nasdaq Composite", "https://indexes.nasdaq.com/Index/Overview/COMP", False),
+  ("spy", "SPY", "SPY · S&P 500 ETF", "https://www.ssga.com/us/en/individual/etfs/state-street-spdr-sp-500-etf-trust-spy", True),
+  ("qqq", "QQQ", "QQQ · Nasdaq-100 ETF", "https://www.invesco.com/qqq-etf/en/home.html", True),
+  ("dia", "DIA", "DIA · Dow Jones ETF", "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-dow-jones-industrial-average-etf-trust-dia", True),
+  ("iwm", "IWM", "IWM · Russell 2000 ETF", "https://www.ishares.com/us/products/239710/ishares-russell-2000-etf", True),
+  ("vti", "VTI", "VTI · Total US market ETF", "https://investor.vanguard.com/investment-products/etfs/profile/vti", True),
+)
 
 
 class AnalysisInputError(ValueError):
@@ -125,7 +136,9 @@ def _history_from_result(symbol, result, now):
 
   regular = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
   closes = ((result.get("indicators") or {}).get("quote") or [{}])[0].get("close") or []
+  adjusted = ((result.get("indicators") or {}).get("adjclose") or [{}])[0].get("adjclose") or []
   prices = {}
+  adjusted_prices = {}
   today_local = now.astimezone(_NEW_YORK).date()
   for timestamp, close in zip(result.get("timestamp") or [], closes):
     day = _event_date(timestamp)
@@ -139,6 +152,10 @@ def _history_from_result(symbol, result, now):
         continue
     if close is not None:
       prices[day] = _finite_number(close, "%s historical close" % symbol, True) * later_split_factor(day)
+  for timestamp, close in zip(result.get("timestamp") or [], adjusted):
+    day = _event_date(timestamp)
+    if day in prices and close is not None:
+      adjusted_prices[day] = _finite_number(close, "%s adjusted close" % symbol, True)
   if not prices:
     raise AnalysisInputError("No completed daily price history is available for %s." % symbol)
   dividends = {}
@@ -149,6 +166,7 @@ def _history_from_result(symbol, result, now):
       raise AnalysisInputError("%s returned an invalid negative dividend." % symbol)
     dividends[day] = dividends.get(day, 0) + amount * later_split_factor(day)
   return {"close": prices, "splits": splits, "dividends": dividends,
+          "adjusted_close": adjusted_prices,
           "company_name": meta.get("longName") or meta.get("shortName") or symbol,
           "instrument_type": meta.get("instrumentType")}
 
@@ -195,6 +213,11 @@ def _build_analysis(transactions, as_of, rate, histories):
     raise AnalysisInputError("S&P 500 history does not cover the beginning of this portfolio.")
   by_day = {}
   row_summaries = [{} for transaction in transactions]
+  securities = {symbol: {
+    "symbol": symbol, "company_name": histories[symbol]["company_name"],
+    "sector": "Unclassified", "buy_cost": 0.0, "sale_proceeds": 0.0,
+    "dividends": 0.0, "transaction_count": 0, "start_date": None, "days": [],
+  } for symbol in sorted({transaction["symbol"] for transaction in transactions})}
   moved_dates = 0
   for transaction in sorted(transactions, key=lambda item: (item["trade_date"], item["action"] != "Buy")):
     day = next((day for day in sessions if day >= transaction["trade_date"]), None)
@@ -210,6 +233,10 @@ def _build_analysis(transactions, as_of, rate, histories):
       entry_price = history["close"][day]
     transaction = dict(transaction, entry_price=entry_price)
     by_day.setdefault(day, []).append(transaction)
+    security = securities[symbol]
+    security["transaction_count"] += 1
+    if security["start_date"] is None:
+      security["start_date"] = day.isoformat()
     row_summaries[transaction["row"] - 1] = {
       "entry_price": entry_price, "entry_date_used": day.isoformat(),
       "company_name": history["company_name"], "currency": "USD",
@@ -229,8 +256,11 @@ def _build_analysis(transactions, as_of, rate, histories):
       history = histories[symbol]
       shares *= history["splits"].get(day, 1)
       holdings[symbol] = shares
-      dividend_cash += shares * history["dividends"].get(day, 0)
+      dividend = shares * history["dividends"].get(day, 0)
+      dividend_cash += dividend
+      securities[symbol]["dividends"] += dividend
     contributions = withdrawals = 0.0
+    security_flows = {symbol: [0.0, 0.0] for symbol in securities}
     for transaction in by_day.get(day, []):
       symbol, shares = transaction["symbol"], transaction["shares"]
       value = shares * transaction["entry_price"]
@@ -240,6 +270,8 @@ def _build_analysis(transactions, as_of, rate, histories):
         holdings[symbol] = held + shares
         contributions += value
         buy_cost += value
+        securities[symbol]["buy_cost"] += value
+        security_flows[symbol][0] += value
       else:
         remaining = held - shares
         tolerance = max(abs(held), abs(shares)) * 1e-12
@@ -250,7 +282,10 @@ def _build_analysis(transactions, as_of, rate, histories):
         holdings[symbol] = 0.0 if abs(remaining) <= tolerance else remaining
         withdrawals += value
         sale_proceeds += value
+        securities[symbol]["sale_proceeds"] += value
+        security_flows[symbol][1] += value
     market_value = 0.0
+    security_market_values = {}
     for symbol, shares in holdings.items():
       if shares > 0:
         close = histories[symbol]["close"].get(day)
@@ -258,7 +293,15 @@ def _build_analysis(transactions, as_of, rate, histories):
           raise AnalysisInputError("%s has a missing daily close on %s while shares are held. No return was estimated." % (
             symbol, day.isoformat()
           ))
-        market_value += shares * close
+        value = shares * close
+        market_value += value
+        security_market_values[symbol] = value
+    for symbol, security in securities.items():
+      contribution, withdrawal = security_flows[symbol]
+      security["days"].append({
+        "nav": security_market_values.get(symbol, 0.0) + security["dividends"],
+        "contributions": contribution, "withdrawals": withdrawal,
+      })
     nav = market_value + dividend_cash
     denominator = previous_nav + contributions
     return_observed = bool(series) and denominator > 0
@@ -287,8 +330,15 @@ def _build_analysis(transactions, as_of, rate, histories):
       value = _finite_number(shares * price, "%s market value" % symbol, True)
       open_holdings.append({"symbol": symbol, "company_name": histories[symbol]["company_name"],
                             "shares": shares, "price": price, "market_value": value})
+  for symbol, security in securities.items():
+    shares = holdings.get(symbol, 0.0)
+    price = histories[symbol]["close"].get(end)
+    security.update({"shares": shares, "price": price,
+                     "market_value": shares * price if shares > 0 else 0.0})
   return {
     "ok": True, "series": series, "rows": row_summaries, "open_holdings": open_holdings,
+    "selection_data": {"dates": [day.isoformat() for day in sessions],
+                       "securities": list(securities.values())},
     "metrics": {"buy_cost": buy_cost, "sale_proceeds": sale_proceeds,
                 "market_value": market_value, "dividends": dividend_cash,
                 "profit": profit, "simple_return": profit / buy_cost if buy_cost else 0,
@@ -306,20 +356,97 @@ def _build_analysis(transactions, as_of, rate, histories):
   }
 
 
+def _benchmark_samples(history, sessions, total_return):
+  """Normalize the available contiguous daily history to its first close."""
+  prices = history.get("adjusted_close", {}) if total_return else history["close"]
+  available = [day for day in sessions if day in prices]
+  if not available:
+    return [], "No %s history is available for this portfolio period." % (
+      "dividend-adjusted" if total_return else "daily price"
+    )
+  start, end = available[0], available[-1]
+  expected = [day for day in sessions if start <= day <= end]
+  if available != expected:
+    return [], "Daily benchmark history has missing sessions. Please sync again later."
+  first_price = prices[start]
+  series = []
+  split_factor = 1.0
+  for day in available:
+    if not total_return and day > start:
+      split_factor *= history["splits"].get(day, 1)
+    index = 100 * prices[day] / first_price * split_factor
+    series.append({"date": day.isoformat(), "index": _finite_number(index, "Benchmark return", True)})
+  message = ""
+  if start != sessions[0] or end != sessions[-1]:
+    message = "Daily history is available from %s to %s; comparisons use matching dates." % (
+      start.isoformat(), end.isoformat()
+    )
+  return series, message
+
+
+def _build_benchmarks(analysis, histories, failures):
+  """Keep optional feed problems isolated from the portfolio's own history."""
+  points = analysis["series"]
+  sessions = [_as_date(point["date"]) for point in points]
+  benchmarks = {
+    "sp500_total": {
+      "name": "S&P 500 index · total return (dividends reinvested)",
+      "total_return": True, "symbol": "^SP500TR",
+      "series": [{"date": point["date"], "index": point["benchmark_index"]} for point in points],
+      "source_url": "https://www.spglobal.com/spdji/en/indices/equity/sp-500/",
+    },
+    "sp500_price": {
+      "name": "S&P 500 index · price return (excludes dividends)",
+      "total_return": False, "symbol": "^GSPC",
+      "series": [{"date": point["date"], "index": point["market_index"]} for point in points],
+      "source_url": "https://www.spglobal.com/spdji/en/indices/equity/sp-500/",
+    },
+  }
+  for key, symbol, name, source_url, has_total in _OPTIONAL_BENCHMARKS:
+    for total_return in ([True, False] if has_total else [False]):
+      suffix = "total" if total_return else "price"
+      entry = {"name": name + (" · total return (dividends reinvested)" if total_return else
+                               " · price return (excludes dividends)"),
+               "symbol": symbol, "total_return": total_return, "source_url": source_url,
+               "series": []}
+      if symbol in failures:
+        entry["message"] = failures[symbol]
+      else:
+        entry["series"], message = _benchmark_samples(histories[symbol], sessions, total_return)
+        if message:
+          entry["message"] = message
+      benchmarks[key + "_" + suffix] = entry
+  return benchmarks
+
+
 @anvil.server.callable
 def analyze_portfolio_history(transactions, as_of_date, risk_free_rate):
   """Analyze completed daily sessions; expected data/input issues are explicit."""
   try:
     transactions, as_of, rate = _validate(transactions, as_of_date, risk_free_rate)
     start = min(transaction["trade_date"] for transaction in transactions)
-    symbols = sorted({transaction["symbol"] for transaction in transactions} | {"^SP500TR", "^GSPC"})
+    required = {transaction["symbol"] for transaction in transactions} | {"^SP500TR", "^GSPC"}
+    symbols = sorted(required | {entry[1] for entry in _OPTIONAL_BENCHMARKS})
     now = datetime.now(timezone.utc)
+    def fetch(symbol):
+      try:
+        return _fetch_history(symbol, start, now), None
+      except AnalysisInputError as error:
+        if symbol in required:
+          raise
+        return None, str(error)
     with ThreadPoolExecutor(max_workers=4) as pool:
-      histories = dict(zip(symbols, pool.map(lambda symbol: _fetch_history(symbol, start, now), symbols)))
+      fetched = dict(zip(symbols, pool.map(fetch, symbols)))
+    histories = {symbol: result[0] for symbol, result in fetched.items() if result[0] is not None}
+    failures = {symbol: result[1] for symbol, result in fetched.items() if result[1] is not None}
     analysis = _build_analysis(transactions, as_of, rate, histories)
     analysis["sector_allocation"] = build_sector_allocation(
       analysis.pop("open_holdings"), analysis["metadata"]["end_date"], histories
     )
+    sectors = {holding["symbol"]: holding["sector"] for holding in analysis["sector_allocation"]["holdings"]}
+    for security in analysis["selection_data"]["securities"]:
+      security["sector"] = sectors.get(security["symbol"], "Unclassified")
+    analysis["benchmarks"] = _build_benchmarks(analysis, histories, failures)
     return analysis
   except AnalysisInputError as error:
     return {"ok": False, "message": str(error)}
