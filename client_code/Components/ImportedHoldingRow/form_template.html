@@ -1,0 +1,14 @@
+<section class="imported-holding-row transaction-card">
+  <header class="import-row-header">
+    <anvil-component type="CheckBox" name="include_checkbox" bind:checked="self.item.get('include', True)" prop:text="Add to portfolio" prop:role="import-row-include" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="row_kind_label" bind:text="'Transaction' if self.item.get('row_kind') == 'transaction' else 'Holding'" prop:role="import-row-kind" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </header>
+  <div class="import-row-fields">
+    <div class="import-ticker-field"><anvil-component type="m3._Components.TextInput.TextBox" name="ticker_box" bind:text="self.item.get('ticker', '')" prop:label="Ticker" prop:placeholder="AAPL" prop:appearance="outlined" prop:role="holding-field"></anvil-component></div>
+    <div class="import-shares-field"><anvil-component type="m3._Components.TextInput.TextBox" name="shares_box" bind:text="self.item.get('shares', '')" prop:label="Shares" prop:type="number" prop:placeholder="Enter shares" prop:appearance="outlined" prop:role="holding-field"></anvil-component></div>
+    <div class="import-date-field"><div class="transaction-field-caption">Snapshot / trade date</div><anvil-component type="DatePicker" name="trade_date_picker" bind:date="self.item.get('trade_date')" prop:role="date-field"></anvil-component></div>
+    <div class="import-action-field"><div class="transaction-field-caption">Action</div><anvil-component type="DropDown" name="action_dropdown" bind:selected_value="self.item.get('action', 'Buy')" prop:items='["Buy", "Sell"]' prop:role="action-field"></anvil-component></div>
+    <div class="import-price-field"><anvil-component type="m3._Components.TextInput.TextBox" name="trade_price_box" bind:text="self.item.get('trade_price') or ''" prop:label="Purchase / avg. cost per share" prop:type="number" prop:placeholder="Optional" prop:appearance="outlined" prop:role="holding-field"></anvil-component></div>
+  </div>
+  <anvil-component type="Label" name="notes_label" bind:text="self.item.get('notes', '')" prop:role="import-row-notes" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+</section>

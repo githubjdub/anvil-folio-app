@@ -306,19 +306,145 @@ html, body {
   .security-amounts { max-width: 38%; }
 }
 
-/* The regular-session status remains visible on phones as well as desktop. */
+/* Regular and extended session status stays visible on phones and desktop. */
 .portfolio-topbar { gap: 18px; }
-.market-status { max-width: 460px; text-align: right; padding: 12px 0; }
+.market-status { max-width: 480px; text-align: right; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
 .market-status-line { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .market-status-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--muted); }
 .market-status.is-open .market-status-dot { background: var(--mint-strong); box-shadow: 0 0 0 3px rgba(44,155,103,.12); }
 .market-status.is-closed .market-status-dot { background: var(--navy); }
+.market-status.is-extended { background: #fff8ec; border-color: #ead8b9; }
+.market-status.is-extended .market-status-dot { background: #b17827; box-shadow: 0 0 0 3px rgba(177,120,39,.12); }
+.market-status.is-open { background: #f0faf4; border-color: #c4ddce; }
 .anvil-role-market-status-title { font-size: 12px; color: var(--ink); font-weight: 700; }
-.anvil-role-market-status-detail { font-size: 10px; color: var(--muted); line-height: 1.5; }
+.anvil-role-market-status-detail { font-size: 10px; color: var(--muted); line-height: 1.5; margin-top: 3px; }
 .anvil-label.anvil-role-market-status-title > span,
 .anvil-label.anvil-role-market-status-detail > span { padding-top: 0; padding-bottom: 0; }
 @media (max-width: 620px) {
   .portfolio-topbar { flex-wrap: wrap; gap: 0; padding-top: 16px; }
-  .market-status { width: 100%; max-width: none; padding: 12px 0; text-align: left; }
+  .market-status { width: 100%; max-width: none; padding: 10px 12px; margin: 12px 0; box-sizing: border-box; text-align: left; }
   .market-status-line { justify-content: flex-start; }
+}
+
+/* Keep the transaction editor beside a readout with independently navigable pages. */
+.workspace-grid { gap: 28px; }
+.transaction-workspace, .readout-workspace { min-width: 0; display: flex; flex-direction: column; }
+.transaction-workspace > .section-intro,
+.readout-workspace > .section-intro,
+.readout-workspace > .settings-card,
+.readout-workspace > .status-region,
+.readout-workspace > .anvil-role-analyze-action,
+.readout-navigation,
+.anvil-role-readout-tab-context { flex: 0 0 auto; }
+.transaction-scroll-region, .readout-scroll-region { min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; }
+.transaction-scroll-region:focus-visible, .readout-scroll-region:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: 2px; border-radius: 12px; }
+.transaction-scroll-region { flex: 1 1 auto; padding: 0 3px 3px 0; }
+.transaction-scroll-region .holdings-card { margin-bottom: 0; }
+.readout-workspace { padding: 18px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 17px; background: var(--paper); box-shadow: var(--shadow); }
+.readout-workspace .section-intro { margin-bottom: 14px; }
+.readout-workspace .section-intro p { font-size: 11px; }
+.readout-workspace .settings-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; padding: 14px; margin-bottom: 8px; box-shadow: none; border-radius: 12px; background: #f9fbfa; }
+.readout-workspace .settings-card .compact-heading { grid-column: 1 / -1; margin-bottom: 2px; }
+.readout-workspace .settings-card .card-heading p { font-size: 10px; }
+.readout-workspace .single-date-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
+.readout-workspace .field-stack label { margin-bottom: 5px; font-size: 9px; }
+.readout-workspace .assumption-row { display: block; margin: 0; padding: 0; border: 0; }
+.readout-workspace .assumption-row label { font-size: 9px; }
+.readout-workspace .assumption-row p { font-size: 9px; line-height: 1.3; margin: 3px 0 4px; }
+.readout-workspace .rate-input { width: 100%; }
+.readout-workspace .rate-input .anvil-role-rate-field { flex: 1; width: auto; min-width: 0; }
+.readout-workspace .status-region { margin: 4px 0 6px; }
+.readout-workspace .anvil-role-analyze-action { margin: 0; }
+.readout-workspace .anvil-role-analyze-action .anvil-m3-button { height: 42px; }
+.readout-navigation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 14px 0 5px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: var(--canvas); }
+.readout-navigation > * { min-width: 0; }
+button.anvil-role-readout-tab,
+button.anvil-role-readout-tab-active,
+.anvil-role-readout-tab > button,
+.anvil-role-readout-tab-active > button { width: 100%; min-width: 0; min-height: 36px; height: auto; box-sizing: border-box; margin: 0; padding: 8px 6px; border: 1px solid transparent; border-radius: 8px; font-size: 11px; line-height: 1.3; justify-content: center; align-items: center; color: var(--muted); background: transparent; }
+button.anvil-role-readout-tab:hover,
+.anvil-role-readout-tab > button:hover { background: #edf3ef; color: var(--ink); }
+button.anvil-role-readout-tab-active,
+.anvil-role-readout-tab-active > button { color: #277b50; background: var(--paper); border-color: #c4ddce; box-shadow: 0 2px 5px rgba(25,35,45,.04); }
+button.anvil-role-readout-tab:focus-visible,
+button.anvil-role-readout-tab-active:focus-visible,
+.anvil-role-readout-tab > button:focus-visible,
+.anvil-role-readout-tab-active > button:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: 2px; }
+.anvil-role-readout-tab-context { color: var(--muted); font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; margin: 3px 2px 9px; }
+.anvil-label.anvil-role-readout-tab-context > span { padding-top: 0; padding-bottom: 0; }
+.readout-scroll-region { flex: 1 1 auto; padding-right: 3px; }
+.readout-page { min-width: 0; padding-bottom: 3px; }
+.readout-page > .detail-card:first-child { margin-top: 0; }
+.readout-page .detail-card { padding: 16px; }
+.readout-page .metric-grid { gap: 9px; }
+.readout-page .metric-card { min-height: 108px; padding: 14px; }
+.readout-page .anvil-role-metric-value { font-size: 25px; }
+.readout-page .readout-meta { flex-wrap: wrap; }
+.readout-page .method-note { margin-top: 0; }
+.readout-workspace .empty-results { min-height: 240px; padding: 25px 20px; }
+
+@media (min-width: 981px) {
+  .workspace-grid > .input-column, .workspace-grid > .results-column { align-self: stretch; }
+  .transaction-workspace, .readout-workspace { position: sticky; top: 20px; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); }
+  .readout-workspace { height: calc(100vh - 40px); height: calc(100dvh - 40px); }
+}
+
+@media (max-width: 980px) {
+  .workspace-grid { grid-template-columns: 1fr; gap: 28px; }
+  .transaction-scroll-region { max-height: min(540px, 65vh); max-height: min(540px, 65dvh); }
+  .readout-scroll-region { max-height: 70vh; max-height: 70dvh; }
+}
+
+@media (max-width: 620px) {
+  .readout-workspace { padding: 13px; }
+  .readout-workspace .settings-card { padding: 12px; gap: 8px 10px; }
+  .readout-workspace .window-badge { padding: 5px 6px; font-size: 7px; }
+  .readout-navigation { gap: 2px; padding: 3px; }
+  button.anvil-role-readout-tab,
+  button.anvil-role-readout-tab-active,
+  .anvil-role-readout-tab > button,
+  .anvil-role-readout-tab-active > button { font-size: 10px; padding: 8px 3px; }
+  .readout-page .detail-card { padding: 14px 10px; }
+  .readout-page .metric-card { padding: 12px; }
+  .readout-page .anvil-role-metric-value { font-size: 23px; }
+}
+
+/* Review image-detected positions before changing portfolio transactions. */
+.holdings-image-import { margin: 0 0 18px; padding: 14px; border: 1px solid #c4ddce; border-radius: 12px; background: #f6faf7; }
+.image-import-heading, .image-review-heading, .import-row-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.image-import-heading > div { min-width: 0; }
+.image-import-heading h4, .image-review-heading h4 { margin: 0; font-size: 12px; color: var(--ink); }
+.image-import-heading p, .image-import-help { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+.image-import-heading > .anvil-component { flex-shrink: 0; }
+.image-import-body { margin-top: 12px; padding-top: 12px; border-top: 1px solid #dce9df; }
+.image-import-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; margin: 12px 0; }
+.anvil-role-holdings-image-loader { max-width: 100%; font-size: 11px; overflow-wrap: anywhere; }
+.anvil-role-holdings-image-preview { margin: 8px 0 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
+.image-import-status { margin: 8px 0; }
+.image-import-status.is-error .anvil-role-portfolio-help { color: #b55248; }
+.image-import-review { padding-top: 10px; }
+.image-review-heading { flex-wrap: wrap; }
+.image-import-settings { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr); gap: 12px; margin: 14px 0; }
+.image-import-settings > div { min-width: 0; }
+.anvil-role-import-warnings { color: #956634; font-size: 10px; line-height: 1.55; }
+.imported-holding-row { background: var(--paper); }
+.imported-holding-row.is-excluded { background: #f3f5f4; }
+.import-row-header { margin-bottom: 12px; }
+.anvil-role-import-row-include { font-size: 11px; }
+.anvil-role-import-row-kind { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .09em; }
+.import-row-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+.import-row-fields > div { min-width: 0; }
+.import-price-field { grid-column: 1 / -1; }
+.import-row-fields .anvil-role-holding-field { width: 100%; min-width: 0; }
+.import-row-fields .transaction-field-caption { margin-bottom: 5px; font-size: 9px; color: var(--muted); }
+.anvil-role-import-row-notes { margin-top: 9px; color: var(--muted); font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.image-import-review > .image-import-help { margin-bottom: 10px; }
+.pdf-import-options { margin: 12px 0; padding: 12px; border: 1px solid #dce9df; border-radius: 10px; background: var(--paper); }
+.pdf-import-page-range { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.pdf-import-page-range > *, .anvil-role-pdf-password-field { width: 100%; min-width: 0; }
+@media (max-width: 620px) {
+  .holdings-image-import { padding: 12px; }
+  .image-import-heading { flex-wrap: wrap; }
+  .image-import-settings { grid-template-columns: 1fr; }
+  .imported-holding-row { padding: 10px; }
 }

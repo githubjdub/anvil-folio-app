@@ -9,7 +9,7 @@
     </div>
     <div anvil:name="market_status_region" class="market-status is-unavailable" role="status" aria-live="polite">
       <div class="market-status-line"><span class="market-status-dot" aria-hidden="true"></span><anvil-component type="Label" name="market_status_label" prop:text="Checking US markets…" prop:role="market-status-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-      <anvil-component type="Label" name="market_detail_label" prop:text="Regular NYSE / Nasdaq session · Updates each minute" prop:role="market-status-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+      <anvil-component type="Label" name="market_detail_label" prop:text="Regular and extended US trading · Updates each minute" prop:role="market-status-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     </div>
   </header>
 
@@ -55,16 +55,42 @@
 
     <section class="workspace-grid">
       <div class="input-column">
+        <div class="transaction-workspace">
         <div class="section-intro">
           <div class="section-index">01</div>
           <div><h2>Log your activity</h2><p>Add buys and sells separately. Collapse a transaction to keep its summary in view.</p></div>
         </div>
 
+        <div class="transaction-scroll-region" tabindex="0" role="region" aria-label="Transaction editor">
         <section class="panel-card holdings-card">
           <div class="card-heading">
             <div><h3>Transactions</h3><p>Use US-listed stocks and ETFs quoted in USD.</p></div>
             <anvil-component type="m3._Components.Button" name="sample_button" prop:text="Load sample" prop:appearance="text" prop:icon="mi:science" prop:role="quiet-action"></anvil-component>
           </div>
+          <section class="holdings-image-import" aria-label="Import holdings from a file">
+            <div class="image-import-heading"><div><h4>Bring your holdings with you</h4><p>Read a broker PDF, screenshot, or photo, then review the positions.</p></div><anvil-component type="m3._Components.Button" name="toggle_image_import_button" prop:text="Import file" prop:appearance="outlined" prop:icon="mi:upload_file"></anvil-component></div>
+            <div anvil:name="image_import_region" class="image-import-body">
+              <p class="image-import-help">Use a broker PDF or a clear image with column headings and share quantities visible. PDF, PNG, JPEG, WebP, or BMP · Up to 10 MB. Your browser reads the file; only detected text is sent to organize positions. The original file is not saved to your portfolio.</p>
+              <div class="image-import-actions"><anvil-component type="FileLoader" name="holdings_image_loader" prop:text="Choose PDF / image" prop:file_types="application/pdf,.pdf,image/png,image/jpeg,image/webp,image/bmp" prop:multiple="false" prop:show_state="true" prop:role="holdings-image-loader"></anvil-component><anvil-component type="m3._Components.Button" name="read_image_button" prop:text="Read file" prop:appearance="filled" prop:icon="mi:document_scanner"></anvil-component><anvil-component type="m3._Components.Button" name="clear_image_import_button" prop:text="Clear import" prop:appearance="text"></anvil-component></div>
+              <div anvil:name="pdf_import_options" class="pdf-import-options">
+                <p class="image-import-help">Choose the pages containing holdings or trades. A blank end page reads up to five pages from your start page. Read up to 20 pages at a time; you can import another range afterward.</p>
+                <div class="pdf-import-page-range"><anvil-component type="m3._Components.TextInput.TextBox" name="pdf_start_page_box" prop:label="From page" prop:text="1" prop:type="number" prop:appearance="outlined" prop:role="holding-field"></anvil-component><anvil-component type="m3._Components.TextInput.TextBox" name="pdf_end_page_box" prop:label="Through page (optional)" prop:type="number" prop:placeholder="Next 5 pages" prop:appearance="outlined" prop:role="holding-field"></anvil-component></div>
+                <anvil-component type="m3._Components.TextInput.TextBox" name="pdf_password_box" prop:label="PDF password (optional)" prop:hide_text="true" prop:appearance="outlined" prop:role="pdf-password-field"></anvil-component>
+                <p class="image-import-help">PDF passwords are used only in your browser to open the file.</p>
+              </div>
+              <anvil-component type="Image" name="holdings_image_preview" prop:height="150px" prop:display_mode="shrink_to_fit" prop:alt_text="Holdings image selected for import" prop:role="holdings-image-preview"></anvil-component>
+              <div anvil:name="image_import_status_region" class="image-import-status" role="status" aria-live="polite"><anvil-component type="Label" name="image_import_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+              <div anvil:name="image_import_review_region" class="image-import-review">
+                <div class="image-review-heading"><h4>Review detected positions</h4><anvil-component type="Label" name="image_import_count_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+                <anvil-component type="Label" name="image_import_warnings_label" prop:role="import-warnings" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
+                <p class="image-import-help">Check every row before importing. A holdings snapshot becomes a Buy on the date its share quantities were current; it starts performance tracking there and does not reconstruct earlier trades or dividends. Use actual trade dates only for a transaction history. Purchase prices are filled only from labelled purchase cost or average cost, never the current quote.</p>
+                <div class="image-import-settings"><div><div class="portfolio-field-caption">Snapshot / fallback date</div><anvil-component type="DatePicker" name="image_import_date_picker" prop:role="date-field" prop:tooltip="Used for rows without a date. For current holdings, choose the date these quantities apply to."></anvil-component></div><div><div class="portfolio-field-caption">Import into this portfolio</div><anvil-component type="DropDown" name="image_import_mode_dropdown" prop:role="portfolio-picker"></anvil-component></div></div>
+                <anvil-component type="RepeatingPanel" name="image_import_rows_panel" prop:item_template="M3_App_1.Components.ImportedHoldingRow"></anvil-component>
+                <p class="image-import-help">Leave purchase price blank to use the historical close on the chosen date. Uncheck anything you do not want to import. Adding rows leaves your existing transactions in place. Sync history supports up to 25 different securities per portfolio.</p>
+                <anvil-component type="m3._Components.Button" name="apply_image_import_button" prop:text="Add selected rows" prop:appearance="filled" prop:icon="mi:playlist_add"></anvil-component>
+              </div>
+            </div>
+          </section>
           <p class="transaction-price-help">Price per share is optional. Enter what you paid or received in the stock's quote currency, or leave it blank to use the historical close.</p>
           <div class="transaction-view-toolbar">
             <div class="transaction-view-choice"><div class="portfolio-field-caption">Transaction view</div><anvil-component type="DropDown" name="transaction_view_dropdown" prop:role="portfolio-picker"></anvil-component></div>
@@ -78,10 +104,12 @@
             <anvil-component type="m3._Components.Button" name="add_button" prop:text="Add transaction" prop:appearance="outlined" prop:icon="mi:add" prop:role="add-holding-action"></anvil-component>
           </div>
         </section>
-
+        </div>
+        </div>
       </div>
 
       <div class="results-column">
+        <div class="readout-workspace">
         <div class="section-intro results-intro">
           <div class="section-index accent-index">02</div>
           <div><h2>Your readout</h2><p>Performance, income, and risk in one view.</p></div>
@@ -102,8 +130,15 @@
           <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
         </div>
         <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync history &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
-        <p class="fine-print">Yahoo Finance supplies daily prices, dividends, splits, and benchmark history. Entered prices take precedence over the trade-day close. Analysis uses USD-listed US securities.</p>
 
+        <nav class="readout-navigation" aria-label="Readout pages">
+          <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Overview" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Allocation" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="methods_tab_button" prop:text="Methods" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+        </nav>
+        <div class="readout-page-status" role="status" aria-live="polite"><anvil-component type="Label" name="readout_tab_context" prop:role="readout-tab-context" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+        <div anvil:dom-node="readout_scroller" class="readout-scroll-region" tabindex="0" role="region" aria-label="Readout content">
         <section anvil:name="empty_results" class="empty-results">
           <div class="empty-orbit"><span>✦</span></div>
           <h3>Sync your first position</h3>
@@ -113,6 +148,7 @@
 
         <section anvil:name="results_section" class="results-section">
           <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="365 days · 2 open holdings" prop:role="period-label"></anvil-component></div>
+          <section anvil:name="overview_panel" class="readout-page" aria-label="Portfolio overview">
           <div class="metric-grid">
             <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Open positions at last completed close</div></div>
             <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Investment profit ÷ total buy capital</div></div>
@@ -127,6 +163,8 @@
               <div class="detail-row"><span>Investment profit</span><anvil-component type="Label" name="profit_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
             </div>
           </div>
+          </section>
+          <section anvil:name="allocation_panel" class="readout-page" aria-label="Allocation and securities">
           <section class="detail-card sector-card" aria-label="Sector allocation">
             <div class="detail-heading"><h3>Sector allocation</h3><span>By market value</span></div>
             <anvil-component type="Label" name="sector_period_label" prop:role="portfolio-help"></anvil-component>
@@ -140,6 +178,8 @@
             <anvil-component type="Label" name="sector_status_label" prop:role="portfolio-help"></anvil-component>
             <p class="fine-print">Open positions only, weighted by market value at the analysis date; sold positions and dividend cash are excluded. Current <a href="https://finviz.com/groups.ashx?g=sector" target="_blank" rel="noopener noreferrer">Finviz sector classifications</a> are used, including for historical valuations. Funds / ETFs are grouped separately, without looking through their holdings.</p>
           </section>
+          </section>
+          <section anvil:name="performance_panel" class="readout-page" aria-label="Performance and risk">
           <section class="detail-card comparison-card" aria-label="Risk and benchmark analyzer">
             <div class="detail-heading"><h3>Risk &amp; benchmark analyzer</h3><span>Matching dates</span></div>
             <div class="comparison-controls">
@@ -168,8 +208,14 @@
             <anvil-component type="Plot" name="drawdown_plot" prop:height="240px"></anvil-component>
             <p class="fine-print">Both lines start at 0% on the first available close in the selected period. Drawdown is the decline from each line's high within that period. The total-return index reinvests dividends; your portfolio retains dividends as cash.</p>
           </section>
-          <div class="method-note"><span class="method-icon">∿</span><div><strong>How performance and risk are measured</strong><p>Total return above is investment profit divided by total buy capital. The charts and annualized return use daily time-weighted performance, adjusting for purchases as contributions and sales as withdrawals. With no deposit ledger or execution times, buys are treated as beginning-of-day inflows and sells as end-of-day outflows. The first close establishes the comparison baseline; investment profit above still includes your entered execution prices. Dividends are credited on ex-dividend dates, before tax, without reinvestment. Weekend or holiday trades use the next completed trading session.</p><p>Volatility is the sample standard deviation of daily returns × √252. Sharpe is mean daily excess return divided by its standard deviation × √252, using your annual risk-free rate converted to a daily rate. Both portfolio and benchmark risk need at least 20 daily returns; short samples remain estimates. Benchmark risk uses the selected price or total-return series over the matching chart dates. Sessions with no invested portfolio capital are excluded only from portfolio risk, and annualized portfolio return is not shown when history contains these gaps.</p></div></div>
+          </section>
         </section>
+        <section anvil:name="methods_panel" class="readout-page" aria-label="Calculation methods and sources">
+          <div class="method-note"><span class="method-icon">∿</span><div><strong>How performance and risk are measured</strong><p>Total return above is investment profit divided by total buy capital. The charts and annualized return use daily time-weighted performance, adjusting for purchases as contributions and sales as withdrawals. With no deposit ledger or execution times, buys are treated as beginning-of-day inflows and sells as end-of-day outflows. The first close establishes the comparison baseline; investment profit above still includes your entered execution prices. Dividends are credited on ex-dividend dates, before tax, without reinvestment. Weekend or holiday trades use the next completed trading session.</p><p>Volatility is the sample standard deviation of daily returns × √252. Sharpe is mean daily excess return divided by its standard deviation × √252, using your annual risk-free rate converted to a daily rate. Both portfolio and benchmark risk need at least 20 daily returns; short samples remain estimates. Benchmark risk uses the selected price or total-return series over the matching chart dates. Sessions with no invested portfolio capital are excluded only from portfolio risk, and annualized portfolio return is not shown when history contains these gaps.</p></div></div>
+        <p class="fine-print">Yahoo Finance supplies daily prices, dividends, splits, and benchmark history. Entered prices take precedence over the trade-day close. Analysis uses USD-listed US securities.</p>
+        </section>
+        </div>
+        </div>
       </div>
     </section>
   </main>

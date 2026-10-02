@@ -3,6 +3,7 @@ import math
 
 import anvil.server
 import anvil.users
+import anvil.js
 from ._anvil_designer import Form1Template
 from anvil import *
 from ..analysis_selection import analyze_selection
@@ -38,6 +39,18 @@ class Form1(Form1Template):
     self._analysis_source = None
     self._selected_symbols = set()
     self._market_status_loading = False
+    self._readout_page = "overview"
+    self._image_import_rows = []
+    self.image_import_region.visible = False
+    self.image_import_review_region.visible = False
+    self.holdings_image_preview.visible = False
+    self.pdf_import_options.visible = False
+    self.image_import_date_picker.date = None
+    self.image_import_mode_dropdown.items = [
+      ("Add to current transactions", "append"),
+      ("Replace current transactions", "replace"),
+    ]
+    self.image_import_mode_dropdown.selected_value = "append"
     self.transaction_view_dropdown.items = [("Entry order", "entry"), ("Group by security", "security")]
     self.transaction_view_dropdown.selected_value = "entry"
     self.regroup_button.visible = False
@@ -72,11 +85,70 @@ class Form1(Form1Template):
       self.market_status_label.tooltip = "%s\nChecked %s\n%s" % (
         status["scope"], status["checked_at"], status["schedule_source"]
       )
-      for state in ("open", "closed", "unavailable"):
+      for state in ("open", "closed", "pre_market", "after_hours", "unavailable"):
         self.market_status_region.classes["is-" + state] = status["state"] == state
+      self.market_status_region.classes["is-extended"] = status["state"] in ("pre_market", "after_hours")
     finally:
       self._market_status_loading = False
       self.market_status_timer.interval = 60
+
+  def _update_readout_context(self):
+    name = {"overview": "Overview", "allocation": "Allocation",
+            "performance": "Performance", "methods": "Methods"}[self._readout_page]
+    if self._readout_page == "methods":
+      self.readout_tab_context.text = "Methods · Calculations and data sources"
+    elif self._analysis_source is not None:
+      count = len(self._analysis_source["selection_data"]["securities"])
+      self.readout_tab_context.text = "%s · %d of %d securities selected" % (
+        name, len(self._selected_symbols), count
+      )
+    else:
+      self.readout_tab_context.text = "%s · Sync history to see your readout" % name
+
+  def _apply_readout_page(self, redraw=False):
+    has_analysis = self._history is not None
+    self.results_section.visible = has_analysis and self._readout_page != "methods"
+    self.empty_results.visible = not has_analysis and self._readout_page != "methods"
+    for name, panel, button in (
+      ("overview", self.overview_panel, self.overview_tab_button),
+      ("allocation", self.allocation_panel, self.allocation_tab_button),
+      ("performance", self.performance_panel, self.performance_tab_button),
+      ("methods", self.methods_panel, self.methods_tab_button),
+    ):
+      active = name == self._readout_page
+      panel.visible = active
+      button.role = "readout-tab-active" if active else "readout-tab"
+      setattr(button, "enabled", not self._busy)
+    self._update_readout_context()
+    if redraw and has_analysis:
+      # Plotly needs the shown panel's width after leaving a hidden page.
+      if self._readout_page == "allocation" and self.sector_plot.visible:
+        self.sector_plot.redraw()
+      elif self._readout_page == "performance":
+        self.performance_plot.redraw()
+        self.drawdown_plot.redraw()
+
+  def _select_readout_page(self, page):
+    if not self._busy:
+      self._readout_page = page
+      self._apply_readout_page(redraw=True)
+      self.dom_nodes["readout_scroller"].scrollTop = 0
+
+  @handle("overview_tab_button", "click")
+  def overview_tab_click(self, **event_args):
+    self._select_readout_page("overview")
+
+  @handle("allocation_tab_button", "click")
+  def allocation_tab_click(self, **event_args):
+    self._select_readout_page("allocation")
+
+  @handle("performance_tab_button", "click")
+  def performance_tab_click(self, **event_args):
+    self._select_readout_page("performance")
+
+  @handle("methods_tab_button", "click")
+  def methods_tab_click(self, **event_args):
+    self._select_readout_page("methods")
 
   def _security_key(self, transaction):
     parts = str(transaction.get("ticker") or "").strip().upper().split(":", 1)
@@ -85,6 +157,213 @@ class Form1(Form1Template):
     if exchange in ("NASDAQ", "NYSE", "NYSEARCA", "AMEX", "BATS", "NYSEAMERICAN"):
       return symbol
     return "%s:%s" % (symbol, exchange) if symbol else ""
+
+  def _set_image_import_status(self, message, is_error=False):
+    self.image_import_status_label.text = message
+    self.image_import_status_region.classes["is-error"] = is_error
+
+  def _import_file_is_pdf(self):
+    uploaded = self.holdings_image_loader.file
+    return uploaded is not None and (
+      str(getattr(uploaded, "content_type", "") or "").lower() == "application/pdf"
+      or str(getattr(uploaded, "name", "") or "").lower().endswith(".pdf")
+    )
+
+  def _read_pdf_page_range(self):
+    pages = []
+    for value, label, default in (
+      (self.pdf_start_page_box.text, "start", 1),
+      (self.pdf_end_page_box.text, "end", None),
+    ):
+      text = str(value or "").strip()
+      if not text:
+        pages.append(default)
+        continue
+      try:
+        number = float(text)
+      except (TypeError, ValueError):
+        raise ValueError("Enter a whole-number %s page." % label)
+      if not math.isfinite(number) or number < 1 or number != int(number):
+        raise ValueError("Enter a whole-number %s page greater than zero." % label)
+      pages.append(int(number))
+    first, last = pages
+    if last is not None and (last < first or last - first + 1 > 20):
+      raise ValueError("Choose a PDF range of 1–20 pages, with the end on or after the start.")
+    return first, last
+
+  def _update_image_import_controls(self):
+    count = sum(1 for row in self._image_import_rows if row.get("include", True))
+    self.image_import_count_label.text = "%d of %d rows selected · %d current transactions" % (
+      count, len(self._image_import_rows), len(self.transactions)
+    )
+    replacing = self.image_import_mode_dropdown.selected_value == "replace"
+    self.apply_image_import_button.text = (
+      "Replace with %d selected row%s" if replacing else "Add %d selected row%s"
+    ) % (count, "" if count == 1 else "s")
+    setattr(self.apply_image_import_button, "enabled", not self._busy and count > 0)
+    setattr(self.read_image_button, "enabled", not self._busy and self.holdings_image_loader.file is not None)
+    self.image_import_rows_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
+
+  def _clear_image_import(self):
+    self._image_import_rows = []
+    self.image_import_rows_panel.items = []
+    self.image_import_review_region.visible = False
+    self.holdings_image_preview.visible = False
+    self.holdings_image_preview.source = ""
+    self.holdings_image_loader.clear()
+    self.pdf_import_options.visible = False
+    self.pdf_start_page_box.text = "1"
+    self.pdf_end_page_box.text = ""
+    self.pdf_password_box.text = ""
+    self.image_import_warnings_label.text = ""
+    self.image_import_date_picker.date = None
+    self.image_import_mode_dropdown.selected_value = "append"
+    self._set_image_import_status("")
+    self._update_image_import_controls()
+
+  @handle("toggle_image_import_button", "click")
+  def toggle_image_import_button_click(self, **event_args):
+    if not self._busy:
+      self.image_import_region.visible = not self.image_import_region.visible
+      self.toggle_image_import_button.text = "Hide import" if self.image_import_region.visible else "Import file"
+
+  @handle("holdings_image_loader", "change")
+  def holdings_image_loader_change(self, **event_args):
+    if self._busy:
+      return
+    image = self.holdings_image_loader.file
+    is_pdf = self._import_file_is_pdf()
+    self._image_import_rows = []
+    self.image_import_rows_panel.items = []
+    self.image_import_review_region.visible = False
+    self.holdings_image_preview.source = image if image is not None and not is_pdf else ""
+    self.holdings_image_preview.visible = image is not None and not is_pdf
+    self.pdf_import_options.visible = is_pdf
+    self.pdf_start_page_box.text = "1"
+    self.pdf_end_page_box.text = ""
+    self.pdf_password_box.text = ""
+    self._set_image_import_status(("PDF ready. Choose your page range, then read and review the positions." if is_pdf else "Image ready. Read it, then review the detected positions.") if image is not None else "")
+    self._update_image_import_controls()
+
+  @handle("clear_image_import_button", "click")
+  def clear_image_import_button_click(self, **event_args):
+    if not self._busy:
+      self._clear_image_import()
+
+  @handle("read_image_button", "click")
+  def read_image_button_click(self, **event_args):
+    image = self.holdings_image_loader.file
+    if self._busy or image is None:
+      return
+    if image.length > 10 * 1024 * 1024:
+      self._set_image_import_status("Choose a PDF or image smaller than 10 MB.", is_error=True)
+      return
+    try:
+      first_page, last_page = self._read_pdf_page_range() if self._import_file_is_pdf() else (1, None)
+    except ValueError as error:
+      self._set_image_import_status(str(error), is_error=True)
+      return
+    self._set_busy(True)
+    self.read_image_button.text = "Reading file…"
+    self._set_image_import_status("Reading the file. Scanned PDF pages may take longer. Current transactions stay in place until you apply the reviewed rows.")
+    self._image_import_rows = []
+    self.image_import_rows_panel.items = []
+    self.image_import_review_region.visible = False
+    try:
+      reader = anvil.js.import_from("./_/theme/holdings-file-reader.js")
+      image_url = image.get_url()
+      if image_url is None:
+        input_node = anvil.js.get_dom_node(self.holdings_image_loader).querySelector("input[type=file]")
+        native_files = getattr(input_node, "files", None)
+        if native_files is None or len(native_files) == 0:
+          self._set_image_import_status("Choose the file again, then retry reading it.", is_error=True)
+          return
+        image_url = native_files[0]
+      extracted = reader.readHoldingsFile(image_url, first_page, last_page, str(self.pdf_password_box.text or ""))
+      if not extracted["ok"]:
+        self._set_image_import_status(extracted["message"], is_error=True)
+        return
+      self._set_image_import_status("Text read. Organizing the detected positions for your review…")
+      pdf_summary = ""
+      if extracted["document_kind"] == "pdf":
+        pdf_summary = "PDF pages %s of %d." % (
+          ", ".join(str(page) for page in extracted["pages_read"]), extracted["total_pages"]
+        )
+        result = anvil.server.call("parse_holdings_document_text", extracted["page_blocks"])
+      else:
+        result = anvil.server.call("parse_holdings_image_text", extracted["blocks"])
+      if not result["ok"]:
+        self._set_image_import_status((result["message"] + " " + pdf_summary).strip(), is_error=True)
+        return
+      self._image_import_rows = result["rows"]
+      existing_symbols = set(self._security_key(row) for row in self.transactions if row.get("ticker"))
+      for row in self._image_import_rows:
+        if self._security_key(row) in existing_symbols:
+          row["notes"] = (row.get("notes", "") + " This security already has transactions in this portfolio; check for duplicate positions.").strip()
+      self.image_import_rows_panel.items = self._image_import_rows
+      warnings = list(extracted.get("warnings", [])) + result.get("warnings", [])
+      self.image_import_warnings_label.text = "\n".join(warnings)
+      self.image_import_warnings_label.visible = bool(warnings)
+      self.image_import_review_region.visible = True
+      self._set_image_import_status((result["message"] + " " + pdf_summary).strip())
+    finally:
+      self.read_image_button.text = "Read file"
+      self._set_busy(False)
+
+  @handle("image_import_rows_panel", "x-import-row-changed")
+  @handle("image_import_mode_dropdown", "change")
+  def image_import_review_change(self, **event_args):
+    self._update_image_import_controls()
+
+  @handle("apply_image_import_button", "click")
+  def apply_image_import_button_click(self, **event_args):
+    if self._busy:
+      return
+    imported = []
+    fallback_date = self.image_import_date_picker.date
+    try:
+      for index, row in enumerate(self._image_import_rows, start=1):
+        if not row.get("include", True):
+          continue
+        ticker = str(row.get("ticker") or "").strip().upper()
+        if not 1 <= len(ticker) <= 40:
+          raise ValueError("Import row %d: enter a ticker symbol of 1–40 characters." % index)
+        trade_date = row.get("trade_date") or fallback_date
+        if trade_date is None:
+          raise ValueError("Import row %d: choose a snapshot / trade date, or set the fallback date above." % index)
+        if self.as_of_date_picker.date is not None and trade_date > self.as_of_date_picker.date:
+          raise ValueError("Import row %d: the date must be on or before the analysis date." % index)
+        action = row.get("action", "Buy")
+        if action not in ("Buy", "Sell"):
+          raise ValueError("Import row %d: choose Buy or Sell." % index)
+        shares = self._parse_number(row.get("shares"), "share count", index)
+        if shares <= 0:
+          raise ValueError("Import row %d: shares must be greater than zero." % index)
+        raw_price = row.get("trade_price")
+        price = None
+        if raw_price is not None and str(raw_price).strip():
+          price = self._parse_number(raw_price, "price per share", index)
+          if price <= 0:
+            raise ValueError("Import row %d: price per share must be greater than zero." % index)
+        transaction = self._new_transaction(ticker, trade_date, action, str(shares), price)
+        transaction["_collapsed"] = True
+        imported.append(transaction)
+      if not imported:
+        raise ValueError("Select at least one detected row to import.")
+      replacing = self.image_import_mode_dropdown.selected_value == "replace"
+      if len(imported) + (0 if replacing else len(self.transactions)) > 1000:
+        raise ValueError("A portfolio can contain up to 1,000 transactions. Import fewer rows or replace the current transactions.")
+    except ValueError as error:
+      self._set_image_import_status(str(error), is_error=True)
+      return
+    self.transactions = imported if replacing else self.transactions + imported
+    self._refresh_transactions()
+    self._mark_portfolio_dirty()
+    self._show_results(False)
+    count = len(imported)
+    self._clear_image_import()
+    self._set_image_import_status("Imported %d row%s. You can edit the transactions, save your portfolio, or sync history." % (count, "" if count == 1 else "s"))
+    self._set_status("Imported positions ready — sync history to calculate the updated readout.")
 
   def _refresh_transactions(self):
     grouped = self.transaction_view_dropdown.selected_value == "security"
@@ -114,6 +393,7 @@ class Form1(Form1Template):
       "Trades are grouped by ticker. Use Regroup after editing a ticker or action."
       if grouped else "Transactions appear in the order you entered them."
     )
+    self._update_image_import_controls()
 
   @handle("transaction_view_dropdown", "change")
   @handle("regroup_button", "click")
@@ -153,6 +433,12 @@ class Form1(Form1Template):
       self.comparison_start_picker, self.comparison_end_picker,
       self.transaction_view_dropdown, self.regroup_button,
       self.collapse_all_button, self.expand_all_button,
+      self.overview_tab_button, self.allocation_tab_button,
+      self.performance_tab_button, self.methods_tab_button,
+      self.toggle_image_import_button, self.holdings_image_loader,
+      self.clear_image_import_button, self.image_import_date_picker,
+      self.image_import_mode_dropdown,
+      self.pdf_start_page_box, self.pdf_end_page_box, self.pdf_password_box,
     ):
       setattr(component, "enabled", not self._busy)
     self.saved_portfolios_dropdown.enabled = not self._busy and self._user is not None
@@ -165,6 +451,7 @@ class Form1(Form1Template):
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.benchmark_return_dropdown.enabled = not self._busy and len(self.benchmark_return_dropdown.items) > 1
+    self._update_image_import_controls()
 
   def _set_busy(self, busy):
     self._busy = busy
@@ -215,6 +502,7 @@ class Form1(Form1Template):
     )
 
   def _new_portfolio(self):
+    self._clear_image_import()
     self._current_portfolio = None
     self.portfolio_name_box.text = ""
     self.transactions = [self._new_transaction()]
@@ -331,6 +619,7 @@ class Form1(Form1Template):
         self._set_portfolio_status(result["message"], is_error=True)
         return
       portfolio = result["portfolio"]
+      self._clear_image_import()
       self._current_portfolio = portfolio
       self.portfolio_name_box.text = portfolio["name"]
       self.as_of_date_picker.date = portfolio["as_of_date"]
@@ -368,6 +657,7 @@ class Form1(Form1Template):
     }
 
   def _load_sample_transactions(self):
+    self._clear_image_import()
     today = date.today()
     self.transactions = [
       self._new_transaction("AAPL", today - timedelta(days=365), "Buy", "20"),
@@ -381,8 +671,7 @@ class Form1(Form1Template):
       self._history = None
       self._analysis_source = None
       self._selected_symbols = set()
-    self.results_section.visible = visible
-    self.empty_results.visible = not visible
+    self._apply_readout_page()
 
   def _set_status(self, message, is_error=False):
     if is_error:
@@ -728,6 +1017,7 @@ class Form1(Form1Template):
     self._render_comparison()
     self._render_sectors()
     self._render_security_rows()
+    self._update_readout_context()
 
   @handle("security_panel", "x-security-selection-changed")
   def security_selection_change(self, symbol, included, **event_args):
