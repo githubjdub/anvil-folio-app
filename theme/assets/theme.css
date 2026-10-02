@@ -147,8 +147,11 @@ html, body {
   .portfolio-footer { width: 90vw; align-items: flex-start; flex-direction: column; gap: 6px; }
 }
 
-.transaction-column-headings { display: grid; grid-template-columns: 1fr 1.1fr .8fr .75fr 1.45fr 22px; gap: 8px; padding: 0 3px 8px; color: #9aa3a8; font-size: 8px; text-transform: uppercase; letter-spacing: .13em; font-weight: 750; }
-.holding-row { grid-template-columns: 1fr 1.1fr .8fr .75fr 1.45fr 22px; }
+.holdings-card { container: transactions / inline-size; }
+.transaction-price-help { margin: -8px 0 18px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.transaction-field-caption { display: none; margin-bottom: 6px; color: var(--muted); font-size: 10px; }
+.transaction-column-headings { display: grid; grid-template-columns: 1fr 1.25fr .8fr .7fr 1fr 1.2fr 22px; gap: 8px; padding: 0 3px 8px; color: #9aa3a8; font-size: 8px; text-transform: uppercase; letter-spacing: .13em; font-weight: 750; }
+.holding-row { grid-template-columns: 1fr 1.25fr .8fr .7fr 1fr 1.2fr 22px; }
 .holding-row .anvil-role-date-field input { min-height: 43px; }
 .holding-row .anvil-role-action-field { width: 100%; }
 .holding-row .anvil-role-action-field select { width: 100%; min-height: 43px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 9px; padding: 0 7px; color: var(--ink); font: inherit; font-size: 11px; background: #fbfcfc; }
@@ -177,14 +180,44 @@ html, body {
 .portfolio-save-status .anvil-role-portfolio-help { color: #377553; }
 .portfolio-save-status.is-error .anvil-role-portfolio-help { color: #c55048; }
 
+@container transactions (max-width: 680px) {
+  .transaction-column-headings { display: none; }
+  .transaction-field-caption { display: block; }
+  .holding-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr) 22px; gap: 10px; padding: 16px 0; }
+  .holding-row .ticker-field { grid-column: 1; grid-row: 1; }
+  .holding-row .trade-date-field { grid-column: 2; grid-row: 1; }
+  .holding-row .trade-action-field { grid-column: 3; grid-row: 1; }
+  .holding-row .shares-field { grid-column: 1; grid-row: 2; }
+  .holding-row .trade-price-field { grid-column: 2; grid-row: 2; }
+  .holding-row .market-data-field { grid-column: 3; grid-row: 2; }
+  .holding-row .anvil-role-remove-holding-action { grid-column: 4; grid-row: 1 / span 2; }
+}
+
 @media (max-width: 620px) {
   .portfolio-library-heading { flex-direction: column; }
   .portfolio-save-row, .portfolio-picker-row { flex-wrap: wrap; }
   .portfolio-name-field, .portfolio-picker-field { flex-basis: 100%; min-width: 0; }
   .transaction-column-headings { display: none; }
   .holding-row { grid-template-columns: 1fr 1fr; gap: 9px; padding: 14px 0; }
+  .holding-row .holding-field, .holding-row .market-data-field, .holding-row .anvil-role-remove-holding-action { grid-column: auto; grid-row: auto; }
   .holding-row .holding-field:first-child { grid-column: span 2; }
   .holding-row .market-data-field { grid-column: span 2; }
   .holding-row .anvil-role-remove-holding-action { grid-column: span 2; justify-self: end; }
   .single-date-grid { grid-template-columns: 1fr; }
+}
+
+/* Readout history controls and interactive comparisons. */
+.results-column, .input-column { min-width: 0; }
+.comparison-card { padding: 20px 16px; }
+.comparison-controls { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.4fr); gap: 10px; margin-bottom: 12px; }
+.comparison-controls > div { min-width: 0; }
+.comparison-custom-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.comparison-custom-dates label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+.comparison-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 10px; padding: 18px 0; margin: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.comparison-metrics span { color: var(--muted); font-size: 10px; }
+.anvil-role-comparison-value { display: block; color: var(--ink); font-size: 23px; font-weight: 750; letter-spacing: -.04em; }
+.chart-title { margin: 23px 0 0; font-size: 12px; color: var(--ink); }
+@media (max-width: 620px) {
+  .comparison-controls { grid-template-columns: 1fr; }
+  .comparison-card { padding: 18px 10px; }
 }

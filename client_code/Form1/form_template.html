@@ -7,7 +7,7 @@
         <div class="brand-name">Portfoli<span>o</span>ra</div>
       </div>
     </div>
-    <div class="topbar-status"><span class="status-dot"></span> Google Finance lookup</div>
+    <div class="topbar-status"><span class="status-dot"></span> Daily market history</div>
   </header>
 
   <main class="portfolio-shell">
@@ -15,11 +15,11 @@
       <div>
         <div class="eyebrow">Portfolio intelligence · 01</div>
         <h1>Track the position, not the paperwork.</h1>
-        <p class="hero-copy">Enter what you bought or sold. Portfoliora looks up the live quote, buy-date close, and dividends so your analysis stays current.</p>
+        <p class="hero-copy">Enter what you bought or sold and your price per share. Portfoliora tracks daily returns, dividends, and risk alongside the S&P 500.</p>
       </div>
       <div class="hero-note">
         <span class="hero-note-icon">↗</span>
-        <div><strong>Google Finance connected</strong><br><span>Live quote data fills in on sync.</span></div>
+        <div><strong>History in perspective</strong><br><span>Daily closes. The same comparison dates.</span></div>
       </div>
     </section>
 
@@ -59,32 +59,17 @@
 
         <section class="panel-card holdings-card">
           <div class="card-heading">
-            <div><h3>Transactions</h3><p>Use TICKER:EXCHANGE when the default NASDAQ listing is not right.</p></div>
+            <div><h3>Transactions</h3><p>Use US-listed stocks and ETFs quoted in USD.</p></div>
             <anvil-component type="m3._Components.Button" name="sample_button" prop:text="Load sample" prop:appearance="text" prop:icon="mi:science" prop:role="quiet-action"></anvil-component>
           </div>
-          <div class="transaction-column-headings"><span>Ticker</span><span>Date</span><span>Action</span><span>Shares</span><span>Market data</span><span></span></div>
+          <p class="transaction-price-help">Price per share is optional. Enter what you paid or received in the stock's quote currency, or leave it blank to use the historical close.</p>
+          <div class="transaction-column-headings"><span>Ticker</span><span>Date</span><span>Action</span><span>Shares</span><span>Price / share</span><span>Market data</span><span></span></div>
           <anvil-component type="RepeatingPanel" name="holdings_panel" prop:item_template="M3_App_1.HoldingRow" prop:role="holdings-list"></anvil-component>
           <div class="add-holding-row">
             <anvil-component type="m3._Components.Button" name="add_button" prop:text="Add transaction" prop:appearance="outlined" prop:icon="mi:add" prop:role="add-holding-action"></anvil-component>
           </div>
         </section>
 
-        <section class="panel-card settings-card">
-          <div class="card-heading compact-heading"><div><h3>Analysis settings</h3><p>Transactions are measured up to this date.</p></div><div class="window-badge">Live sync</div></div>
-          <div class="date-grid single-date-grid">
-            <div class="field-stack"><label>Analyze as of</label><anvil-component type="DatePicker" name="as_of_date_picker" prop:role="date-field"></anvil-component></div>
-          </div>
-          <div class="assumption-row">
-            <div><label>Risk-free rate</label><p>Used for the estimated Sharpe ratio.</p></div>
-            <div class="rate-input"><anvil-component type="m3._Components.TextInput.TextBox" name="risk_free_box" prop:text="4.50" prop:type="number" prop:appearance="outlined" prop:role="rate-field"></anvil-component><span>%</span></div>
-          </div>
-        </section>
-
-        <div anvil:name="status_region" class="status-region is-hidden">
-          <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
-        </div>
-        <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync prices &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
-        <p class="fine-print">Live quotes and dividend summaries come from Google Finance. Historical buy-date closes and dividend events use a chart-data fallback because Google Finance has no public historical API.</p>
       </div>
 
       <div class="results-column">
@@ -93,34 +78,75 @@
           <div><h2>Your readout</h2><p>Performance, income, and risk in one view.</p></div>
         </div>
 
+        <section class="panel-card settings-card">
+          <div class="card-heading compact-heading"><div><h3>Run your analysis</h3><p>Use completed daily closes through this date.</p></div><div class="window-badge">Daily history</div></div>
+          <div class="date-grid single-date-grid">
+            <div class="field-stack"><label>Analyze as of</label><anvil-component type="DatePicker" name="as_of_date_picker" prop:role="date-field"></anvil-component></div>
+          </div>
+          <div class="assumption-row">
+            <div><label>Risk-free rate</label><p>Annual rate used for daily excess returns.</p></div>
+            <div class="rate-input"><anvil-component type="m3._Components.TextInput.TextBox" name="risk_free_box" prop:text="4.50" prop:type="number" prop:appearance="outlined" prop:role="rate-field"></anvil-component><span>%</span></div>
+          </div>
+        </section>
+
+        <div anvil:name="status_region" class="status-region is-hidden">
+          <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
+        </div>
+        <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync history &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
+        <p class="fine-print">Yahoo Finance supplies daily prices, dividends, splits, and S&amp;P 500 history. Entered prices take precedence over the trade-day close. Analysis uses USD-listed US securities.</p>
+
         <section anvil:name="empty_results" class="empty-results">
           <div class="empty-orbit"><span>✦</span></div>
           <h3>Sync your first position</h3>
-          <p>Enter a ticker and trade date on the left, then let the app fill in the market data.</p>
+          <p>Log your transactions, then sync history to see performance and risk against the S&P 500.</p>
           <div class="empty-line"><span></span><span></span><span></span></div>
         </section>
 
         <section anvil:name="results_section" class="results-section">
-          <div class="readout-meta"><span class="live-pulse"></span><span>Live snapshot</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="365 days · 2 open holdings" prop:role="period-label"></anvil-component></div>
+          <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="365 days · 2 open holdings" prop:role="period-label"></anvil-component></div>
           <div class="metric-grid">
-            <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Open positions at live price</div></div>
-            <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Realized + unrealized + dividends</div></div>
-            <div class="metric-card"><div class="metric-label">Annualized return</div><anvil-component type="Label" name="annualized_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Compounded from first trade</div></div>
-            <div class="metric-card metric-card-dark"><div class="metric-label">Estimated Sharpe</div><anvil-component type="Label" name="sharpe_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Risk-adjusted return proxy</div></div>
+            <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Open positions at last completed close</div></div>
+            <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Time-weighted · full history</div></div>
+            <div class="metric-card"><div class="metric-label">Annualized return</div><anvil-component type="Label" name="annualized_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Compounded from first daily close</div></div>
+            <div class="metric-card metric-card-dark"><div class="metric-label">Dividends earned</div><anvil-component type="Label" name="dividends_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Held as cash · before tax</div></div>
           </div>
           <div class="detail-card">
             <div class="detail-heading"><h3>Portfolio anatomy</h3><span>Inputs included</span></div>
             <div class="detail-rows">
               <div class="detail-row"><span>Buy capital</span><anvil-component type="Label" name="invested_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
-              <div class="detail-row"><span>Dividend income</span><anvil-component type="Label" name="dividends_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
-              <div class="detail-row"><span>Annualized volatility</span><anvil-component type="Label" name="volatility_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
+              <div class="detail-row"><span>Sale proceeds</span><anvil-component type="Label" name="sale_proceeds_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
+              <div class="detail-row"><span>Investment profit</span><anvil-component type="Label" name="profit_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
             </div>
           </div>
-          <div class="method-note"><span class="method-icon">∿</span><div><strong>How the lookup works</strong><p>Google Finance supplies the current quote and dividend summary. Buy-date prices and dividends are taken from historical chart data so each transaction can be valued.</p></div></div>
+          <section class="detail-card comparison-card" aria-label="Risk and benchmark analyzer">
+            <div class="detail-heading"><h3>Risk &amp; benchmark analyzer</h3><span>Matching dates</span></div>
+            <div class="comparison-controls">
+              <div><div class="portfolio-field-caption">Time frame</div><anvil-component type="DropDown" name="timeframe_dropdown" prop:role="portfolio-picker" prop:tooltip="Choose the period for both charts and risk metrics"></anvil-component></div>
+              <div><div class="portfolio-field-caption">S&amp;P 500 comparison</div><anvil-component type="DropDown" name="benchmark_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+            </div>
+            <div anvil:name="custom_period_region" class="comparison-custom-dates">
+              <div><label>Start date</label><anvil-component type="DatePicker" name="comparison_start_picker" prop:role="date-field"></anvil-component></div>
+              <div><label>End date</label><anvil-component type="DatePicker" name="comparison_end_picker" prop:role="date-field"></anvil-component></div>
+            </div>
+            <anvil-component type="Label" name="comparison_period_label" prop:role="portfolio-help"></anvil-component>
+            <div class="comparison-metrics">
+              <div><span>Portfolio return</span><anvil-component type="Label" name="window_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span>S&amp;P 500 return</span><anvil-component type="Label" name="benchmark_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span>Annualized volatility</span><anvil-component type="Label" name="volatility_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span>Annualized Sharpe</span><anvil-component type="Label" name="sharpe_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+            </div>
+            <anvil-component type="Label" name="risk_status_label" prop:role="portfolio-help"></anvil-component>
+            <h4 class="chart-title">Cumulative return</h4>
+            <anvil-component type="Plot" name="performance_plot" prop:height="310px"></anvil-component>
+            <h4 class="chart-title">Drawdown from period high</h4>
+            <anvil-component type="Plot" name="drawdown_plot" prop:height="240px"></anvil-component>
+            <p class="fine-print">Both lines start at 0% on the first available close in the selected period. Drawdown is the decline from each line's high within that period. The total-return index reinvests dividends; your portfolio retains dividends as cash.</p>
+          </section>
+          <div class="method-note"><span class="method-icon">∿</span><div><strong>How performance and risk are measured</strong><p>Daily returns adjust for purchases as contributions and sales as withdrawals. With no deposit ledger or execution times, buys are treated as beginning-of-day inflows and sells as end-of-day outflows. The first close establishes the comparison baseline; investment profit above still includes your entered execution prices. Dividends are credited on ex-dividend dates, before tax, without reinvestment. Weekend or holiday trades use the next completed trading session.</p><p>Volatility is the sample standard deviation of daily returns × √252. Sharpe is mean daily excess return divided by its standard deviation × √252, using your annual risk-free rate converted to a daily rate. Risk metrics need at least 20 daily returns; short samples remain estimates.</p></div></div>
         </section>
       </div>
     </section>
   </main>
 
-  <footer class="portfolio-footer"><span>Portfoliora</span><span>Built for clearer decisions.</span><span>Google lookup · Transaction aware</span></footer>
+  <footer class="portfolio-footer"><span>Portfoliora</span><span>Built for clearer decisions.</span><span>Daily history · Transaction aware</span></footer>
 </section>

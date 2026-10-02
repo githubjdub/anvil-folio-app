@@ -22,7 +22,7 @@ class HoldingRow(HoldingRowTemplate):
   def set_editable(self, editable, **event_args):
     for component in (
       self.ticker_box, self.trade_date_picker, self.action_dropdown,
-      self.shares_box, self.remove_button,
+      self.shares_box, self.trade_price_box, self.remove_button,
     ):
       setattr(component, "enabled", editable)
 
@@ -41,6 +41,10 @@ class HoldingRow(HoldingRowTemplate):
   @handle("shares_box", "change")
   def shares_box_change(self, **event_args):
     self._update_item("shares", self.shares_box.text)
+
+  @handle("trade_price_box", "change")
+  def trade_price_box_change(self, **event_args):
+    self._update_item("trade_price", self.trade_price_box.text)
 
   @handle("remove_button", "click")
   def remove_button_click(self, **event_args):

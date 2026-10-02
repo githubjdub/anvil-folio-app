@@ -16,6 +16,19 @@ class Form1(Form1Template):
     self._portfolio_dirty = False
     self._busy = False
     self.transactions = []
+    self._history = None
+    self.timeframe_dropdown.items = [
+      ("1 month", "1M"), ("3 months", "3M"), ("6 months", "6M"),
+      ("Year to date", "YTD"), ("1 year", "1Y"), ("3 years", "3Y"),
+      ("All history", "ALL"), ("Custom dates", "CUSTOM"),
+    ]
+    self.timeframe_dropdown.selected_value = "ALL"
+    self.benchmark_dropdown.items = [
+      ("Total return · dividends reinvested", "benchmark_index"),
+      ("Price return · excludes dividends", "market_index"),
+    ]
+    self.benchmark_dropdown.selected_value = "benchmark_index"
+    self.custom_period_region.visible = False
     self._set_dates()
     self._load_sample_transactions()
     self._show_results(False)
@@ -30,6 +43,8 @@ class Form1(Form1Template):
       self.account_button, self.save_portfolio_button, self.new_portfolio_button,
       self.portfolio_name_box, self.add_button, self.sample_button,
       self.analyze_button, self.as_of_date_picker, self.risk_free_box,
+      self.timeframe_dropdown, self.benchmark_dropdown,
+      self.comparison_start_picker, self.comparison_end_picker,
     ):
       setattr(component, "enabled", not self._busy)
     self.saved_portfolios_dropdown.enabled = not self._busy and self._user is not None
@@ -110,6 +125,8 @@ class Form1(Form1Template):
     if any(transaction["trade_date"] > as_of_date for transaction in transactions):
       raise ValueError("Every transaction must be on or before the analysis date.")
     risk_free_rate = self._parse_number(self.risk_free_box.text, "risk-free rate", 1)
+    if risk_free_rate <= -100:
+      raise ValueError("The annual risk-free rate must be greater than -100%.")
     return as_of_date, risk_free_rate
 
   @handle("account_button", "click")
@@ -166,6 +183,7 @@ class Form1(Form1Template):
         "trade_date": transaction["trade_date"].isoformat(),
         "action": transaction["action"],
         "shares": transaction["shares"],
+        "trade_price": transaction["trade_price"],
       } for transaction in transactions]
     except ValueError as error:
       self._set_portfolio_status(str(error), is_error=True)
@@ -212,24 +230,26 @@ class Form1(Form1Template):
         date(*[int(part) for part in transaction["trade_date"].split("-")]),
         transaction["action"],
         str(transaction["shares"]),
+        transaction.get("trade_price"),
       ) for transaction in portfolio["transactions"]]
       self.holdings_panel.items = self.transactions
       self._portfolio_dirty = False
       self._show_results(False)
       self._set_portfolio_status('Opened "%s". Changes are saved when you click Save changes.' % portfolio["name"])
-      self._set_status("Saved transactions loaded — sync to fetch current market data.")
+      self._set_status("Saved transactions loaded — sync to fetch daily market history.")
     finally:
       self._set_busy(False)
 
   def _set_dates(self):
     self.as_of_date_picker.date = date.today()
 
-  def _new_transaction(self, ticker="", trade_date=None, action="Buy", shares=""):
+  def _new_transaction(self, ticker="", trade_date=None, action="Buy", shares="", trade_price=None):
     return {
       "ticker": ticker,
       "trade_date": trade_date,
       "action": action,
       "shares": shares,
+      "trade_price": trade_price,
       "entry_price": None,
       "current_price": None,
       "dividends_per_share": None,
@@ -244,9 +264,11 @@ class Form1(Form1Template):
       self._new_transaction("MSFT", today - timedelta(days=210), "Buy", "10"),
     ]
     self.holdings_panel.items = self.transactions
-    self._set_status("Sample transactions loaded — sync to fetch live market data.")
+    self._set_status("Sample transactions loaded — sync to fetch daily market history.")
 
   def _show_results(self, visible):
+    if not visible:
+      self._history = None
     self.results_section.visible = visible
     self.empty_results.visible = not visible
 
@@ -272,6 +294,7 @@ class Form1(Form1Template):
         row.get("ticker", ""),
         row.get("trade_date"),
         row.get("shares", ""),
+        row.get("trade_price"),
       ]
       if not any(str(value).strip() for value in values if value is not None):
         continue
@@ -292,50 +315,26 @@ class Form1(Form1Template):
       if shares <= 0:
         raise ValueError("Row %d: shares must be greater than zero." % row_number)
 
+      trade_price = row.get("trade_price")
+      if trade_price is None or not str(trade_price).strip():
+        trade_price = None
+      else:
+        trade_price = self._parse_number(trade_price, "price per share", row_number)
+        if trade_price <= 0:
+          raise ValueError("Row %d: price per share must be greater than zero." % row_number)
+
       row.update({
         "ticker": ticker,
         "trade_date": trade_date,
         "action": action,
         "shares": shares,
+        "trade_price": trade_price,
       })
       clean_transactions.append(row)
 
     if not clean_transactions:
       raise ValueError("Add at least one transaction before saving or running the analysis.")
     return clean_transactions
-
-  def _sync_market_data(self, transactions, as_of_date):
-    for row_number, transaction in enumerate(transactions, start=1):
-      self._set_status(
-        "Looking up %s in Google Finance (%d/%d)…"
-        % (transaction["ticker"], row_number, len(transactions))
-      )
-      result = anvil.server.call(
-        "lookup_market_data",
-        transaction["ticker"],
-        transaction["trade_date"],
-        as_of_date,
-      )
-      if not result.get("ok"):
-        raise ValueError("Row %d: %s" % (row_number, result.get("message", "Lookup failed.")))
-
-      transaction.update({
-        "entry_price": result["entry_price"],
-        "current_price": result["current_price"],
-        "dividends_per_share": result["dividends_per_share"],
-        "quote_text": "%s %s" % (
-          result["currency"], self._format_currency(result["current_price"])
-        ),
-        "dividend_text": "%s / share" % self._format_currency(
-          result["dividends_per_share"]
-        ),
-        "company_name": result["company_name"],
-        "entry_date_used": result["entry_date_used"],
-        "price_source": result["price_source"],
-        "history_source": result["history_source"],
-      })
-
-    self.holdings_panel.items = self.transactions
 
   def _format_currency(self, value):
     return "$%s" % format(value, ",.2f")
@@ -346,73 +345,130 @@ class Form1(Form1Template):
   def _format_ratio(self, value):
     return "—" if value is None else "%+.2f" % value
 
-  def _calculate_metrics(self, transactions, as_of_date, risk_free_rate):
-    buy_cost = 0.0
-    sale_proceeds = 0.0
-    dividends = 0.0
-    net_shares = {}
-    current_prices = {}
-    position_returns = []
-    first_trade_date = min(transaction["trade_date"] for transaction in transactions)
+  def _date_from_iso(self, value):
+    return date(*[int(part) for part in value.split("-")])
 
-    for transaction in transactions:
-      ticker = transaction["ticker"]
-      shares = transaction["shares"]
-      entry_price = transaction["entry_price"]
-      current_price = transaction["current_price"]
-      if entry_price is None or current_price is None:
-        raise ValueError("Sync market data before running the analysis.")
+  def _months_before(self, value, months):
+    month_index = value.year * 12 + value.month - 1 - months
+    year, month = month_index // 12, month_index % 12 + 1
+    next_month = date(year + (1 if month == 12 else 0), month % 12 + 1, 1)
+    last_day = (next_month - timedelta(days=1)).day
+    return date(year, month, min(value.day, last_day))
 
-      current_prices[ticker] = current_price
-      if transaction["action"] == "Buy":
-        buy_cost += shares * entry_price
-        dividends += shares * transaction["dividends_per_share"]
-        net_shares[ticker] = net_shares.get(ticker, 0) + shares
-        position_returns.append((
-          shares * entry_price,
-          (current_price + transaction["dividends_per_share"]) / entry_price - 1,
-        ))
-      else:
-        sale_proceeds += shares * entry_price
-        net_shares[ticker] = net_shares.get(ticker, 0) - shares
+  def _daily_risk(self, indices):
+    if self._history is None:
+      return None, None
+    daily_returns = [
+      indices[index] / indices[index - 1] - 1
+      for index in range(1, len(indices))
+    ]
+    if len(daily_returns) < 20:
+      return None, None
+    daily_rate = (1 + self._history["metadata"]["risk_free_rate"]) ** (1 / 252) - 1
+    excess_returns = [value - daily_rate for value in daily_returns]
+    mean_excess = sum(excess_returns) / len(excess_returns)
+    variance = sum((value - mean_excess) ** 2 for value in excess_returns) / (len(excess_returns) - 1)
+    daily_volatility = math.sqrt(variance)
+    volatility = daily_volatility * math.sqrt(252)
+    sharpe = mean_excess / daily_volatility * math.sqrt(252) if daily_volatility > 1e-12 else None
+    return volatility, sharpe
 
-    for ticker, shares in net_shares.items():
-      if shares < 0:
-        raise ValueError("More %s shares are sold than bought." % ticker)
-
-    market_value = sum(
-      shares * current_prices[ticker] for ticker, shares in net_shares.items()
-    )
-    profit = market_value + sale_proceeds + dividends - buy_cost
-    total_return = profit / buy_cost if buy_cost else 0.0
-    days = max((as_of_date - first_trade_date).days, 1)
-    years = max(days / 365.25, 1 / 365.25)
-    annualized_return = (1 + total_return) ** (1 / years) - 1
-
-    estimated_sharpe = None
-    annualized_volatility = 0.0
-    if position_returns:
-      weighted_mean = sum(weight * value for weight, value in position_returns) / buy_cost
-      dispersion = sum(
-        (weight / buy_cost) * (value - weighted_mean) ** 2
-        for weight, value in position_returns
-      )
-      annualized_volatility = math.sqrt(dispersion) / math.sqrt(years)
-      if annualized_volatility > 0:
-        estimated_sharpe = (annualized_return - risk_free_rate) / annualized_volatility
-
+  def _chart_layout(self):
     return {
-      "buy_cost": buy_cost,
-      "sale_proceeds": sale_proceeds,
-      "market_value": market_value,
-      "dividends": dividends,
-      "total_return": total_return,
-      "annualized_return": annualized_return,
-      "annualized_volatility": annualized_volatility,
-      "estimated_sharpe": estimated_sharpe,
-      "days": days,
-      "holding_count": len([shares for shares in net_shares.values() if shares > 0]),
+      "margin": {"l": 48, "r": 12, "t": 15, "b": 62},
+      "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
+      "font": {"family": "Inter, sans-serif", "size": 11, "color": "#6d7881"},
+      "hovermode": "x unified",
+      "legend": {"orientation": "h", "x": 0, "y": -0.22},
+      "xaxis": {"type": "date", "showgrid": False, "fixedrange": True},
+      "yaxis": {"tickformat": ".0%", "gridcolor": "#edf0f1", "zerolinecolor": "#c6d2cb", "fixedrange": True},
     }
+
+  def _set_chart(self, plot, dates, portfolio, benchmark, benchmark_name):
+    plot.data = [
+      {"type": "scatter", "mode": "lines", "name": "Your portfolio", "x": dates,
+       "y": portfolio, "line": {"color": "#2c9b67", "width": 2.5},
+       "hovertemplate": "%{y:.2%}<extra>Your portfolio</extra>"},
+      {"type": "scatter", "mode": "lines", "name": benchmark_name, "x": dates,
+       "y": benchmark, "line": {"color": "#bd603f", "width": 2},
+       "hovertemplate": "%{y:.2%}<extra>" + benchmark_name + "</extra>"},
+    ]
+    plot.layout = self._chart_layout()
+    plot.config = {"displayModeBar": False, "responsive": True}
+
+  def _drawdowns(self, indices):
+    peak = indices[0]
+    values = []
+    for value in indices:
+      peak = max(peak, value)
+      values.append(value / peak - 1)
+    return values
+
+  def _clear_comparison(self, message):
+    self.comparison_period_label.text = message
+    for label in (self.window_return_label, self.benchmark_return_label,
+                  self.volatility_label, self.sharpe_label):
+      label.text = "—"
+    self.risk_status_label.text = ""
+    self.performance_plot.data = []
+    self.drawdown_plot.data = []
+
+  def _render_comparison(self):
+    if self._history is None:
+      return
+    series = self._history["series"]
+    timeframe = self.timeframe_dropdown.selected_value or "ALL"
+    self.custom_period_region.visible = timeframe == "CUSTOM"
+    end = self._date_from_iso(series[-1]["date"])
+    start = self._date_from_iso(series[0]["date"])
+    if timeframe == "CUSTOM":
+      start = self.comparison_start_picker.date
+      end = self.comparison_end_picker.date
+      if start is None or end is None or start > end:
+        self._clear_comparison("Choose a start date on or before the end date.")
+        return
+    elif timeframe == "YTD":
+      start = date(end.year, 1, 1)
+    elif timeframe != "ALL":
+      months = {"1M": 1, "3M": 3, "6M": 6, "1Y": 12, "3Y": 36}[timeframe]
+      start = self._months_before(end, months)
+    selected = [point for point in series if start.isoformat() <= point["date"] <= end.isoformat()]
+    if not selected:
+      self._clear_comparison("No portfolio history is available in this period.")
+      return
+    benchmark_key = self.benchmark_dropdown.selected_value or "benchmark_index"
+    benchmark_name = "S&P 500 total return" if benchmark_key == "benchmark_index" else "S&P 500 price return"
+    dates = [point["date"] for point in selected]
+    portfolio = [point["portfolio_index"] for point in selected]
+    benchmark = [point[benchmark_key] for point in selected]
+    portfolio_returns = [value / portfolio[0] - 1 for value in portfolio]
+    benchmark_returns = [value / benchmark[0] - 1 for value in benchmark]
+    observations = len(selected) - 1
+    self.comparison_period_label.text = "%s – %s · %d daily returns" % (dates[0], dates[-1], observations)
+    self.window_return_label.text = self._format_percent(portfolio_returns[-1])
+    self.benchmark_return_label.text = self._format_percent(benchmark_returns[-1])
+    volatility, sharpe = self._daily_risk(portfolio)
+    self.volatility_label.text = "—" if volatility is None else "%.2f%%" % (volatility * 100)
+    self.sharpe_label.text = self._format_ratio(sharpe)
+    if observations < 20:
+      message = "At least 20 daily returns are needed for volatility and Sharpe; this period has %d." % observations
+    elif sharpe is None:
+      message = "No measurable daily variation in this period; Sharpe is undefined."
+    elif observations < 252:
+      message = "Short sample: risk estimates use less than one trading year."
+    else:
+      message = "Risk estimates use daily returns from the selected period."
+    self.risk_status_label.text = message + " Yahoo Finance · 252 trading days/year."
+    self._set_chart(self.performance_plot, dates, portfolio_returns, benchmark_returns, benchmark_name)
+    self._set_chart(self.drawdown_plot, dates, self._drawdowns(portfolio), self._drawdowns(benchmark), benchmark_name)
+
+  @handle("timeframe_dropdown", "change")
+  @handle("benchmark_dropdown", "change")
+  @handle("comparison_start_picker", "change")
+  @handle("comparison_end_picker", "change")
+  def comparison_inputs_change(self, **event_args):
+    if not self._busy:
+      self._render_comparison()
 
   @handle("add_button", "click")
   def add_button_click(self, **event_args):
@@ -420,7 +476,7 @@ class Form1(Form1Template):
     self.holdings_panel.items = self.transactions
     self._mark_portfolio_dirty()
     self._show_results(False)
-    self._set_status("New transaction added — enter its ticker, date, action, and shares.")
+    self._set_status("New transaction added — enter its ticker, date, action, shares, and optional price.")
 
   @handle("sample_button", "click")
   def sample_button_click(self, **event_args):
@@ -451,21 +507,40 @@ class Form1(Form1Template):
     try:
       transactions = self._read_transactions()
       as_of_date, risk_free_rate = self._read_analysis_settings(transactions)
-      self._sync_market_data(transactions, as_of_date)
-      metrics = self._calculate_metrics(transactions, as_of_date, risk_free_rate / 100)
-
+      self._show_results(False)
+      self._set_status("Loading daily prices, dividends, and S&P 500 history…")
+      document = [{
+        "ticker": row["ticker"], "trade_date": row["trade_date"],
+        "action": row["action"], "shares": row["shares"],
+        "trade_price": row["trade_price"],
+      } for row in transactions]
+      result = anvil.server.call("analyze_portfolio_history", document, as_of_date, risk_free_rate / 100)
+      if not result["ok"]:
+        self._set_status(result["message"], is_error=True)
+        return
+      self._history = result
+      for transaction, synced in zip(transactions, result["rows"]):
+        transaction.update(synced)
+        price = synced["current_price"]
+        transaction["quote_text"] = "No current holding" if price is None else "USD %s" % self._format_currency(price)
+        transaction["dividend_text"] = "Daily history synced"
+      self.holdings_panel.items = self.transactions
+      metrics = result["metrics"]
       self.invested_label.text = self._format_currency(metrics["buy_cost"])
       self.value_label.text = self._format_currency(metrics["market_value"])
       self.return_label.text = self._format_percent(metrics["total_return"])
-      self.annualized_label.text = self._format_percent(metrics["annualized_return"])
+      self.annualized_label.text = "—" if metrics["annualized_return"] is None else self._format_percent(metrics["annualized_return"])
       self.dividends_label.text = self._format_currency(metrics["dividends"])
-      self.volatility_label.text = self._format_percent(metrics["annualized_volatility"])
-      self.sharpe_label.text = self._format_ratio(metrics["estimated_sharpe"])
-      self.period_label.text = "%d days · %d open holdings" % (
-        metrics["days"], metrics["holding_count"]
+      self.sale_proceeds_label.text = self._format_currency(metrics["sale_proceeds"])
+      self.profit_label.text = self._format_currency(metrics["profit"])
+      self.period_label.text = "%s · %d open holdings" % (
+        result["series"][-1]["date"], metrics["holding_count"]
       )
-      self._set_status("Live prices synced and analysis updated.")
+      self.comparison_start_picker.date = self._date_from_iso(result["series"][0]["date"])
+      self.comparison_end_picker.date = self._date_from_iso(result["series"][-1]["date"])
       self._show_results(True)
+      self._render_comparison()
+      self._set_status("Daily history synced and analysis updated.")
     except ValueError as error:
       self._set_status(str(error), is_error=True)
       self._show_results(False)

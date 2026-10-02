@@ -152,7 +152,9 @@ def _yahoo_history(symbol, bought_date, as_of):
   dividends_per_share = 0.0
   for timestamp, event in dividend_events.items():
     event_date = datetime.fromtimestamp(int(timestamp), timezone.utc).date()
-    if bought_date <= event_date <= as_of:
+    # Dividend events are ex-dates: buying on that date is too late.
+    # For a sale, this same boundary leaves that day's dividend with the seller.
+    if bought_date < event_date <= as_of:
       dividends_per_share += float(event.get("amount", 0))
 
   return {

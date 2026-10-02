@@ -8,4 +8,5 @@ unique_ids:
   scripts: {}
   server_modules:
     market_data: '1789762452158.14463487774102246'
+    portfolio_analytics: '1790901566023.43458645291581466'
     portfolios: '1790898330822.4877588245295871'

@@ -60,13 +60,22 @@ def _validate_inputs(name, transactions, as_of_date, risk_free_rate):
     )
     if shares <= 0:
       raise ValueError("Row %d: shares must be greater than zero." % index)
-    # Keep only editable inputs in this document, never client-supplied prices.
-    clean_transactions.append({
+    trade_price = transaction.get("trade_price")
+    if trade_price is not None:
+      message = "Row %d: enter a price per share greater than zero, or leave it blank." % index
+      trade_price = _finite_number(trade_price, message)
+      if trade_price <= 0:
+        raise ValueError(message)
+    # Keep editable inputs, including a user's price override, but discard fetched prices.
+    clean_transaction = {
       "ticker": ticker.strip().upper(),
       "trade_date": trade_date.isoformat(),
       "action": action,
       "shares": shares,
-    })
+    }
+    if trade_price is not None:
+      clean_transaction["trade_price"] = trade_price
+    clean_transactions.append(clean_transaction)
 
   return {
     "name": name.strip(),
