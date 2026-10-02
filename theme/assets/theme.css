@@ -275,8 +275,8 @@ html, body {
 }
 
 /* Remove the text span's built-in vertical padding in compact summaries. */
-.anvil-role-transaction-summary-title > span,
-.anvil-role-transaction-summary-details > span,
-.anvil-role-transaction-summary-value > span,
-.anvil-role-security-group-title > span,
-.anvil-role-security-group-detail > span { padding-top: 0; padding-bottom: 0; }
+.anvil-label.anvil-role-transaction-summary-title > span,
+.anvil-label.anvil-role-transaction-summary-details > span,
+.anvil-label.anvil-role-transaction-summary-value > span,
+.anvil-label.anvil-role-security-group-title > span,
+.anvil-label.anvil-role-security-group-detail > span { padding-top: 0; padding-bottom: 0; }
