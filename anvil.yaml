@@ -1,4 +1,62 @@
 allow_embedding: false
+db_schema:
+  portfolios:
+    client: none
+    columns:
+    - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      name: name
+      type: string
+    - admin_ui: {}
+      name: transactions
+      type: simpleObject
+    - admin_ui: {}
+      name: as_of_date
+      type: date
+    - admin_ui: {}
+      name: risk_free_rate
+      type: number
+    - admin_ui: {}
+      name: updated_at
+      type: datetime
+    server: full
+    title: Portfolios
+  users:
+    client: none
+    columns:
+    - admin_ui: {}
+      name: email
+      type: string
+    - admin_ui: {}
+      name: enabled
+      type: bool
+    - admin_ui: {}
+      name: signed_up
+      type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: password_hash
+      type: string
+    - admin_ui: {}
+      name: confirmed_email
+      type: bool
+    - admin_ui: {}
+      client_hidden: true
+      name: remembered_logins
+      type: simpleObject
+    - admin_ui: {}
+      name: last_login
+      type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: n_password_failures
+      type: number
+    server: full
+    title: Users
 dependencies:
 - config: {}
   dep_id: dep_lin1x4oec0ytd
@@ -15,4 +73,7 @@ services:
 - client_config: {}
   server_config: {}
   source: /runtime/services/tables.yml
+- client_config: {allow_remember_me: true, allow_signup: true, confirm_email: false, enable_automatically: true, remember_me_days: 30, require_secure_passwords: true, use_email: true}
+  server_config: {user_table: users}
+  source: /runtime/services/anvil/users.yml
 startup_form: Form1

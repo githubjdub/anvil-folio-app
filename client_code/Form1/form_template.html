@@ -23,6 +23,33 @@
       </div>
     </section>
 
+    <section class="panel-card portfolio-library" aria-label="Saved portfolios">
+      <div class="card-heading portfolio-library-heading">
+        <div>
+          <h2>Your portfolios</h2>
+          <anvil-component type="Label" name="account_label" prop:text="Sign in to save your portfolios privately and reopen them on any device." prop:role="portfolio-help"></anvil-component>
+        </div>
+        <anvil-component type="m3._Components.Button" name="account_button" prop:text="Sign in / Create account" prop:appearance="outlined" prop:icon="mi:person"></anvil-component>
+      </div>
+      <div class="portfolio-save-row">
+        <div class="portfolio-name-field">
+          <anvil-component type="m3._Components.TextInput.TextBox" name="portfolio_name_box" prop:label="Portfolio name" prop:text="My portfolio" prop:placeholder="e.g. Long-term investments" prop:appearance="outlined" prop:role="portfolio-name"></anvil-component>
+        </div>
+        <anvil-component type="m3._Components.Button" name="save_portfolio_button" prop:text="Save portfolio" prop:appearance="filled" prop:icon="mi:save"></anvil-component>
+        <anvil-component type="m3._Components.Button" name="new_portfolio_button" prop:text="New portfolio" prop:appearance="text" prop:icon="mi:add"></anvil-component>
+      </div>
+      <div class="portfolio-picker-row">
+        <div class="portfolio-picker-field">
+          <div class="portfolio-field-caption">Saved portfolios</div>
+          <anvil-component type="DropDown" name="saved_portfolios_dropdown" prop:include_placeholder="true" prop:placeholder="No saved portfolios yet" prop:tooltip="Choose one of your saved portfolios" prop:role="portfolio-picker"></anvil-component>
+        </div>
+        <anvil-component type="m3._Components.Button" name="open_portfolio_button" prop:text="Open portfolio" prop:appearance="outlined" prop:icon="mi:folder_open" prop:enabled="false"></anvil-component>
+      </div>
+      <div anvil:name="portfolio_status_region" class="portfolio-save-status" role="status" aria-live="polite">
+        <anvil-component type="Label" name="portfolio_status_label" prop:text="Not saved yet. Save your transactions and analysis settings without syncing prices." prop:role="portfolio-help"></anvil-component>
+      </div>
+    </section>
+
     <section class="workspace-grid">
       <div class="input-column">
         <div class="section-intro">

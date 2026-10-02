@@ -159,7 +159,28 @@ html, body {
 .anvil-role-dividend-label { margin-top: 4px; color: #7a9283; font-size: 9px; }
 .single-date-grid { grid-template-columns: minmax(150px, 220px); }
 
+.portfolio-library { margin-bottom: 36px; }
+.portfolio-library-heading { align-items: flex-start; margin-bottom: 18px; }
+.portfolio-library h2 { margin: 0 0 5px; font-size: 20px; letter-spacing: -.04em; }
+.anvil-role-portfolio-help { color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.portfolio-save-row, .portfolio-picker-row { display: flex; align-items: center; gap: 12px; }
+.portfolio-name-field { flex: 1; min-width: 180px; }
+.anvil-role-portfolio-name { width: 100%; }
+.portfolio-picker-row { align-items: flex-end; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.portfolio-picker-field { flex: 1; min-width: 0; }
+.portfolio-field-caption { margin-bottom: 7px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.anvil-role-portfolio-picker { width: 100%; }
+.anvil-role-portfolio-picker select { width: 100%; min-height: 43px; padding: 0 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); color: var(--ink); font: inherit; font-size: 12px; text-overflow: ellipsis; }
+.anvil-role-portfolio-picker select:focus { border-color: var(--mint-strong); outline: 3px solid rgba(44, 155, 103, .12); }
+.anvil-role-portfolio-picker select:disabled { color: var(--muted); background: var(--canvas); }
+.portfolio-save-status { margin-top: 12px; }
+.portfolio-save-status .anvil-role-portfolio-help { color: #377553; }
+.portfolio-save-status.is-error .anvil-role-portfolio-help { color: #c55048; }
+
 @media (max-width: 620px) {
+  .portfolio-library-heading { flex-direction: column; }
+  .portfolio-save-row, .portfolio-picker-row { flex-wrap: wrap; }
+  .portfolio-name-field, .portfolio-picker-field { flex-basis: 100%; min-width: 0; }
   .transaction-column-headings { display: none; }
   .holding-row { grid-template-columns: 1fr 1fr; gap: 9px; padding: 14px 0; }
   .holding-row .holding-field:first-child { grid-column: span 2; }
