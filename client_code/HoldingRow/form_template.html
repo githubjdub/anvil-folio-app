@@ -1,9 +1,13 @@
 <section class="transaction-card">
+  <div anvil:name="security_group_header" class="security-group-header">
+    <anvil-component type="Label" name="security_group_label" bind:text="self.item.get('_security_group', '')" prop:role="security-group-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="security_group_detail_label" bind:text="self.item.get('_security_group_detail', '')" prop:role="security-group-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
   <header class="transaction-card-header">
     <div class="transaction-summary">
-      <anvil-component type="Label" name="summary_title_label" prop:role="transaction-summary-title"></anvil-component>
-      <anvil-component type="Label" name="summary_details_label" prop:role="transaction-summary-details"></anvil-component>
-      <anvil-component type="Label" name="summary_value_label" prop:role="transaction-summary-value"></anvil-component>
+      <anvil-component type="Label" name="summary_title_label" prop:role="transaction-summary-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+      <anvil-component type="Label" name="summary_details_label" prop:role="transaction-summary-details" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+      <anvil-component type="Label" name="summary_value_label" prop:role="transaction-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     </div>
     <div class="transaction-card-actions">
       <anvil-component type="m3._Components.Button" name="toggle_button" prop:text="Collapse" prop:icon="mi:expand_less" prop:appearance="text" prop:role="transaction-toggle"></anvil-component>

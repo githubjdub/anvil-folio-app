@@ -63,6 +63,13 @@
             <anvil-component type="m3._Components.Button" name="sample_button" prop:text="Load sample" prop:appearance="text" prop:icon="mi:science" prop:role="quiet-action"></anvil-component>
           </div>
           <p class="transaction-price-help">Price per share is optional. Enter what you paid or received in the stock's quote currency, or leave it blank to use the historical close.</p>
+          <div class="transaction-view-toolbar">
+            <div class="transaction-view-choice"><div class="portfolio-field-caption">Transaction view</div><anvil-component type="DropDown" name="transaction_view_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+            <anvil-component type="m3._Components.Button" name="regroup_button" prop:text="Regroup" prop:appearance="text" prop:icon="mi:sort"></anvil-component>
+            <anvil-component type="m3._Components.Button" name="collapse_all_button" prop:text="Collapse all" prop:appearance="text"></anvil-component>
+            <anvil-component type="m3._Components.Button" name="expand_all_button" prop:text="Expand all" prop:appearance="text"></anvil-component>
+          </div>
+          <anvil-component type="Label" name="transaction_view_help" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
           <anvil-component type="RepeatingPanel" name="holdings_panel" prop:item_template="M3_App_1.HoldingRow" prop:role="holdings-list"></anvil-component>
           <div class="add-holding-row">
             <anvil-component type="m3._Components.Button" name="add_button" prop:text="Add transaction" prop:appearance="outlined" prop:icon="mi:add" prop:role="add-holding-action"></anvil-component>

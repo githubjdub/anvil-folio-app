@@ -17,6 +17,9 @@ class Form1(Form1Template):
     self._busy = False
     self.transactions = []
     self._history = None
+    self.transaction_view_dropdown.items = [("Entry order", "entry"), ("Group by security", "security")]
+    self.transaction_view_dropdown.selected_value = "entry"
+    self.regroup_button.visible = False
     self.timeframe_dropdown.items = [
       ("1 month", "1M"), ("3 months", "3M"), ("6 months", "6M"),
       ("Year to date", "YTD"), ("1 year", "1Y"), ("3 years", "3Y"),
@@ -34,6 +37,59 @@ class Form1(Form1Template):
     self._show_results(False)
     self._refresh_account()
 
+  def _security_key(self, transaction):
+    parts = str(transaction.get("ticker") or "").strip().upper().split(":", 1)
+    symbol = parts[0].strip().replace(".", "-")
+    exchange = parts[1].strip() if len(parts) == 2 else "NASDAQ"
+    if exchange in ("NASDAQ", "NYSE", "NYSEARCA", "AMEX", "BATS", "NYSEAMERICAN"):
+      return symbol
+    return "%s:%s" % (symbol, exchange) if symbol else ""
+
+  def _refresh_transactions(self):
+    grouped = self.transaction_view_dropdown.selected_value == "security"
+    self.regroup_button.visible = grouped
+    for row in self.transactions:
+      row["_security_group"] = ""
+      row["_security_group_detail"] = ""
+    visible_rows = list(self.transactions)
+    if grouped:
+      groups = {}
+      for row in self.transactions:
+        groups.setdefault(self._security_key(row), []).append(row)
+      visible_rows = []
+      for key in sorted(groups, key=lambda value: (not bool(value), value)):
+        group = groups[key]
+        buys = sum(1 for row in group if row.get("action", "Buy") == "Buy")
+        sells = len(group) - buys
+        group[0]["_security_group"] = key or "Unassigned security"
+        group[0]["_security_group_detail"] = "%d transaction%s · %d buy%s · %d sell%s" % (
+          len(group), "" if len(group) == 1 else "s", buys, "" if buys == 1 else "s",
+          sells, "" if sells == 1 else "s",
+        )
+        visible_rows.extend(group)
+    self.holdings_panel.items = visible_rows
+    self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
+    self.transaction_view_help.text = (
+      "Trades are grouped by ticker. Use Regroup after editing a ticker or action."
+      if grouped else "Transactions appear in the order you entered them."
+    )
+
+  @handle("transaction_view_dropdown", "change")
+  @handle("regroup_button", "click")
+  def transaction_view_change(self, **event_args):
+    if not self._busy:
+      self._refresh_transactions()
+
+  @handle("collapse_all_button", "click")
+  def collapse_all_button_click(self, **event_args):
+    if not self._busy:
+      self.holdings_panel.raise_event_on_children("x-set-collapsed", collapsed=True)
+
+  @handle("expand_all_button", "click")
+  def expand_all_button_click(self, **event_args):
+    if not self._busy:
+      self.holdings_panel.raise_event_on_children("x-set-collapsed", collapsed=False)
+
   def _set_portfolio_status(self, message, is_error=False):
     self.portfolio_status_label.text = message
     self.portfolio_status_region.classes["is-error"] = is_error
@@ -45,6 +101,8 @@ class Form1(Form1Template):
       self.analyze_button, self.as_of_date_picker, self.risk_free_box,
       self.timeframe_dropdown, self.benchmark_dropdown,
       self.comparison_start_picker, self.comparison_end_picker,
+      self.transaction_view_dropdown, self.regroup_button,
+      self.collapse_all_button, self.expand_all_button,
     ):
       setattr(component, "enabled", not self._busy)
     self.saved_portfolios_dropdown.enabled = not self._busy and self._user is not None
@@ -108,7 +166,7 @@ class Form1(Form1Template):
     self._current_portfolio = None
     self.portfolio_name_box.text = ""
     self.transactions = [self._new_transaction()]
-    self.holdings_panel.items = self.transactions
+    self._refresh_transactions()
     self._set_dates()
     self.risk_free_box.text = "4.50"
     self.saved_portfolios_dropdown.selected_value = None
@@ -232,7 +290,7 @@ class Form1(Form1Template):
         str(transaction["shares"]),
         transaction.get("trade_price"),
       ) for transaction in portfolio["transactions"]]
-      self.holdings_panel.items = self.transactions
+      self._refresh_transactions()
       self._portfolio_dirty = False
       self._show_results(False)
       self._set_portfolio_status('Opened "%s". Changes are saved when you click Save changes.' % portfolio["name"])
@@ -263,7 +321,7 @@ class Form1(Form1Template):
       self._new_transaction("AAPL", today - timedelta(days=365), "Buy", "20"),
       self._new_transaction("MSFT", today - timedelta(days=210), "Buy", "10"),
     ]
-    self.holdings_panel.items = self.transactions
+    self._refresh_transactions()
     self._set_status("Sample transactions loaded — sync to fetch daily market history.")
 
   def _show_results(self, visible):
@@ -522,7 +580,7 @@ class Form1(Form1Template):
   @handle("add_button", "click")
   def add_button_click(self, **event_args):
     self.transactions.append(self._new_transaction())
-    self.holdings_panel.items = self.transactions
+    self._refresh_transactions()
     self._mark_portfolio_dirty()
     self._show_results(False)
     self._set_status("New transaction added — enter its ticker, date, action, shares, and optional price.")
@@ -542,8 +600,8 @@ class Form1(Form1Template):
   @handle("holdings_panel", "x-remove-holding")
   def holdings_panel_remove_holding(self, item, **event_args):
     if item in self.transactions:
-      self.transactions.remove(item)
-      self.holdings_panel.items = self.transactions
+      self.transactions = [row for row in self.transactions if row is not item]
+      self._refresh_transactions()
       self._mark_portfolio_dirty()
       self._show_results(False)
       self._set_status("Transaction removed.")
@@ -573,7 +631,7 @@ class Form1(Form1Template):
         price = synced["current_price"]
         transaction["quote_text"] = "No current holding" if price is None else "USD %s" % self._format_currency(price)
         transaction["dividend_text"] = "Daily history synced"
-      self.holdings_panel.items = self.transactions
+      self._refresh_transactions()
       metrics = result["metrics"]
       self.invested_label.text = self._format_currency(metrics["buy_cost"])
       self.value_label.text = self._format_currency(metrics["market_value"])

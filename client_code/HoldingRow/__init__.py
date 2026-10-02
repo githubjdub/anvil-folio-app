@@ -9,6 +9,10 @@ class HoldingRow(HoldingRowTemplate):
     super().__init__(**properties)
     self._editable = True
     self.set_event_handler("x-set-editable", self.set_editable)
+    self.set_event_handler("x-set-collapsed", self.set_collapsed)
+    group = self.item.get("_security_group", "")
+    self.security_group_header.visible = bool(group)
+    self.classes["starts-security-group"] = bool(group)
     self._refresh_summary()
     self._show_expanded()
 
@@ -43,7 +47,8 @@ class HoldingRow(HoldingRowTemplate):
       price_text = "Check price / share"
       value_text = "Complete the transaction details"
     else:
-      price_text = "$%s / share" % self._compact_number(price)
+      shown_price = format(price, ",.2f") if automatic and price >= 1 else self._compact_number(price)
+      price_text = "$%s / share" % shown_price
       if automatic:
         price_text += " (historical)"
       total = shares * price if shares is not None else None
@@ -81,6 +86,11 @@ class HoldingRow(HoldingRowTemplate):
       self.shares_box, self.trade_price_box, self.remove_button, self.toggle_button,
     ):
       setattr(component, "enabled", editable)
+
+  def set_collapsed(self, collapsed, **event_args):
+    if self._editable:
+      self.item["_collapsed"] = collapsed
+      self._show_expanded()
 
   @handle("toggle_button", "click")
   def toggle_button_click(self, **event_args):

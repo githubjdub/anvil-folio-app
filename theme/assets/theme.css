@@ -226,14 +226,17 @@ html, body {
 .transaction-card { margin: 12px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
 .transaction-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .transaction-summary { flex: 1; min-width: 0; }
-.anvil-role-transaction-summary-title { display: block; color: var(--ink); font-size: 13px; font-weight: 750; overflow-wrap: anywhere; }
-.anvil-role-transaction-summary-details { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
-.anvil-role-transaction-summary-value { display: block; color: #277b50; font-size: 11px; margin-top: 4px; }
+.anvil-role-transaction-summary-title { display: block; color: var(--ink); font-size: 13px; line-height: 1.35; font-weight: 750; overflow-wrap: anywhere; }
+.anvil-role-transaction-summary-details { display: block; color: var(--muted); font-size: 11px; line-height: 1.4; margin-top: 2px; overflow-wrap: anywhere; }
+.anvil-role-transaction-summary-value { display: block; color: #277b50; font-size: 11px; line-height: 1.4; margin-top: 2px; overflow-wrap: anywhere; }
 .transaction-card-actions { display: flex; flex-shrink: 0; align-items: center; gap: 2px; }
 .transaction-card .holding-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; padding: 14px 0 0; }
 .transaction-card .holding-row .holding-field, .transaction-card .holding-row .market-data-field { grid-column: auto; grid-row: auto; }
 .transaction-card .transaction-field-caption { display: block; }
-.transaction-card.is-collapsed { background: #fbfcfc; }
+.transaction-card.is-collapsed { margin: 6px 0; padding: 8px 12px; background: #fbfcfc; }
+.transaction-card.is-collapsed .transaction-card-header { align-items: center; }
+.transaction-card.is-collapsed .anvil-role-transaction-toggle { margin: 0; padding-inline: 8px; }
+.transaction-card.is-collapsed .anvil-role-remove-holding-action { margin: 0; padding-inline: 8px; }
 @media (max-width: 620px) {
   .transaction-card { padding: 12px; }
   .transaction-card-header { flex-direction: column; }
@@ -241,6 +244,13 @@ html, body {
   .transaction-card .holding-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .transaction-card .holding-row .ticker-field { grid-column: span 2; }
   .transaction-card .holding-row .market-data-field { grid-column: span 2; }
+  .transaction-card.is-collapsed { padding: 6px 10px; }
+  .transaction-card.is-collapsed .transaction-card-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 6px; }
+  .transaction-card.is-collapsed .transaction-summary { display: contents; }
+  .transaction-card.is-collapsed .anvil-role-transaction-summary-title { grid-column: 1; grid-row: 1; }
+  .transaction-card.is-collapsed .anvil-role-transaction-summary-details { grid-column: 1 / -1; grid-row: 2; margin-top: 0; }
+  .transaction-card.is-collapsed .anvil-role-transaction-summary-value { grid-column: 1 / -1; grid-row: 3; margin-top: 0; }
+  .transaction-card.is-collapsed .transaction-card-actions { grid-column: 2; grid-row: 1; align-self: center; }
 }
 
 .sector-card { margin-bottom: 12px; }
@@ -251,3 +261,22 @@ html, body {
 .sector-amounts { text-align: right; }
 .anvil-role-sector-name, .anvil-role-sector-weight { display: block; color: var(--ink); font-size: 12px; font-weight: 700; }
 .anvil-role-sector-tickers { display: block; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+
+/* Optional security grouping keeps each original transaction editable. */
+.transaction-view-toolbar { display: flex; align-items: flex-end; gap: 5px; flex-wrap: wrap; margin: 14px 0 8px; }
+.transaction-view-choice { flex: 1 1 165px; min-width: 0; }
+.transaction-view-toolbar .portfolio-field-caption { margin-bottom: 5px; }
+.security-group-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 3px 10px; padding: 2px 0 8px; margin-bottom: 8px; border-bottom: 1px solid #c4ddce; }
+.anvil-role-security-group-title { color: #277b50; font-size: 13px; font-weight: 750; }
+.anvil-role-security-group-detail { color: var(--muted); font-size: 10px; }
+.transaction-card.starts-security-group { margin-top: 17px; }
+@media (max-width: 620px) {
+  .transaction-view-choice { flex-basis: 100%; }
+}
+
+/* Remove the text span's built-in vertical padding in compact summaries. */
+.anvil-role-transaction-summary-title > span,
+.anvil-role-transaction-summary-details > span,
+.anvil-role-transaction-summary-value > span,
+.anvil-role-security-group-title > span,
+.anvil-role-security-group-detail > span { padding-top: 0; padding-bottom: 0; }
