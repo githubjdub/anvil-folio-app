@@ -132,6 +132,8 @@ class Retrospective(RetrospectiveTemplate):
       self._rules_ready = True
       self.rules_region.visible = True
       self.prompt_interpretation_label.text = result["description"]
+      self.prompt_warnings_label.text = "\n".join(result["warnings"])
+      self.prompt_warnings_label.visible = bool(result["warnings"])
       self._set_status("Rules interpreted. Review the dates, tickers, sector, and settings before running.")
     finally:
       self._end_request()
@@ -143,6 +145,7 @@ class Retrospective(RetrospectiveTemplate):
       self.rules_region.visible = True
       self._invalidate_result()
       self.prompt_interpretation_label.text = "Manual rules — the settings below define the test."
+      self.prompt_warnings_label.visible = False
       self._set_status("Set the supported strategy rules below, then run the test.")
       self._update_controls()
 
@@ -161,6 +164,7 @@ class Retrospective(RetrospectiveTemplate):
       self._invalidate_result()
       if self._rules_ready:
         self.prompt_interpretation_label.text = "Use the reviewed settings below for this test."
+        self.prompt_warnings_label.visible = False
         self._set_status("Settings changed. Run again to update the results.")
 
   def _number(self, text, name):
@@ -238,7 +242,11 @@ class Retrospective(RetrospectiveTemplate):
       component.text = text
     self.result_period_label.text = "%s – %s · %s · %d executed trades" % (
       metadata["start_date"], metadata["end_date"], ", ".join(metadata["tested_tickers"]), metrics["trade_count"])
-    self.result_warnings_label.text = "\n".join(result["warnings"])
+    notes = list(result["warnings"])
+    for pending in metadata["pending_signals"]:
+      notes.append("Pending %s · %s · signal %s: the next session's open falls beyond this test." % (
+        pending["action"], pending["ticker"], pending["signal_date"]))
+    self.result_warnings_label.text = "\n".join(notes)
     self.security_results_panel.items = [{
       "title": "%s · %s" % (row["ticker"], row["sector"]),
       "detail": "%s · %s allocated · %s dividends" % (row["company_name"], self._money(row["allocation"]), self._money(row["dividends"])),
@@ -247,7 +255,7 @@ class Retrospective(RetrospectiveTemplate):
     } for row in result["securities"]]
     self.trade_results_panel.items = [{
       "title": "%s · %s · %s shares" % (row["ticker"], row["action"], format(row["shares"], ",.6f").rstrip("0").rstrip(".")),
-      "detail": "Signal: %s · Executed: %s open · %s / share" % (row["signal_date"] or "Preset before test", row["execution_date"], self._money(row["price"])),
+      "detail": "Signal: %s · Executed: %s open · %s / share" % (self._signal_label(row), row["execution_date"], self._money(row["price"])),
       "status": row["reason"], "value": self._money(row["value"]), "subtitle": "Simulated trade value",
     } for row in result["trades"]]
     self.no_trades_label.visible = not bool(result["trades"])
@@ -267,7 +275,7 @@ class Retrospective(RetrospectiveTemplate):
       trades = [row for row in result["trades"] if row["action"] == action]
       traces.append({"type": "scatter", "mode": "markers", "name": action, "x": [row["execution_date"] for row in trades],
                      "y": [returns[row["execution_date"]] for row in trades], "marker": {"symbol": symbol, "color": color, "size": 13},
-                     "customdata": [[row["ticker"], row["shares"], row["price"], row["signal_date"] or "Preset"] for row in trades],
+                     "customdata": [[row["ticker"], row["shares"], row["price"], self._signal_label(row)] for row in trades],
                      "hovertemplate": "%{customdata[0]}<br>%{customdata[1]:.4f} shares @ $%{customdata[2]:.2f}<br>Signal: %{customdata[3]}<br>Execution: %{x}<extra>" + action + "</extra>"})
     self.result_plot.data = traces
     self.result_plot.layout = {"margin": {"l": 48, "r": 18, "t": 35, "b": 85},
@@ -283,3 +291,6 @@ class Retrospective(RetrospectiveTemplate):
   def redraw(self):
     if self._result is not None:
       self.result_plot.redraw()
+
+  def _signal_label(self, trade):
+    return trade["signal_date"] if trade["signal_close"] is not None else "Preset before test"

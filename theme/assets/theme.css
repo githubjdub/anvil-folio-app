@@ -463,8 +463,8 @@ button.anvil-role-chart-trade-open, .anvil-role-chart-trade-open > button { min-
 .retrospective-rule-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
 .retrospective-rule-grid > div { min-width: 0; }
 .retrospective-workspace h4 { font-size: 13px; margin: 12px 0 8px; }
-.retrospective-execution-note { padding: 12px; border-radius: 10px; background: #f6faf7; color: var(--muted); font-size: 10px; line-height: 1.6; }
-.retrospective-execution-note strong { color: var(--ink); font-size: 11px; }
+.retrospective-execution-note { padding: 12px; border-radius: 10px; background: #f6faf7; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.retrospective-execution-note strong { color: var(--ink); font-size: 12px; }
 .retrospective-execution-note p { margin: 5px 0; }
 .retrospective-result-row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .retrospective-row-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }

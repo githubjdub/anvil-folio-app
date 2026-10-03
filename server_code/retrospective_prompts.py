@@ -19,6 +19,8 @@ _SECTOR_ALIASES = {
   "healthcare": "Healthcare", "industrials": "Industrials", "industrial": "Industrials",
   "real estate": "Real Estate", "technology": "Technology", "information technology": "Technology",
   "tech": "Technology", "utilities": "Utilities",
+  "funds / etfs": "Funds / ETFs", "funds/etfs": "Funds / ETFs",
+  "funds and etfs": "Funds / ETFs", "unclassified": "Unclassified",
 }
 _SECTOR_NAMES = set(_SECTOR_ALIASES.values())
 _BUY = re.compile(r"\b(?:buy|bought|buying|purchase|purchased|purchasing|enter|entry|invest|invested)\b")
@@ -28,6 +30,7 @@ _EXTREME = re.compile(r"(?:(" + _HORIZON + r")\s+(?:rolling\s+|trailing\s+)?)?\b
 _HOLD = re.compile(r"\b(?:buy\s+(?:and\s+)?hold|buy\s+and\s+hold|bought\s+and\s+held|buy[- ]and[- ]hold)\b")
 _UNSUPPORTED = (
   (r"\b(?:rsi|macd|sma|ema|bollinger|moving average|momentum|volume|earnings|fundamentals|pe ratio|p/e|valuation)\b", "Technical indicators, volume, and fundamental filters are not supported by this daily low/high strategy editor."),
+  (r"\b(?:dividend[- ]paying|dividend stocks?|dividend yield|high[- ]yield|low[- ]yield|profitable|profitability|growing dividends)\b|\b(?:dividends?|profits?|returns?|gains?)\s+(?:at\s+|is\s+|are\s+|the\s+|yearly\s+|annual\s+)*(?:lows?|highs?)\b", "Low/high signals refer to share prices. Dividend yield, profitability, and return filters are not supported; dividend inclusion only controls cash payments in the calculation."),
   (r"\b(?:short|shorting|shorted|options?|puts?|calls?|leverage|leveraged|margin|futures|crypto|cryptocurrency)\b", "Use long stock or ETF positions; shorting, derivatives, and leverage are not supported."),
   (r"\b(?:intraday|minute|minutes|hour|hours|tick|ticks|second|seconds|stop[- ]loss|stoploss|limit order|limit orders)\b", "This test uses completed daily closes and the next session's open. Intraday, exact-second, stop, and limit-order fills are not supported."),
   (r"\b(?:rebalance|rebalancing|repeatedly|repeat|reinvest|reinvesting|reinvestment|compound|compounding)\b", "Use one entry and at most one sale per security. Rebalancing, repeated trades, and dividend reinvestment are not supported; included dividends remain cash."),
@@ -37,7 +40,7 @@ _UNSUPPORTED = (
 _FILLER = set("""
   a an and or but the this that these those of to for from in during over within past last
   previous prior trailing rolling yearly annual year years yr yrs month months mo mos
-  week weeks wk wks day days one two three all any selected sector sectors stock stocks
+  week weeks wk wks day days one all any selected sector sectors stock stocks
   security securities etf etfs fund funds position positions holding holdings shares portfolio my your its
   their our each per current existing can could please help give me us tell want i we you
   what how do does is are was were be been being would will should look looks looking like
@@ -54,6 +57,8 @@ _FILLER = set("""
 """.split())
 _WORDS = {"a": 1, "an": 1, "one": 1, "two": 2, "three": 3}
 _ALLOWED_LOOKBACKS = {30, 90, 180, 365, 730}
+_PERIOD = re.compile(r"\b(?:past|last|previous|during|over|for)\s+(?:the\s+)?(?:(?:past|last|previous)\s+)?(\d+|one|two|three|a|an)?\s*(years?|yrs?|months?|mos?|weeks?|wks?|days?)\b")
+_PERCENTAGE = re.compile(r"(?<![\w.])([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*(?:%|percent\b)")
 
 
 def _failure(message):
@@ -95,12 +100,20 @@ def _rule_extreme(segment):
   return match[2].rstrip("s"), _horizon_days(match[1])
 
 
+def _period_matches(text):
+  # A previous-year low describes the signal window, not the test period.
+  return [match for match in _PERIOD.finditer(text)
+          if not re.match(r"\s+(?:(?:rolling|trailing)\s+)?(?:lows?|highs?)\b", text[match.end():])]
+
+
 def _period(text):
-  matches = list(re.finditer(r"\b(?:past|last|previous|over the past|over the last)\s+(\d+|one|two|three|a|an)?\s*(years?|yrs?|months?|mos?)\b", text))
+  matches = _period_matches(text)
   if not matches:
     return 12, None
   periods = set()
   for match in matches:
+    if match[2].startswith(("week", "wk", "day")):
+      return None, "Describe the test period in months or years, or set exact custom dates in the editor. Daily and weekly test periods are not inferred from the prompt."
     number = match[1] or "one"
     count = int(number) if number.isdigit() else _WORDS[number]
     periods.add(count * 12 if match[2].startswith(("year", "yr")) else count)
@@ -110,6 +123,8 @@ def _period(text):
 
 
 def _sector(text, selected_sector):
+  if selected_sector is not None and (not isinstance(selected_sector, str) or selected_sector not in _SECTOR_NAMES):
+    return None, text, "Choose a recognised sector in the editor."
   detected = set()
   remainder = text
   for alias in sorted(_SECTOR_ALIASES, key=len, reverse=True):
@@ -127,15 +142,21 @@ def _sector(text, selected_sector):
     return next(iter(detected)), remainder, None
   if all_sectors:
     return None, remainder, None
-  if selected_sector and selected_sector not in _SECTOR_NAMES:
-    return None, remainder, "Choose a recognised sector in the editor."
   if this_sector and not selected_sector:
     return None, remainder, "For 'this sector', choose a sector in the editor first, or name it in the prompt."
   return selected_sector or None, remainder, None
 
 
+def _dividend_mode(text):
+  """Recognise positive and negative dividend wording in either word order."""
+  noun = r"(?:(?:cash|the)\s+)*dividends?"
+  exclude = bool(re.search(r"\b(?:without|excluding|exclude|excluded|no)\s+" + noun + r"\b|\b" + noun + r"\s+(?:excluded|omitted|off)\b|\bprice[- ]only\b", text))
+  include = bool(re.search(r"\b(?:including|include|included|with|plus)\s+" + noun + r"\b|\b" + noun + r"\s+(?:included|on)\b", text))
+  return not exclude, include, exclude
+
+
 def _sale_fraction(segment):
-  percentages = re.findall(r"\b(\d+(?:\.\d+)?)\s*(?:%|percent\b)", segment)
+  percentages = _PERCENTAGE.findall(segment)
   fractions = set()
   for number in percentages:
     value = float(number) / 100
@@ -168,7 +189,7 @@ def parse_retrospective_prompt(prompt, selected_sector=None):
     return _failure("Keep the strategy prompt to 1,500 characters or fewer.")
   text = _normalise(prompt)
   # These negations describe supported cash-dividend and no-lookahead behaviour.
-  checked = re.sub(r"\b(?:without|no|not)\s+(?:dividend\s+)?reinvest(?:ing|ment)?\b", " ", text)
+  checked = re.sub(r"\b(?:without|no|not)\s+(?:dividend\s+)?reinvest(?:ed|ing|ment)?\b", " ", text)
   checked = re.sub(r"\bnot\s+(?:in\s+retrospect|retrospectively|using\s+future\s+(?:data|information|knowledge))\b", " ", checked)
   for pattern, message in _UNSUPPORTED:
     if re.search(pattern, checked):
@@ -198,7 +219,7 @@ def parse_retrospective_prompt(prompt, selected_sector=None):
   months, period_error = _period(text)
   if period_error:
     return _failure(period_error)
-  if custom_dates and re.search(r"\b(?:past|last|previous)\s+(?:\d+|one|two|three|a|an)?\s*(?:years?|yrs?|months?|mos?)\b", text):
+  if custom_dates and _period_matches(text):
     return _failure("Choose an explicit date range or a relative past period, rather than both.")
   sector, remainder, sector_error = _sector(text, selected_sector)
   if sector_error:
@@ -211,9 +232,16 @@ def parse_retrospective_prompt(prompt, selected_sector=None):
     return _failure("Describe one entry and at most one sale per security.")
   if sell_matches and sell_matches[0].start() < buy_matches[0].start():
     return _failure("Write the buy rule first, then the optional sell rule.")
+  if re.search(r"\bif\b", text[buy_matches[0].end():]):
+    return _failure("Additional 'if' conditions are not supported. Describe the trailing low/high directly, and use the editor for sector and dividend settings.")
+  if re.search(r"\bbefore\b", text):
+    return _failure("Before-event or advance-timing conditions are not supported. This test acts after a completed daily low/high signal, at the next session's open.")
+  for after in re.finditer(r"\bafter\b", text):
+    if not re.match(r"\s+(?:(?:a|an|the|its)\s+)?(?:(?:price|close)\s+)?(?:(?:hits|reaches|makes)\s+)?(?:(?:a|an|the|new)\s+)?(?:" + _HORIZON + r"\s+)?(?:lows?|highs?)\b", text[after.end():]):
+      return _failure("Only a trailing low/high can time an entry or sale. Additional after-event or minimum-holding-period conditions are not supported.")
   split = sell_matches[0].start() if sell_matches else len(text)
   buy_segment, sell_segment = text[:split], text[split:]
-  if re.search(r"\b\d+(?:\.\d+)?\s*(?:%|percent\b)|\b(?:half|quarter|third|some)\b", buy_segment):
+  if _PERCENTAGE.search(buy_segment) or re.search(r"\b(?:half|quarter|third|some)\b", buy_segment):
     return _failure("Entry uses the full equal-weight allocation for each selected security. Specify sale percentages after the sell rule.")
   if _HOLD.search(buy_segment):
     entry_kind, entry_days = "buy_hold", 365
@@ -243,16 +271,16 @@ def parse_retrospective_prompt(prompt, selected_sector=None):
   # Reject meaningful unrecognised terms. This prevents, for example, silently
   # treating 'buy at a low if the company is profitable' as an unconditional buy.
   residual = re.sub(r"\b\d{4}-\d{2}-\d{2}\b", " ", remainder)
-  residual = re.sub(r"\b\d+(?:\.\d+)?\s*(?:%|percent\b)", " ", residual)
-  residual = re.sub(r"\b(?:\d+|one|two|three|a|an)\s*-?\s*(?:years?|yrs?|months?|mos?|weeks?|wks?|days?)\b", " ", residual)
-  residual = re.sub(r"\b(?:without|no|not)\s+(?:dividend\s+)?reinvest(?:ing|ment)?\b", " ", residual)
+  residual = _PERCENTAGE.sub(" ", residual)
+  residual = _EXTREME.sub(" ", residual)
+  residual = _PERIOD.sub(" ", residual)
+  residual = re.sub(r"\b(?:without|no|not)\s+(?:dividend\s+)?reinvest(?:ed|ing|ment)?\b", " ", residual)
   residual = re.sub(r"\bnot\s+(?:in\s+retrospect|retrospectively|using\s+future\s+(?:data|information|knowledge))\b", " ", residual)
+  residual = re.sub(r"\bdividends?\s+(?:included|excluded|omitted|off|on)\b", " ", residual)
   unknown = sorted(set(re.findall(r"[a-z][a-z']*|\d+(?:\.\d+)?", residual)) - _FILLER)
   if unknown:
     return _failure("Unrecognised prompt terms: %s. Use the low/high or buy-and-hold rules and choose securities, capital, and dates in the editor." % ", ".join(unknown[:6]))
-  exclude_dividends = bool(re.search(r"\b(?:without|excluding|exclude|excluded|no)\s+(?:the\s+)?dividends?\b", text))
-  include_dividends = not exclude_dividends
-  explicit_include = bool(re.search(r"\b(?:including|include|included|with)\s+(?:the\s+)?dividends?\b", text))
+  include_dividends, explicit_include, exclude_dividends = _dividend_mode(text)
   if exclude_dividends and explicit_include:
     return _failure("Choose whether to include or exclude dividends, rather than both.")
   rules = {
@@ -273,7 +301,7 @@ def parse_retrospective_prompt(prompt, selected_sector=None):
   ]
   if not explicit_include and not exclude_dividends:
     warnings.append("Dividends are included by default as cash without reinvestment; change the checkbox to exclude them.")
-  if sell_matches and not re.search(r"\b(?:half|quarter|all|full|entire|whole|everything)\b|\d+(?:\.\d+)?\s*(?:%|percent\b)", sell_segment):
+  if sell_matches and not (_PERCENTAGE.search(sell_segment) or re.search(r"\b(?:half|quarter|all|full|entire|whole|everything)\b", sell_segment)):
     warnings.append("No sale percentage was specified, so the preview sells 100%; edit the sale size before running.")
   period_description = "%s through %s" % custom_dates if custom_dates else "the past %d months" % months
   scope = sector + " securities selected in the editor" if sector else "securities selected in the editor"

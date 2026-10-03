@@ -2,11 +2,10 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
-import math
 import re
 
 import anvil.server
-from .portfolio_analytics import AnalysisInputError, _as_date, _fetch_history, _normalise_ticker, _EXCHANGES
+from .portfolio_analytics import AnalysisInputError, _as_date, _fetch_history, _normalise_ticker, _finite_number, _EXCHANGES
 from .retrospective_prompts import parse_retrospective_prompt
 from .retrospective_engine import run_backtest, RetrospectiveInputError
 from .sectors import _lookup_sector, _SECTORS
@@ -18,7 +17,7 @@ SECTORS = set(_SECTORS.values()) | {"Funds / ETFs", "Unclassified"}
 @anvil.server.callable
 def preview_retrospective_prompt(prompt, sector=None):
   """Interpret supported prose into inspectable rules; never execute prose."""
-  if sector is not None and sector not in SECTORS:
+  if sector is not None and (not isinstance(sector, str) or sector not in SECTORS):
     return {"ok": False, "message": "Choose a sector from the list."}
   return parse_retrospective_prompt(prompt, selected_sector=sector)
 
@@ -46,9 +45,10 @@ def _validate_request(tickers, rules, start_date, end_date, capital, sector):
     raise AnalysisInputError("Use dates from 1990 through today, with start on or before end.")
   if (end - start).days > 5 * 366:
     raise AnalysisInputError("Test up to five years at a time.")
-  if isinstance(capital, bool) or not isinstance(capital, (int, float)) or not math.isfinite(capital) or not 0 < capital <= 100000000:
+  capital = _finite_number(capital, "Starting capital", True)
+  if capital > 100000000:
     raise AnalysisInputError("Starting capital must be greater than zero and at most $100,000,000.")
-  if sector is not None and sector not in SECTORS:
+  if sector is not None and (not isinstance(sector, str) or sector not in SECTORS):
     raise AnalysisInputError("Choose a sector from the list.")
   if not isinstance(rules, dict):
     raise AnalysisInputError("Preview your prompt or set strategy rules first.")
@@ -58,9 +58,9 @@ def _validate_request(tickers, rules, start_date, end_date, capital, sector):
   lookback = rules.get("lookback_days")
   if isinstance(lookback, bool) or not isinstance(lookback, int) or not 20 <= lookback <= 730:
     raise AnalysisInputError("Use a rolling lookback between 20 and 730 calendar days.")
-  fraction = rules.get("exit_fraction")
-  if isinstance(fraction, bool) or not isinstance(fraction, (int, float)) or not math.isfinite(fraction) or not 0 < fraction <= 1:
-    raise AnalysisInputError("Sell between 1% and 100% of the position at the first exit signal.")
+  fraction = _finite_number(rules.get("exit_fraction"), "Sale fraction", True)
+  if fraction > 1:
+    raise AnalysisInputError("Sell more than 0% and at most 100% of the position at the first exit signal.")
   dividends = rules.get("include_dividends")
   if not isinstance(dividends, bool):
     raise AnalysisInputError("Choose whether to include dividends.")

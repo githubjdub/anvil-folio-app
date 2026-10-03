@@ -207,8 +207,13 @@ def run_backtest(histories, start_date, end_date, capital, strategy, benchmark=N
     raise RetrospectiveInputError("Choose between 1 and 25 securities.")
   clean = {ticker: _clean_history(ticker, source, end) for ticker, source in sorted(histories.items())}
   benchmark_history = _clean_history("Benchmark", benchmark, end) if benchmark is not None else None
-  session_source = set(benchmark_history["close"]) if benchmark_history else {
-    day for history in clean.values() for day in history["close"]
+  # A supplied benchmark is a reference, not permission to omit a session.
+  # Include every known stock/benchmark session so gaps fail explicitly rather
+  # than disappearing from signals, next-open execution, or the equity curve.
+  session_histories = list(clean.values()) + ([benchmark_history] if benchmark_history else [])
+  session_source = {
+    day for history in session_histories for name in ("close", "open")
+    for day in history[name]
   }
   sessions = sorted(day for day in session_source if start <= day <= end)
   if not sessions:
@@ -237,8 +242,9 @@ def run_backtest(histories, start_date, end_date, capital, strategy, benchmark=N
           raise RetrospectiveInputError("%s has no completed %s on %s; choose a period with complete listing history." % (ticker, name, day.isoformat()))
   if benchmark_history:
     for day in sessions:
-      if day not in benchmark_history["open"]:
-        raise RetrospectiveInputError("The benchmark has no completed open on %s." % day.isoformat())
+      for name in ("close", "open"):
+        if day not in benchmark_history[name]:
+          raise RetrospectiveInputError("The benchmark has no completed %s on %s." % (name, day.isoformat()))
     benchmark_state = {"shares": initial / benchmark_history["open"][first_day], "cash": 0.0}
   else:
     benchmark_state = None
