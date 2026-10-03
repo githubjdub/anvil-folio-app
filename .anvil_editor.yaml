@@ -6,6 +6,8 @@ unique_ids:
   forms:
     Components.ChartTradeRow: '1791044691129.2880635782575681'
     Components.ImportedHoldingRow: '1790977782121.6288069011272154'
+    Components.Retrospective: 7UOW5UXFCNIUZPFKNMRI4DKUO4AQ64TI
+    Components.RetrospectiveRow: '1791050829114.23771851174486736'
     Components.SectorAllocationRow: '1790919788646.5923270545794317'
     Components.SecurityAllocationRow: '1790971148709.44633824734463723'
     Form1: '1789762499703.46784056437118504'
@@ -21,4 +23,7 @@ unique_ids:
     market_status: '1790972665255.40893778683088344'
     portfolio_analytics: '1790901566023.43458645291581466'
     portfolios: '1790898330822.4877588245295871'
+    retrospective: '1791050577562.012829815978996018'
+    retrospective_engine: '1791050597051.5292650757813551'
+    retrospective_prompts: '1791050645186.3699879751107503'
     sectors: '1790919676379.8687735736658988'

@@ -356,7 +356,7 @@ html, body {
 .readout-workspace .status-region { margin: 4px 0 6px; }
 .readout-workspace .anvil-role-analyze-action { margin: 0; }
 .readout-workspace .anvil-role-analyze-action .anvil-m3-button { height: 42px; }
-.readout-navigation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 14px 0 5px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: var(--canvas); }
+.readout-navigation { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 14px 0 5px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: var(--canvas); }
 .readout-navigation > * { min-width: 0; }
 button.anvil-role-readout-tab,
 button.anvil-role-readout-tab-active,
@@ -446,6 +446,34 @@ button.anvil-role-chart-trade-open, .anvil-role-chart-trade-open > button { min-
   .performance-chart-panel.is-expanded .comparison-controls { grid-template-columns: 1fr; }
   .performance-chart-panel.is-expanded .comparison-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .chart-trade-choice { align-items: flex-start; flex-direction: column; gap: 6px; }
+}
+
+/* Prompt review and historical strategy results. */
+.retrospective-workspace { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.retrospective-intro { margin: 8px 0 14px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.anvil-role-retrospective-input { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 9px; padding: 10px; font-size: 12px; line-height: 1.5; resize: vertical; }
+.retrospective-example-row, .retrospective-universe-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.retrospective-example-row > :first-child { flex: 1; min-width: 0; }
+.retrospective-universe-row > :last-child { flex: 1; min-width: 0; }
+.retrospective-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+.retrospective-status { min-height: 25px; margin: 8px 0; padding: 6px 10px; border-radius: 8px; background: #f1f7f3; }
+.retrospective-status.is-error { background: #fff1ee; }
+.retrospective-status.is-error .anvil-role-portfolio-help { color: #a04134; }
+.retrospective-rules, .retrospective-results { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
+.retrospective-rule-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+.retrospective-rule-grid > div { min-width: 0; }
+.retrospective-workspace h4 { font-size: 13px; margin: 12px 0 8px; }
+.retrospective-execution-note { padding: 12px; border-radius: 10px; background: #f6faf7; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.retrospective-execution-note strong { color: var(--ink); font-size: 11px; }
+.retrospective-execution-note p { margin: 5px 0; }
+.retrospective-result-row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.retrospective-row-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.retrospective-row-value { max-width: 42%; text-align: right; }
+@media (max-width: 620px) {
+  .retrospective-workspace { padding: 12px 8px; }
+  .retrospective-example-row, .retrospective-universe-row { align-items: stretch; flex-direction: column; }
+  .retrospective-result-row { gap: 8px; }
+  .retrospective-row-value { max-width: 36%; }
 }
 
 /* Review image-detected positions before changing portfolio transactions. */

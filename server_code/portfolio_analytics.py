@@ -135,9 +135,12 @@ def _history_from_result(symbol, result, now):
     return math.prod(ratio for split_day, ratio in splits.items() if split_day > day)
 
   regular = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
-  closes = ((result.get("indicators") or {}).get("quote") or [{}])[0].get("close") or []
+  quote = ((result.get("indicators") or {}).get("quote") or [{}])[0]
+  closes = quote.get("close") or []
+  opens = quote.get("open") or []
   adjusted = ((result.get("indicators") or {}).get("adjclose") or [{}])[0].get("adjclose") or []
   prices = {}
+  opening_prices = {}
   adjusted_prices = {}
   today_local = now.astimezone(_NEW_YORK).date()
   for timestamp, close in zip(result.get("timestamp") or [], closes):
@@ -152,6 +155,10 @@ def _history_from_result(symbol, result, now):
         continue
     if close is not None:
       prices[day] = _finite_number(close, "%s historical close" % symbol, True) * later_split_factor(day)
+  for timestamp, opening in zip(result.get("timestamp") or [], opens):
+    day = _event_date(timestamp)
+    if day in prices and opening is not None:
+      opening_prices[day] = _finite_number(opening, "%s historical open" % symbol, True) * later_split_factor(day)
   for timestamp, close in zip(result.get("timestamp") or [], adjusted):
     day = _event_date(timestamp)
     if day in prices and close is not None:
@@ -165,7 +172,7 @@ def _history_from_result(symbol, result, now):
     if amount < 0:
       raise AnalysisInputError("%s returned an invalid negative dividend." % symbol)
     dividends[day] = dividends.get(day, 0) + amount * later_split_factor(day)
-  return {"close": prices, "splits": splits, "dividends": dividends,
+  return {"close": prices, "open": opening_prices, "splits": splits, "dividends": dividends,
           "adjusted_close": adjusted_prices,
           "company_name": meta.get("longName") or meta.get("shortName") or symbol,
           "instrument_type": meta.get("instrumentType")}

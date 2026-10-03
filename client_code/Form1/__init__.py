@@ -102,8 +102,10 @@ class Form1(Form1Template):
 
   def _update_readout_context(self):
     name = {"overview": "Overview", "allocation": "Allocation",
-            "performance": "Performance", "methods": "Methods"}[self._readout_page]
-    if self._readout_page == "methods":
+            "performance": "Performance", "retrospective": "Retrospective", "methods": "Methods"}[self._readout_page]
+    if self._readout_page == "retrospective":
+      self.readout_tab_context.text = "Retrospective · Test a hypothetical strategy against history"
+    elif self._readout_page == "methods":
       self.readout_tab_context.text = "Methods · Calculations and data sources"
     elif self._analysis_source is not None:
       count = len(self._analysis_source["selection_data"]["securities"])
@@ -115,19 +117,23 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    self.results_section.visible = has_analysis and self._readout_page != "methods"
-    self.empty_results.visible = not has_analysis and self._readout_page != "methods"
+    portfolio_page = self._readout_page not in ("methods", "retrospective")
+    self.results_section.visible = has_analysis and portfolio_page
+    self.empty_results.visible = not has_analysis and portfolio_page
     for name, panel, button in (
       ("overview", self.overview_panel, self.overview_tab_button),
       ("allocation", self.allocation_panel, self.allocation_tab_button),
       ("performance", self.performance_panel, self.performance_tab_button),
       ("methods", self.methods_panel, self.methods_tab_button),
+      ("retrospective", self.retrospective_panel, self.retrospective_tab_button),
     ):
       active = name == self._readout_page
       panel.visible = active
       button.role = "readout-tab-active" if active else "readout-tab"
       setattr(button, "enabled", not self._busy)
     self._update_readout_context()
+    if redraw and self._readout_page == "retrospective":
+      self.retrospective_form.redraw()
     if redraw and has_analysis:
       # Plotly needs the shown panel's width after leaving a hidden page.
       if self._readout_page == "allocation" and self.sector_plot.visible:
@@ -159,6 +165,28 @@ class Form1(Form1Template):
   @handle("methods_tab_button", "click")
   def methods_tab_click(self, **event_args):
     self._select_readout_page("methods")
+
+  def _set_retrospective_tickers(self, force=False):
+    tickers = []
+    for row in self.transactions:
+      ticker = str(row.get("ticker") or "").strip().upper()
+      if ticker and ticker not in tickers:
+        tickers.append(ticker)
+    self.retrospective_form.set_universe(tickers, force=force)
+
+  @handle("retrospective_tab_button", "click")
+  def retrospective_tab_click(self, **event_args):
+    if not self._busy:
+      self._set_retrospective_tickers()
+      self._select_readout_page("retrospective")
+
+  @handle("retrospective_form", "x-use-portfolio-tickers")
+  def retrospective_use_tickers(self, **event_args):
+    self._set_retrospective_tickers(force=True)
+
+  @handle("retrospective_form", "x-retrospective-busy")
+  def retrospective_busy_change(self, busy, **event_args):
+    self._set_busy(busy)
 
   def _security_key(self, transaction):
     parts = str(transaction.get("ticker") or "").strip().upper().split(":", 1)
@@ -446,6 +474,7 @@ class Form1(Form1Template):
       self.collapse_all_button, self.expand_all_button,
       self.overview_tab_button, self.allocation_tab_button,
       self.performance_tab_button, self.methods_tab_button,
+      self.retrospective_tab_button,
       self.toggle_image_import_button, self.holdings_image_loader,
       self.clear_image_import_button, self.image_import_date_picker,
       self.image_import_mode_dropdown,
@@ -467,6 +496,7 @@ class Form1(Form1Template):
     )
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
+    self.retrospective_form.raise_event("x-set-editable", editable=not self._busy)
     self.benchmark_return_dropdown.enabled = not self._busy and len(self.benchmark_return_dropdown.items) > 1
     self._update_image_import_controls()
 

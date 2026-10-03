@@ -135,6 +135,7 @@
           <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Overview" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
           <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Allocation" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="retrospective_tab_button" prop:text="Retrospective" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="methods_tab_button" prop:text="Methods" prop:appearance="text" prop:role="readout-tab"></anvil-component>
         </nav>
         <div class="readout-page-status" role="status" aria-live="polite"><anvil-component type="Label" name="readout_tab_context" prop:role="readout-tab-context" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
@@ -234,6 +235,9 @@
         <section anvil:name="methods_panel" class="readout-page" aria-label="Calculation methods and sources">
           <div class="method-note"><span class="method-icon">∿</span><div><strong>How performance and risk are measured</strong><p>Total return above is investment profit divided by total buy capital. The charts and annualized return use daily time-weighted performance, adjusting for purchases as contributions and sales as withdrawals. With no deposit ledger or execution times, buys are treated as beginning-of-day inflows and sells as end-of-day outflows. The first close establishes the comparison baseline; investment profit above still includes your entered execution prices. Dividends are credited on ex-dividend dates, before tax, without reinvestment. Weekend or holiday trades use the next completed trading session.</p><p>Volatility is the sample standard deviation of daily returns × √252. Sharpe is mean daily excess return divided by its standard deviation × √252, using your annual risk-free rate converted to a daily rate. Both portfolio and benchmark risk need at least 20 daily returns; short samples remain estimates. Benchmark risk uses the selected price or total-return series over the matching chart dates. Sessions with no invested portfolio capital are excluded only from portfolio risk, and annualized portfolio return is not shown when history contains these gaps.</p></div></div>
         <p class="fine-print">Yahoo Finance supplies daily prices, dividends, splits, and benchmark history. Entered prices take precedence over the trade-day close. Analysis uses USD-listed US securities.</p>
+        </section>
+        <section anvil:name="retrospective_panel" class="readout-page" aria-label="Retrospective strategy analysis">
+          <anvil-component type="M3_App_1.Components.Retrospective" name="retrospective_form"></anvil-component>
         </section>
         </div>
         </div>
