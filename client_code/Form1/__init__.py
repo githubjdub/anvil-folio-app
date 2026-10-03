@@ -80,6 +80,12 @@ class Form1(Form1Template):
     self._load_sample_transactions()
     self._show_results(False)
     self._refresh_account()
+    if self._user is not None:
+      self._set_busy(True)
+      try:
+        self._restore_last_portfolio()
+      finally:
+        self._set_busy(False)
 
   @handle("market_status_timer", "tick")
   def market_status_timer_tick(self, **event_args):
@@ -463,6 +469,7 @@ class Form1(Form1Template):
     self.portfolio_status_region.classes["is-error"] = is_error
 
   def _update_controls(self):
+    self._update_welcome()
     for component in (
       self.account_button, self.save_portfolio_button, self.new_portfolio_button,
       self.portfolio_name_box, self.add_button, self.sample_button,
@@ -528,6 +535,34 @@ class Form1(Form1Template):
     )
     self._refresh_portfolios()
 
+  def _update_welcome(self):
+    signed_in = self._user is not None
+    self.guest_hero.visible = not signed_in
+    self.welcome_region.visible = signed_in
+    if not signed_in:
+      self.welcome_detail_label.text = ""
+    elif self._current_portfolio is not None:
+      self.welcome_detail_label.text = 'Continue with "%s" below.' % self._current_portfolio["name"]
+    else:
+      self.welcome_detail_label.text = "Continue your draft below, or open a saved portfolio. We'll remember the portfolio you open or save."
+
+  def _restore_last_portfolio(self):
+    result = anvil.server.call("get_last_portfolio")
+    if not result["ok"]:
+      self._set_portfolio_status(result["message"], is_error=True)
+      return
+    portfolio = result["portfolio"]
+    if portfolio is None:
+      if not self._has_unsaved_work():
+        self._new_portfolio()
+      self._set_portfolio_status("Welcome! Save your first portfolio to return to it next time.")
+      return
+    if not self._confirm_discard():
+      self._set_portfolio_status("Welcome back. Your unsaved work is still here; open a saved portfolio whenever you're ready.")
+      return
+    self._apply_portfolio(portfolio)
+    self._set_portfolio_status('Welcome back — reopened "%s".' % portfolio["name"])
+
   def _ensure_signed_in(self):
     if anvil.users.get_user() is None:
       user = anvil.users.login_with_form(allow_cancel=True)
@@ -541,16 +576,20 @@ class Form1(Form1Template):
     self._portfolio_dirty = True
     self._set_portfolio_status("Unsaved changes — save your portfolio to keep them.")
 
+  def _has_unsaved_work(self):
+    return self._portfolio_dirty or self.holdings_image_loader.file is not None
+
   def _confirm_discard(self):
-    return not self._portfolio_dirty or confirm(
-      "You have unsaved portfolio changes. Discard them and continue?",
+    return not self._has_unsaved_work() or confirm(
+      "You have unsaved portfolio changes or an import in progress. Discard them and continue?",
       title="Unsaved changes",
       buttons=[("Keep editing", False), ("Discard changes", True)],
     )
 
   def _new_portfolio(self):
-    self._clear_image_import()
     self._current_portfolio = None
+    self._clear_image_import()
+    self.retrospective_form.reset_workspace()
     self.portfolio_name_box.text = ""
     self.transactions = [self._new_transaction()]
     self._refresh_transactions()
@@ -558,6 +597,7 @@ class Form1(Form1Template):
     self.risk_free_box.text = "4.50"
     self.saved_portfolios_dropdown.selected_value = None
     self._portfolio_dirty = False
+    self._readout_page = "overview"
     self._show_results(False)
     self._set_status("Add transactions, then save your portfolio or sync prices.")
     self._set_portfolio_status("New portfolio — enter a name before saving.")
@@ -584,9 +624,11 @@ class Form1(Form1Template):
     try:
       if self._user is None:
         if self._ensure_signed_in():
-          self._set_portfolio_status("Signed in. Open a saved portfolio or save your current portfolio.")
+          self._restore_last_portfolio()
       else:
         anvil.users.logout(invalidate_client_objects=True)
+        self._user = None
+        self._current_portfolio = None
         self._new_portfolio()
         self._refresh_account()
         self._set_portfolio_status("Signed out. Your saved portfolios are kept in your account.")
@@ -666,25 +708,33 @@ class Form1(Form1Template):
         self._set_portfolio_status(result["message"], is_error=True)
         return
       portfolio = result["portfolio"]
-      self._clear_image_import()
-      self._current_portfolio = portfolio
-      self.portfolio_name_box.text = portfolio["name"]
-      self.as_of_date_picker.date = portfolio["as_of_date"]
-      self.risk_free_box.text = str(portfolio["risk_free_rate"])
-      self.transactions = [self._new_transaction(
-        transaction["ticker"],
-        date(*[int(part) for part in transaction["trade_date"].split("-")]),
-        transaction["action"],
-        str(transaction["shares"]),
-        transaction.get("trade_price"),
-      ) for transaction in portfolio["transactions"]]
-      self._refresh_transactions()
-      self._portfolio_dirty = False
-      self._show_results(False)
+      self._apply_portfolio(portfolio)
       self._set_portfolio_status('Opened "%s". Changes are saved when you click Save changes.' % portfolio["name"])
-      self._set_status("Saved transactions loaded — sync to fetch daily market history.")
     finally:
       self._set_busy(False)
+
+  def _apply_portfolio(self, portfolio):
+    self._clear_image_import()
+    self.retrospective_form.reset_workspace()
+    self._current_portfolio = portfolio
+    self.portfolio_name_box.text = portfolio["name"]
+    self.as_of_date_picker.date = portfolio["as_of_date"]
+    self.risk_free_box.text = str(portfolio["risk_free_rate"])
+    self.transactions = [self._new_transaction(
+      transaction["ticker"],
+      date(*[int(part) for part in transaction["trade_date"].split("-")]),
+      transaction["action"],
+      str(transaction["shares"]),
+      transaction.get("trade_price"),
+    ) for transaction in portfolio["transactions"]]
+    self._refresh_transactions()
+    self._portfolio_dirty = False
+    self._readout_page = "overview"
+    self._show_results(False)
+    self.saved_portfolios_dropdown.selected_value = portfolio
+    self._set_retrospective_tickers(force=True)
+    self._set_status("Saved transactions loaded — sync to fetch daily market history.")
+    self._update_controls()
 
   def _set_dates(self):
     self.as_of_date_picker.date = date.today()

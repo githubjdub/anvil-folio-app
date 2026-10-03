@@ -53,6 +53,11 @@ db_schema:
       type: datetime
     - admin_ui: {}
       client_hidden: true
+      name: last_portfolio
+      target: portfolios
+      type: link_single
+    - admin_ui: {}
+      client_hidden: true
       name: n_password_failures
       type: number
     server: full

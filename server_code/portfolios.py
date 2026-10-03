@@ -5,7 +5,7 @@ import math
 
 import anvil.server
 import anvil.users
-from anvil.tables import app_tables
+from anvil.tables import app_tables, RowDeleted
 
 
 def _current_user():
@@ -89,14 +89,17 @@ def _owned_portfolio(portfolio_id, user):
   if not isinstance(portfolio_id, str) or not portfolio_id:
     return None
   portfolio = app_tables.portfolios.get_by_id(portfolio_id)
-  if portfolio is None or portfolio["owner"] != user:
+  if portfolio is None:
+    return None
+  try:
+    if portfolio["owner"] != user:
+      return None
+  except RowDeleted:
     return None
   return portfolio
 
 
-@anvil.server.callable(require_user=True)
-def list_portfolios():
-  user = _current_user()
+def _portfolios_for(user):
   return sorted(
     app_tables.portfolios.search(owner=user),
     key=lambda portfolio: portfolio["updated_at"],
@@ -105,10 +108,34 @@ def list_portfolios():
 
 
 @anvil.server.callable(require_user=True)
+def list_portfolios():
+  return _portfolios_for(_current_user())
+
+
+@anvil.server.callable(require_user=True)
+def get_last_portfolio():
+  user = _current_user()
+  previous = user["last_portfolio"]
+  portfolio = None
+  if previous is not None:
+    try:
+      portfolio_id = previous.get_id()
+    except RowDeleted:
+      portfolio_id = None
+    portfolio = _owned_portfolio(portfolio_id, user)
+  if portfolio is None:
+    owned = _portfolios_for(user)
+    portfolio = owned[0] if owned else None
+  return {"ok": True, "portfolio": portfolio}
+
+
+@anvil.server.callable(require_user=True)
 def load_portfolio(portfolio_id):
-  portfolio = _owned_portfolio(portfolio_id, _current_user())
+  user = _current_user()
+  portfolio = _owned_portfolio(portfolio_id, user)
   if portfolio is None:
     return {"ok": False, "message": "This portfolio is no longer available to your account."}
+  user["last_portfolio"] = portfolio
   return {"ok": True, "portfolio": portfolio}
 
 
@@ -131,4 +158,5 @@ def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate)
     portfolio = app_tables.portfolios.add_row(owner=user, **values)
   else:
     portfolio.update(**values)
+  user["last_portfolio"] = portfolio
   return {"ok": True, "portfolio": portfolio}

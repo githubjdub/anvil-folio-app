@@ -14,7 +14,7 @@
   </header>
 
   <main class="portfolio-shell">
-    <section class="portfolio-hero">
+    <section anvil:name="guest_hero" class="portfolio-hero">
       <div>
         <div class="eyebrow">Portfolio intelligence · 01</div>
         <h1>Track the position, not the paperwork.</h1>
@@ -24,6 +24,12 @@
         <span class="hero-note-icon">↗</span>
         <div><strong>History in perspective</strong><br><span>Daily closes. The same comparison dates.</span></div>
       </div>
+    </section>
+
+    <section anvil:name="welcome_region" class="portfolio-welcome" aria-label="Welcome back">
+      <div class="eyebrow">Your investment workspace</div>
+      <h1>Welcome back.</h1>
+      <anvil-component type="Label" name="welcome_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     </section>
 
     <section class="panel-card portfolio-library" aria-label="Saved portfolios">

@@ -43,6 +43,36 @@ class Retrospective(RetrospectiveTemplate):
     self.include_dividends_checkbox.checked = True
     self._update_controls()
 
+  def reset_workspace(self):
+    self._rules_ready = False
+    self._last_seed = ""
+    self.prompt_box.text = EXAMPLES[0][1]
+    self.example_dropdown.selected_value = EXAMPLES[0][1]
+    self.tickers_box.text = ""
+    self.sector_dropdown.selected_value = None
+    self.entry_dropdown.selected_value = "low"
+    self.exit_dropdown.selected_value = "high"
+    self.lookback_box.text = "365"
+    self.exit_percent_box.text = "50"
+    self.capital_box.text = "10000"
+    self.include_dividends_checkbox.checked = True
+    self.start_picker.date = date.today() - timedelta(days=365)
+    self.end_picker.date = date.today()
+    self.rules_region.visible = False
+    self.prompt_warnings_label.visible = False
+    self._invalidate_result()
+    self.result_plot.data = []
+    self.security_results_panel.items = []
+    self.trade_results_panel.items = []
+    for component in (self.prompt_interpretation_label, self.prompt_warnings_label,
+                      self.result_period_label, self.result_warnings_label,
+                      self.capital_label, self.equity_label, self.profit_label,
+                      self.return_label, self.buy_hold_label, self.benchmark_label,
+                      self.dividend_label, self.cash_label, self.drawdown_label):
+      component.text = ""
+    self._set_status("")
+    self._update_controls()
+
   def set_universe(self, tickers, force=False):
     text = ", ".join(tickers)
     if force or not str(self.tickers_box.text or "").strip() or self.tickers_box.text == self._last_seed:
