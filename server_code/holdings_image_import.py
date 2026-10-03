@@ -57,6 +57,28 @@ _PDF_POSITION_SECTION = re.compile(
   r"^(?:(?:(?:your|account|portfolio|investment)\s+)?(?:holdings|positions)|"
   r"(?:holdings|positions)\s+(?:detail|details)|equities|stocks|etfs|securities)\s*:?\s*$", re.I
 )
+_ACCOUNT_CURRENCY = re.compile(
+  r"\b(?:account|base|reporting)\s+currency\s*(?::|=|is)?\s*"
+  r"(USD|EUR|GBP|CAD|AUD|JPY|CHF|HKD|CNY|INR)\b", re.I
+)
+_EXPLICIT_USD = re.compile(r"\bUSD\b|\bUS\$", re.I)
+
+
+def _account_currency(text):
+  """Read an explicit account caption; generic currency mentions are ambiguous."""
+  match = _ACCOUNT_CURRENCY.search(text.replace(" · ", " "))
+  return match.group(1).upper() if match else None
+
+
+def _apply_account_currency(row, currency, text):
+  if currency and currency != "USD" and not _EXPLICIT_USD.search(text):
+    row["include"] = False
+    row["trade_price"] = ""
+    row["notes"] += (
+      " Account currency %s detected; this analyzer uses USD. Review the security and currency."
+      % currency
+    )
+  return row
 
 
 def _failure(message):
@@ -224,7 +246,7 @@ def _draft(ticker="", shares="", price="", action="Buy", trade_date=None, row_ki
   }
 
 
-def _parse_table(lines, document=False):
+def _parse_table(lines, document=False, account_currency=None):
   rows = []
   columns = None
   is_transaction = False
@@ -233,6 +255,11 @@ def _parse_table(lines, document=False):
   for index, line in enumerate(lines):
     if document:
       text = line["text"].replace(" · ", " ").strip()
+      currency_caption = _account_currency(text)
+      if currency_caption:
+        account_currency = currency_caption
+        used_lines.add(index)
+        continue
       if _PDF_PAGE_FOOTER.search(text) or _PDF_BOILERPLATE.search(text):
         used_lines.add(index)
         continue
@@ -324,16 +351,23 @@ def _parse_table(lines, document=False):
     relevant = ticker_blocks + quantity_blocks + cost_blocks
     if any(block["score"] < .8 for block in relevant):
       notes.append("Some characters were read with low confidence; check the image carefully.")
-    rows.append(_draft(ticker, shares, price, action, trade_date, row_kind, notes, include))
+    row = _draft(ticker, shares, price, action, trade_date, row_kind, notes, include)
+    if document:
+      _apply_account_currency(row, account_currency, line["text"])
+    rows.append(row)
     used_lines.add(index)
   return rows, used_lines
 
 
-def _parse_cards(lines, used_lines):
+def _parse_cards(lines, used_lines, document=False, account_currency=None):
   """Support broker cards with explicit 'shares'/'average cost' labels."""
   rows = []
   candidates = []
+  account_currencies = {}
   for index, line in enumerate(lines):
+    if document:
+      account_currency = _account_currency(line["text"]) or account_currency
+      account_currencies[index] = account_currency
     if index in used_lines or _CASH.search(line["text"]):
       continue
     for block in line["blocks"]:
@@ -342,6 +376,11 @@ def _parse_cards(lines, used_lines):
         break
   for position, (index, block, ticker) in enumerate(candidates):
     end = candidates[position + 1][0] if position + 1 < len(candidates) else min(len(lines), index + 8)
+    if document:
+      for following in range(index + 1, end):
+        if _account_currency(lines[following]["text"]):
+          end = following
+          break
     nearby = [line for line in lines[index:end] if line["y"] - block["y"] <= 220]
     text = " \n ".join(line["text"].replace(" · ", " ") for line in nearby)
     if _CASH.search(text):
@@ -363,22 +402,26 @@ def _parse_cards(lines, used_lines):
       notes.append("Short/option position excluded; this analyzer supports ordinary shares.")
     if block["score"] < .8:
       notes.append("Ticker has low reading confidence; check it against the image.")
-    rows.append(_draft(ticker, shares, price, notes=notes, include=include))
+    row = _draft(ticker, shares, price, notes=notes, include=include)
+    if document:
+      _apply_account_currency(row, account_currencies[index], text)
+    rows.append(row)
   return rows
 
 
-def _parse_blocks(blocks, document=False):
+def _parse_blocks(blocks, document=False, account_currency=None):
   blocks = _deskew_blocks(blocks)
   lines = _lines(blocks)
-  rows, used_lines = _parse_table(lines, document=document)
-  rows.extend(_parse_cards(lines, used_lines))
+  rows, used_lines = _parse_table(lines, document=document, account_currency=account_currency)
+  rows.extend(_parse_cards(lines, used_lines, document=document, account_currency=account_currency))
   caption = " ".join(block["text"] for block in blocks)
   non_usd_heading = any(
     _header(block["text"]) in ("trade_price", "total_cost", "execution_price")
     and _NON_USD.search(block["text"]) for block in blocks
   )
   non_usd_caption = re.search(
-    r"\b(?:account\s+currency\s*:?|(?:all\s+)?(?:amounts|prices|values|costs)\s+(?:are\s+)?(?:shown\s+)?in)\s*(?:EUR|GBP|CAD|AUD|JPY|CHF|HKD|CNY|INR)\b",
+    (r"\b(?:" + (r"account\s+currency\s*:?|" if not document else "")
+     + r"(?:all\s+)?(?:amounts|prices|values|costs)\s+(?:are\s+)?(?:shown\s+)?in)\s*(?:EUR|GBP|CAD|AUD|JPY|CHF|HKD|CNY|INR)\b"),
     caption, re.I,
   )
   if non_usd_heading or non_usd_caption:
@@ -469,8 +512,12 @@ def parse_holdings_document_text(ocr_pages):
     clean_pages.append((page, clean_blocks))
   rows = []
   truncated = False
+  account_currency = None
   for page, clean_blocks in sorted(clean_pages):
-    page_rows, page_truncated = _parse_blocks(_normalise_blocks(clean_blocks), document=True)
+    page_blocks = _normalise_blocks(clean_blocks)
+    page_rows, page_truncated = _parse_blocks(page_blocks, document=True, account_currency=account_currency)
+    for line in _lines(_deskew_blocks(page_blocks)):
+      account_currency = _account_currency(line["text"]) or account_currency
     truncated = truncated or page_truncated or len(rows) + len(page_rows) > _MAX_ROWS
     for row in page_rows[:max(0, _MAX_ROWS - len(rows))]:
       row["source_page"] = page

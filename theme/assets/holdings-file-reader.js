@@ -122,9 +122,10 @@ function cellBlocks(fragments) {
   return blocks;
 }
 
-async function containsStatementImage(page, viewport, library) {
+async function statementImageRegions(page, viewport, library) {
   const operations = await page.getOperatorList();
   const stack = [];
+  const regions = [];
   let transform = [1, 0, 0, 1, 0, 0];
   const ops = library.OPS;
   for (let index = 0; index < operations.fnArray.length; index++) {
@@ -137,14 +138,29 @@ async function containsStatementImage(page, viewport, library) {
     } else if (operation === ops.transform) {
       transform = library.Util.transform(transform, args);
     } else if (operation === ops.paintImageXObject || operation === ops.paintInlineImageXObject) {
-      // PDF image draws cover a transformed unit square. A small broker logo
-      // should not replace accurate native cells with OCR; a statement scan should.
+      // PDF image draws cover a transformed unit square. Keep small broker
+      // logos out of OCR, and preserve native text outside larger scan regions.
       const matrix = library.Util.transform(viewport.transform, transform);
       const area = Math.abs(matrix[0] * matrix[3] - matrix[1] * matrix[2]);
-      if (area > viewport.width * viewport.height * 0.2) return true;
+      if (area > viewport.width * viewport.height * 0.2) {
+        const corners = [[0, 0], [1, 0], [1, 1], [0, 1]].map(([x, y]) => [
+          matrix[0] * x + matrix[2] * y + matrix[4],
+          matrix[1] * x + matrix[3] * y + matrix[5],
+        ]);
+        regions.push({ left: Math.max(0, Math.min(...corners.map(point => point[0]))),
+          right: Math.min(viewport.width, Math.max(...corners.map(point => point[0]))),
+          top: Math.max(0, Math.min(...corners.map(point => point[1]))),
+          bottom: Math.min(viewport.height, Math.max(...corners.map(point => point[1]))) });
+      }
     }
   }
-  return false;
+  return regions;
+}
+
+function insideImageRegion(block, regions) {
+  const x = block[0].reduce((sum, point) => sum + point[0], 0) / block[0].length;
+  const y = block[0].reduce((sum, point) => sum + point[1], 0) / block[0].length;
+  return regions.some(region => x >= region.left && x <= region.right && y >= region.top && y <= region.bottom);
 }
 
 function nativeBlocks(content, viewport, library) {
@@ -258,11 +274,18 @@ export async function readHoldingsFile(fileUrl, firstPage = 1, lastPage = null, 
         }
         let cells = nativeBlocks(content, viewport, library);
         const textLength = cells.reduce((sum, cell) => sum + cell[1].length, 0);
-        const needsOcr = textLength < 35 || (textLength < 300 && await containsStatementImage(page, viewport, library));
+        const imageRegions = await statementImageRegions(page, viewport, library);
+        const needsOcr = textLength < 35 || imageRegions.length > 0;
         if (needsOcr) {
           const result = await scannedBlocks(page, viewport);
           if (!result.ok) return failure(`Page ${number}: ${result.message}`, { total_pages: pdf.numPages });
-          cells = result.blocks;
+          // Long selectable broker boilerplate must not hide scanned holdings.
+          // Keep exact native cells outside the images, without duplicate drafts
+          // from OCR reading the same selectable headings and footers.
+          cells = textLength < 35 ? result.blocks : [
+            ...cells.filter(block => !insideImageRegion(block, imageRegions)),
+            ...result.blocks.filter(block => insideImageRegion(block, imageRegions)),
+          ];
           scannedPages.push(number);
         }
         if (blocks.length + cells.length > MAX_BLOCKS) {

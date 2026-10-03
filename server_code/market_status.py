@@ -1,19 +1,15 @@
 """Scheduled US equity sessions, including extended hours and exchange holidays."""
 
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from functools import lru_cache
 from math import ceil
 from zoneinfo import ZoneInfo
 
 import anvil.server
-import pandas_market_calendars as market_calendars
 
 
 _NEW_YORK = ZoneInfo("America/New_York")
-_CALENDAR = market_calendars.get_calendar("NYSE")
-_SCHEDULE_SOURCE = "pandas_market_calendars %s · NYSE regular trading calendar" % (
-  market_calendars.__version__,
-)
+_SCHEDULE_SOURCE = "NYSE published holiday rules and scheduled early closes"
 _SOURCE_URL = "https://www.nyse.com/trade/hours-calendars"
 _EXTENDED_SOURCE_URL = "https://www.nasdaq.com/market-activity/stock-market-holiday-schedule"
 _SCOPE = (
@@ -22,22 +18,95 @@ _SCOPE = (
 )
 
 
+_SPECIAL_CLOSURES = frozenset({
+  date(2001, 9, 11), date(2001, 9, 12), date(2001, 9, 13), date(2001, 9, 14),
+  date(2004, 6, 11), date(2007, 1, 2),
+  date(2012, 10, 29), date(2012, 10, 30),
+  date(2018, 12, 5), date(2025, 1, 9),
+})
+
+
+def _nth_weekday(year, month, weekday, occurrence):
+  first = date(year, month, 1)
+  return first + timedelta(days=(weekday - first.weekday()) % 7 + 7 * (occurrence - 1))
+
+
+def _last_weekday(year, month, weekday):
+  following_month = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
+  last = following_month - timedelta(days=1)
+  return last - timedelta(days=(last.weekday() - weekday) % 7)
+
+
+def _easter_sunday(year):
+  """Gregorian Easter, using the integer Meeus/Jones/Butcher algorithm."""
+  a = year % 19
+  b, c = divmod(year, 100)
+  d, e = divmod(b, 4)
+  f = (b + 8) // 25
+  g = (b - f + 1) // 3
+  h = (19 * a + b - d - g + 15) % 30
+  i, k = divmod(c, 4)
+  l = (32 + 2 * e + 2 * i - h - k) % 7
+  m = (a + 11 * h + 22 * l) // 451
+  month, day_zero = divmod(h + l - 7 * m + 114, 31)
+  return date(year, month, day_zero + 1)
+
+
+def _observed_holiday(day):
+  if day.weekday() == 5:
+    return day - timedelta(days=1)
+  if day.weekday() == 6:
+    return day + timedelta(days=1)
+  return day
+
+
+@lru_cache(maxsize=4)
+def _holidays_for_year(year):
+  """Modern NYSE equity holidays, including its New Year's Saturday exception."""
+  new_year = date(year, 1, 1)
+  holidays = {
+    _nth_weekday(year, 2, 0, 3),                 # Washington's Birthday
+    _easter_sunday(year) - timedelta(days=2),   # Good Friday
+    _last_weekday(year, 5, 0),                  # Memorial Day
+    _observed_holiday(date(year, 7, 4)),
+    _nth_weekday(year, 9, 0, 1),                # Labor Day
+    _nth_weekday(year, 11, 3, 4),               # Thanksgiving
+    _observed_holiday(date(year, 12, 25)),
+  }
+  # NYSE does not close the preceding Friday when January 1 is a Saturday.
+  # Sunday January 1 is observed on Monday, as with the other fixed holidays.
+  if new_year.weekday() != 5:
+    holidays.add(_observed_holiday(new_year))
+  if year >= 1998:
+    holidays.add(_nth_weekday(year, 1, 0, 3))    # Martin Luther King Jr. Day
+  if year >= 2022:
+    holidays.add(_observed_holiday(date(year, 6, 19)))
+  holidays.update(day for day in _SPECIAL_CLOSURES if day.year == year)
+  return frozenset(holidays)
+
+
+def _regular_close_hour(day):
+  """A session is shortened only when the named early-close date is open."""
+  thanksgiving_friday = _nth_weekday(day.year, 11, 3, 4) + timedelta(days=1)
+  if day == thanksgiving_friday or (day.month, day.day) in {(7, 3), (12, 24)}:
+    return 13
+  return 16
+
+
 @lru_cache(maxsize=1)
 def _schedule_for_day(eastern_day):
   """Cache dates, never the clock-dependent open/closed result."""
-  schedule = _CALENDAR.schedule(
-    start_date=eastern_day,
-    end_date=eastern_day + timedelta(days=32),
-  )
-  return tuple(
-    (
-      market_open.to_pydatetime().astimezone(timezone.utc),
-      market_close.to_pydatetime().astimezone(timezone.utc),
-    )
-    for market_open, market_close in zip(
-      schedule["market_open"].tolist(), schedule["market_close"].tolist(),
-    )
-  )
+  sessions = []
+  for offset in range(33):
+    day = eastern_day + timedelta(days=offset)
+    if day.weekday() >= 5 or day in _holidays_for_year(day.year):
+      continue
+    market_open = datetime.combine(day, time(9, 30), tzinfo=_NEW_YORK)
+    market_close = datetime.combine(day, time(_regular_close_hour(day)), tzinfo=_NEW_YORK)
+    sessions.append((
+      market_open.astimezone(timezone.utc), market_close.astimezone(timezone.utc),
+    ))
+  return tuple(sessions)
 
 
 def _eastern_time(timestamp):
