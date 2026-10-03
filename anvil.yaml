@@ -23,6 +23,10 @@ db_schema:
     - admin_ui: {}
       name: updated_at
       type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: last_used_at
+      type: datetime
     server: full
     title: Portfolios
   users:
@@ -51,11 +55,6 @@ db_schema:
     - admin_ui: {}
       name: last_login
       type: datetime
-    - admin_ui: {}
-      client_hidden: true
-      name: last_portfolio
-      target: portfolios
-      type: link_single
     - admin_ui: {}
       client_hidden: true
       name: n_password_failures

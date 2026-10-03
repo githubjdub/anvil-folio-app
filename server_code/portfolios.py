@@ -115,17 +115,12 @@ def list_portfolios():
 @anvil.server.callable(require_user=True)
 def get_last_portfolio():
   user = _current_user()
-  previous = user["last_portfolio"]
-  portfolio = None
-  if previous is not None:
-    try:
-      portfolio_id = previous.get_id()
-    except RowDeleted:
-      portfolio_id = None
-    portfolio = _owned_portfolio(portfolio_id, user)
-  if portfolio is None:
-    owned = _portfolios_for(user)
-    portfolio = owned[0] if owned else None
+  portfolio = max(
+    app_tables.portfolios.search(owner=user),
+    key=lambda row: (row["last_used_at"] is not None,
+                     (row["last_used_at"] or row["updated_at"]).timestamp()),
+    default=None,
+  )
   return {"ok": True, "portfolio": portfolio}
 
 
@@ -135,7 +130,7 @@ def load_portfolio(portfolio_id):
   portfolio = _owned_portfolio(portfolio_id, user)
   if portfolio is None:
     return {"ok": False, "message": "This portfolio is no longer available to your account."}
-  user["last_portfolio"] = portfolio
+  portfolio.update(last_used_at=datetime.now())
   return {"ok": True, "portfolio": portfolio}
 
 
@@ -153,10 +148,10 @@ def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate)
   except ValueError as error:
     return {"ok": False, "message": str(error)}
 
-  values["updated_at"] = datetime.now()
+  now = datetime.now()
+  values.update(updated_at=now, last_used_at=now)
   if portfolio is None:
     portfolio = app_tables.portfolios.add_row(owner=user, **values)
   else:
     portfolio.update(**values)
-  user["last_portfolio"] = portfolio
   return {"ok": True, "portfolio": portfolio}
