@@ -409,6 +409,45 @@ button.anvil-role-readout-tab-active:focus-visible,
   .readout-page .anvil-role-metric-value { font-size: 23px; }
 }
 
+/* Chart ranges, transaction navigation and an expanded workspace. */
+.chart-panel-heading { flex-wrap: wrap; gap: 8px; }
+.chart-panel-heading button span { font-size: 11px; letter-spacing: 0; text-transform: none; }
+.performance-chart-panel .comparison-controls { grid-template-columns: 1fr; }
+.chart-range-caption { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; margin: 12px 0 6px; }
+.chart-range-caption span { color: #277b50; }
+.chart-range-buttons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-bottom: 14px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--canvas); }
+.chart-range-buttons > * { min-width: 0; }
+button.anvil-role-chart-range, button.anvil-role-chart-range-active,
+.anvil-role-chart-range > button, .anvil-role-chart-range-active > button { width: 100%; min-width: 0; height: 30px; margin: 0; padding: 3px 6px; border: 1px solid transparent; border-radius: 7px; font-size: 11px; color: var(--muted); }
+button.anvil-role-chart-range-active, .anvil-role-chart-range-active > button { background: var(--paper); color: #277b50; border-color: #c4ddce; }
+button.anvil-role-chart-tool, .anvil-role-chart-tool > button,
+button.anvil-role-chart-trade-open, .anvil-role-chart-trade-open > button { min-width: 0; height: 34px; margin: 0; padding: 5px 10px; font-size: 11px; white-space: nowrap; }
+.chart-trade-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 14px; }
+.chart-trade-toolbar .anvil-checkbox { margin-right: auto; font-size: 11px; }
+.chart-trade-region { margin: 12px 0; padding: 12px; border: 1px solid #c4ddce; border-radius: 10px; background: #f6faf7; }
+.chart-trade-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.chart-trade-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.chart-trade-choice-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.anvil-role-chart-trade-title { color: var(--ink); font-size: 12px; font-weight: 700; }
+.anvil-role-chart-trade-detail { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.transaction-card.is-chart-target { border-color: #2c9b67; box-shadow: 0 0 0 3px rgba(44,155,103,.16); background: #f6faf7; }
+.transaction-card.is-chart-target:focus { outline: 2px solid #2c9b67; outline-offset: 2px; }
+.performance-chart-panel.is-expanded { position: fixed; inset: 12px; z-index: 2000; overflow: auto; padding: 20px; box-sizing: border-box; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 0 0 100vmax rgba(21,34,27,.38), 0 15px 60px rgba(21,34,27,.2); }
+.performance-chart-panel.is-expanded > .comparison-card { max-width: 1400px; margin: 0 auto; }
+.performance-chart-panel.is-expanded .chart-panel-heading { position: sticky; top: -20px; z-index: 2; padding: 10px 0; background: var(--paper); }
+.performance-chart-panel.is-expanded .chart-range-buttons { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.performance-chart-panel.is-expanded .comparison-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.performance-chart-panel.is-expanded .benchmark-return-choice { grid-column: auto; }
+.performance-chart-panel.is-expanded .comparison-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 620px) {
+  .performance-chart-panel.is-expanded { inset: 5px; padding: 10px; border-radius: 10px; }
+  .performance-chart-panel.is-expanded .chart-panel-heading { top: -10px; }
+  .performance-chart-panel.is-expanded .chart-range-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .performance-chart-panel.is-expanded .comparison-controls { grid-template-columns: 1fr; }
+  .performance-chart-panel.is-expanded .comparison-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chart-trade-choice { align-items: flex-start; flex-direction: column; gap: 6px; }
+}
+
 /* Review image-detected positions before changing portfolio transactions. */
 .holdings-image-import { margin: 0 0 18px; padding: 14px; border: 1px solid #c4ddce; border-radius: 12px; background: #f6faf7; }
 .image-import-heading, .image-review-heading, .import-row-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }

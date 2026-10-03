@@ -4,6 +4,7 @@ unique_ids:
     holdings-ocr.js: '1790978894539.7764031333443645'
     theme.css: '1789762027630.10572174173277038'
   forms:
+    Components.ChartTradeRow: '1791044691129.2880635782575681'
     Components.ImportedHoldingRow: '1790977782121.6288069011272154'
     Components.SectorAllocationRow: '1790919788646.5923270545794317'
     Components.SecurityAllocationRow: '1790971148709.44633824734463723'
@@ -12,6 +13,7 @@ unique_ids:
   modules:
     Components: '1790919788654.10675774429165408'
     analysis_selection: '1790971264783.8815088112478028'
+    chart_trades: '1791044846657.1983321258314661'
   scripts: {}
   server_modules:
     holdings_image_import: '1790978020456.8159033840312886'

@@ -7,6 +7,8 @@ import anvil.js
 from ._anvil_designer import Form1Template
 from anvil import *
 from ..analysis_selection import analyze_selection
+from ..chart_trades import build_trade_markers
+from ..HoldingRow import HoldingRow
 
 
 SECTOR_COLORS = {
@@ -38,6 +40,11 @@ class Form1(Form1Template):
     self._history = None
     self._analysis_source = None
     self._selected_symbols = set()
+    self._analyzed_transactions = []
+    self._chart_trade_groups = []
+    self._chart_point_groups = [[], []]
+    self._charts_expanded = False
+    self.chart_trade_region.visible = False
     self._market_status_loading = False
     self._readout_page = "overview"
     self._image_import_rows = []
@@ -60,6 +67,7 @@ class Form1(Form1Template):
       ("All history", "ALL"), ("Custom dates", "CUSTOM"),
     ]
     self.timeframe_dropdown.selected_value = "ALL"
+    self.timeframe_dropdown.visible = False
     self.benchmark_dropdown.items = BENCHMARK_CHOICES
     self.benchmark_dropdown.selected_value = "sp500"
     self.benchmark_return_dropdown.items = [
@@ -130,6 +138,8 @@ class Form1(Form1Template):
 
   def _select_readout_page(self, page):
     if not self._busy:
+      if page != "performance":
+        self._set_charts_expanded(False)
       self._readout_page = page
       self._apply_readout_page(redraw=True)
       self.dom_nodes["readout_scroller"].scrollTop = 0
@@ -368,7 +378,8 @@ class Form1(Form1Template):
   def _refresh_transactions(self):
     grouped = self.transaction_view_dropdown.selected_value == "security"
     self.regroup_button.visible = grouped
-    for row in self.transactions:
+    for index, row in enumerate(self.transactions):
+      row["_transaction_index"] = index
       row["_security_group"] = ""
       row["_security_group_detail"] = ""
     visible_rows = list(self.transactions)
@@ -439,8 +450,14 @@ class Form1(Form1Template):
       self.clear_image_import_button, self.image_import_date_picker,
       self.image_import_mode_dropdown,
       self.pdf_start_page_box, self.pdf_end_page_box, self.pdf_password_box,
+      self.show_trades_checkbox, self.expand_charts_button,
+      self.reset_chart_zoom_button,
+      self.close_chart_trades_button,
     ):
       setattr(component, "enabled", not self._busy)
+    for timeframe, button in self._timeframe_buttons():
+      setattr(button, "enabled", not self._busy)
+    setattr(self.view_chart_trades_button, "enabled", not self._busy and bool(self._chart_trade_groups))
     self.saved_portfolios_dropdown.enabled = not self._busy and self._user is not None
     setattr(self.open_portfolio_button, "enabled", (
       not self._busy and self.saved_portfolios_dropdown.selected_value is not None
@@ -668,9 +685,12 @@ class Form1(Form1Template):
 
   def _show_results(self, visible):
     if not visible:
+      self._set_charts_expanded(False)
       self._history = None
       self._analysis_source = None
       self._selected_symbols = set()
+      self._analyzed_transactions = []
+      self._clear_chart_trades()
     self._apply_readout_page()
 
   def _set_status(self, message, is_error=False):
@@ -778,16 +798,16 @@ class Form1(Form1Template):
 
   def _chart_layout(self):
     return {
-      "margin": {"l": 48, "r": 12, "t": 15, "b": 62},
+      "margin": {"l": 48, "r": 18, "t": 38, "b": 80},
       "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
       "font": {"family": "Inter, sans-serif", "size": 11, "color": "#6d7881"},
-      "hovermode": "x unified",
-      "legend": {"orientation": "h", "x": 0, "y": -0.22},
-      "xaxis": {"type": "date", "showgrid": False, "fixedrange": True},
-      "yaxis": {"tickformat": ".0%", "gridcolor": "#edf0f1", "zerolinecolor": "#c6d2cb", "fixedrange": True},
+      "hovermode": "closest" if self.show_trades_checkbox.checked else "x unified",
+      "legend": {"orientation": "h", "x": 0, "y": -0.25},
+      "xaxis": {"type": "date", "showgrid": False, "fixedrange": False},
+      "yaxis": {"tickformat": ".0%", "gridcolor": "#edf0f1", "zerolinecolor": "#c6d2cb", "fixedrange": False},
     }
 
-  def _set_chart(self, plot, dates, portfolio, benchmark, benchmark_name):
+  def _set_chart(self, plot, dates, portfolio, benchmark, benchmark_name, markers):
     plot.data = [
       {"type": "scatter", "mode": "lines", "name": "Your portfolio", "x": dates,
        "y": portfolio, "line": {"color": "#2c9b67", "width": 2.5},
@@ -795,9 +815,173 @@ class Form1(Form1Template):
       {"type": "scatter", "mode": "lines", "name": benchmark_name, "x": dates,
        "y": benchmark, "line": {"color": "#bd603f", "width": 2},
        "hovertemplate": "%{y:.2%}<extra>" + benchmark_name + "</extra>"},
-    ]
+    ] + markers
     plot.layout = self._chart_layout()
-    plot.config = {"displayModeBar": False, "responsive": True}
+    plot.config = {"displayModeBar": True, "displaylogo": False, "responsive": True,
+                   "scrollZoom": False,
+                   "modeBarButtonsToRemove": ["select2d", "lasso2d"]}
+
+  def _timeframe_buttons(self):
+    return [("1M", self.range_1m_button), ("3M", self.range_3m_button),
+            ("6M", self.range_6m_button), ("YTD", self.range_ytd_button),
+            ("1Y", self.range_1y_button), ("3Y", self.range_3y_button),
+            ("ALL", self.range_all_button), ("CUSTOM", self.range_custom_button)]
+
+  def _chart_button_node(self, button):
+    node = anvil.js.get_dom_node(button)
+    if node.tagName == "BUTTON":
+      return node
+    # The M3 component wraps its native HTMLButtonElement. The browser stub
+    # types querySelector as a generic Element, which omits button focus.
+    native_button = getattr(node, "querySelector")("button")
+    if native_button is None:
+      raise RuntimeError("Chart control has no native button.")
+    return native_button
+
+  def _clear_chart_trades(self):
+    self._chart_trade_groups = []
+    self._chart_point_groups = [[], []]
+    self.chart_trade_region.visible = False
+    self.chart_trade_panel.items = []
+    setattr(self.view_chart_trades_button, "enabled", False)
+
+  def _show_chart_trade_choices(self, transactions, title):
+    self.chart_trade_title_label.text = title
+    self.chart_trade_panel.items = transactions
+    self.chart_trade_region.visible = True
+    anvil.js.get_dom_node(self.chart_trade_region).scrollIntoView({"block": "nearest"})
+
+  @handle("performance_plot", "click")
+  @handle("drawdown_plot", "click")
+  def chart_trade_click(self, points, **event_args):
+    if self._busy or self._history is None or not self.show_trades_checkbox.checked:
+      return
+    for point in points:
+      curve = point.get("curve_number")
+      number = point.get("point_number")
+      if curve not in (2, 3) or not isinstance(number, int):
+        continue
+      indices = self._chart_point_groups[curve - 2]
+      if number < 0 or number >= len(indices):
+        continue
+      group = self._chart_trade_groups[indices[number]]
+      # Include both actions on a date so coincident buy/sell arrows never
+      # hide access to an individual transaction.
+      transactions = [row for same_day in self._chart_trade_groups
+                      if same_day["date"] == group["date"]
+                      for row in same_day["transactions"]]
+      if len(transactions) == 1:
+        self._open_chart_transaction(transactions[0]["transaction_index"])
+      else:
+        self._show_chart_trade_choices(transactions, "Trades on %s" % group["date"])
+      return
+
+  @handle("chart_trade_panel", "x-open-chart-transaction")
+  def chart_transaction_choice(self, transaction_index, **event_args):
+    if not self._busy:
+      self._open_chart_transaction(transaction_index)
+
+  def _open_chart_transaction(self, index):
+    if self._history is None or index < 0 or index >= len(self.transactions):
+      return
+    target = self.transactions[index]
+    self._set_charts_expanded(False)
+    self.chart_trade_region.visible = False
+    for row in self.transactions:
+      row["_chart_target"] = row is target
+    for form in self.holdings_panel.get_components():
+      if not isinstance(form, HoldingRow):
+        continue
+      selected = form.item is target
+      form.classes["is-chart-target"] = selected
+      if selected:
+        form.set_collapsed(collapsed=False)
+        node = anvil.js.get_dom_node(form)
+        node.setAttribute("tabindex", "-1")
+        node.focus({"preventScroll": True})
+        node.scrollIntoView({"block": "center", "behavior": "smooth"})
+
+  @handle("view_chart_trades_button", "click")
+  def view_chart_trades_click(self, **event_args):
+    if not self._busy and self._chart_trade_groups:
+      transactions = [row for group in self._chart_trade_groups for row in group["transactions"]]
+      self._show_chart_trade_choices(transactions, "Transactions in this period (%d)" % len(transactions))
+
+  @handle("close_chart_trades_button", "click")
+  def close_chart_trades_click(self, **event_args):
+    self.chart_trade_region.visible = False
+
+  def _set_charts_expanded(self, expanded):
+    if expanded == self._charts_expanded:
+      return
+    self._charts_expanded = expanded
+    self.performance_panel.classes["is-expanded"] = expanded
+    node = self.dom_nodes["performance_dialog"]
+    node.setAttribute("role", "dialog" if expanded else "region")
+    if expanded:
+      node.setAttribute("aria-modal", "true")
+    else:
+      node.removeAttribute("aria-modal")
+    self.expand_charts_button.text = "Restore split view" if expanded else "Expand charts"
+    self.expand_charts_button.icon = "mi:fullscreen_exit" if expanded else "mi:fullscreen"
+    self.performance_plot.height = "440px" if expanded else "310px"
+    self.drawdown_plot.height = "310px" if expanded else "240px"
+    if self._history is not None:
+      self.performance_plot.redraw()
+      self.drawdown_plot.redraw()
+    if expanded:
+      node.scrollTop = 0
+      node.focus({"preventScroll": True})
+
+  @handle("expand_charts_button", "click")
+  def expand_charts_click(self, **event_args):
+    if not self._busy and self._history is not None:
+      self._set_charts_expanded(not self._charts_expanded)
+
+  def performance_keydown(self, event):
+    if not self._charts_expanded:
+      return
+    if event.key == "Escape":
+      event.preventDefault()
+      self._set_charts_expanded(False)
+      self._chart_button_node(self.expand_charts_button).focus()
+    elif event.key == "Tab":
+      # Keep keyboard navigation within the expanded chart dialog.
+      nodes = self.dom_nodes["performance_dialog"].querySelectorAll(
+        "button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex='0']"
+      )
+      node_at = getattr(nodes, "item")
+      visible = [node_at(index) for index in range(nodes.length)
+                 if node_at(index).getClientRects().length]
+      if visible:
+        active = anvil.js.window.document.activeElement
+        if event.shiftKey and (active == visible[0] or active == self.dom_nodes["performance_dialog"]):
+          event.preventDefault()
+          visible[-1].focus()
+        elif not event.shiftKey and active == visible[-1]:
+          event.preventDefault()
+          visible[0].focus()
+
+  @handle("reset_chart_zoom_button", "click")
+  def reset_chart_zoom_click(self, **event_args):
+    if not self._busy:
+      self._render_comparison()
+
+  @handle("range_1m_button", "click")
+  @handle("range_3m_button", "click")
+  @handle("range_6m_button", "click")
+  @handle("range_ytd_button", "click")
+  @handle("range_1y_button", "click")
+  @handle("range_3y_button", "click")
+  @handle("range_all_button", "click")
+  @handle("range_custom_button", "click")
+  def timeframe_shortcut_click(self, sender, **event_args):
+    if not self._busy:
+      for timeframe, button in self._timeframe_buttons():
+        if sender is button:
+          self.timeframe_dropdown.selected_value = timeframe
+          self._render_comparison()
+          return
 
   def _drawdowns(self, indices):
     peak = indices[0]
@@ -808,6 +992,8 @@ class Form1(Form1Template):
     return values
 
   def _clear_comparison(self, message):
+    self._clear_chart_trades()
+    self.trade_markers_status_label.text = "No transactions to show in this period."
     self.comparison_period_label.text = message
     for label in (self.window_return_label, self.benchmark_return_label,
                   self.volatility_label, self.sharpe_label,
@@ -843,13 +1029,17 @@ class Form1(Form1Template):
     self.benchmark_return_dropdown.enabled = not self._busy and len(modes) > 1
 
   def _render_comparison(self):
-    if self._history is None:
+    if self._history is None or self._analysis_source is None:
       return
     series = self._history["series"]
     if not series:
       self._clear_comparison("Select at least one security to compare returns.")
       return
     timeframe = self.timeframe_dropdown.selected_value or "ALL"
+    for value, button in self._timeframe_buttons():
+      button.role = "chart-range-active" if value == timeframe else "chart-range"
+      self._chart_button_node(button).setAttribute("aria-pressed", "true" if value == timeframe else "false")
+    self._clear_chart_trades()
     self.custom_period_region.visible = timeframe == "CUSTOM"
     end = self._date_from_iso(series[-1]["date"])
     start = self._date_from_iso(series[0]["date"])
@@ -930,8 +1120,25 @@ class Form1(Form1Template):
     elif benchmark_sharpe is None:
       message += " The benchmark has no measurable daily variation; its Sharpe is undefined."
     self.risk_status_label.text = message + " Yahoo Finance · 252 trading days/year."
-    self._set_chart(self.performance_plot, dates, portfolio_returns, benchmark_returns, benchmark_name)
-    self._set_chart(self.drawdown_plot, dates, self._drawdowns(portfolio), self._drawdowns(benchmark), benchmark_name)
+    drawdowns = self._drawdowns(portfolio)
+    markers = build_trade_markers(
+      self._analyzed_transactions, self._analysis_source["rows"],
+      self._selected_symbols, dates, portfolio_returns, drawdowns,
+    )
+    self._chart_trade_groups = markers["groups"]
+    self._chart_point_groups = markers["point_groups"]
+    count = markers["transaction_count"]
+    setattr(self.view_chart_trades_button, "enabled", bool(count) and not self._busy)
+    self.trade_markers_status_label.text = (
+      "%d trade%s in this period · Green arrows: buys. Red arrows: sells. Hover for details; click to open. Same-day trades are grouped." % (count, "" if count == 1 else "s")
+      if self.show_trades_checkbox.checked and count
+      else "No trades in this period for the selected securities." if self.show_trades_checkbox.checked
+      else "Trade arrows hidden. View trades still opens transactions in this period."
+    )
+    self._set_chart(self.performance_plot, dates, portfolio_returns, benchmark_returns, benchmark_name,
+                    markers["performance_traces"] if self.show_trades_checkbox.checked else [])
+    self._set_chart(self.drawdown_plot, dates, drawdowns, self._drawdowns(benchmark), benchmark_name,
+                    markers["drawdown_traces"] if self.show_trades_checkbox.checked else [])
 
   def _render_sectors(self):
     if self._history is None:
@@ -1042,6 +1249,7 @@ class Form1(Form1Template):
   @handle("benchmark_return_dropdown", "change")
   @handle("comparison_start_picker", "change")
   @handle("comparison_end_picker", "change")
+  @handle("show_trades_checkbox", "change")
   def comparison_inputs_change(self, **event_args):
     if not self._busy:
       self._update_benchmark_options()
@@ -1098,6 +1306,7 @@ class Form1(Form1Template):
       self._analysis_source = result
       self._selected_symbols = set(row["symbol"] for row in result["selection_data"]["securities"])
       self._history = analyze_selection(result, self._selected_symbols)
+      self._analyzed_transactions = list(transactions)
       for transaction, synced in zip(transactions, result["rows"]):
         transaction.update(synced)
         price = synced["current_price"]

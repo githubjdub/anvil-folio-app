@@ -179,11 +179,22 @@
             <p class="fine-print">Open positions only, weighted by market value at the analysis date; sold positions and dividend cash are excluded. Current <a href="https://finviz.com/groups.ashx?g=sector" target="_blank" rel="noopener noreferrer">Finviz sector classifications</a> are used, including for historical valuations. Funds / ETFs are grouped separately, without looking through their holdings.</p>
           </section>
           </section>
-          <section anvil:name="performance_panel" class="readout-page" aria-label="Performance and risk">
+          <section anvil:name="performance_panel" anvil:dom-node="performance_dialog" anvil:on-dom:keydown="self.performance_keydown" class="readout-page performance-chart-panel" role="region" tabindex="-1" aria-label="Performance and risk">
           <section class="detail-card comparison-card" aria-label="Risk and benchmark analyzer">
-            <div class="detail-heading"><h3>Risk &amp; benchmark analyzer</h3><span>Matching dates</span></div>
+            <div class="detail-heading chart-panel-heading"><h3>Risk &amp; benchmark analyzer</h3><anvil-component type="m3._Components.Button" name="expand_charts_button" prop:text="Expand charts" prop:icon="mi:fullscreen" prop:appearance="outlined" prop:role="chart-tool"></anvil-component></div>
+            <div class="chart-range-caption">Period <span>Daily closes</span></div>
+            <nav class="chart-range-buttons" aria-label="Chart time frame">
+              <anvil-component type="m3._Components.Button" name="range_1m_button" prop:text="1M" prop:appearance="text" prop:role="chart-range"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="range_3m_button" prop:text="3M" prop:appearance="text" prop:role="chart-range"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="range_6m_button" prop:text="6M" prop:appearance="text" prop:role="chart-range"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="range_ytd_button" prop:text="YTD" prop:appearance="text" prop:role="chart-range"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="range_1y_button" prop:text="1Y" prop:appearance="text" prop:role="chart-range"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="range_3y_button" prop:text="3Y" prop:appearance="text" prop:role="chart-range"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="range_all_button" prop:text="All" prop:appearance="text" prop:role="chart-range-active"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="range_custom_button" prop:text="Custom" prop:appearance="text" prop:role="chart-range"></anvil-component>
+            </nav>
+            <anvil-component type="DropDown" name="timeframe_dropdown" prop:visible="False"></anvil-component>
             <div class="comparison-controls">
-              <div><div class="portfolio-field-caption">Time frame</div><anvil-component type="DropDown" name="timeframe_dropdown" prop:role="portfolio-picker" prop:tooltip="Choose the period for both charts and risk metrics"></anvil-component></div>
               <div><div class="portfolio-field-caption">Compare against</div><anvil-component type="DropDown" name="benchmark_dropdown" prop:role="portfolio-picker"></anvil-component></div>
               <div class="benchmark-return-choice"><div class="portfolio-field-caption">Benchmark return</div><anvil-component type="DropDown" name="benchmark_return_dropdown" prop:role="portfolio-picker"></anvil-component></div>
             </div>
@@ -193,6 +204,20 @@
               <div><label>End date</label><anvil-component type="DatePicker" name="comparison_end_picker" prop:role="date-field"></anvil-component></div>
             </div>
             <anvil-component type="Label" name="comparison_period_label" prop:role="portfolio-help"></anvil-component>
+            <div class="chart-trade-toolbar">
+              <anvil-component type="CheckBox" name="show_trades_checkbox" prop:text="Show trades" prop:checked="True" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="view_chart_trades_button" prop:text="View trades" prop:appearance="outlined" prop:role="chart-tool"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="reset_chart_zoom_button" prop:text="Reset zoom" prop:appearance="text" prop:role="chart-tool"></anvil-component>
+            </div>
+            <anvil-component type="Label" name="trade_markers_status_label" prop:role="portfolio-help"></anvil-component>
+            <div anvil:name="chart_trade_region" class="chart-trade-region">
+              <div class="chart-trade-heading"><anvil-component type="Label" name="chart_trade_title_label" prop:role="chart-trade-title"></anvil-component><anvil-component type="m3._Components.Button" name="close_chart_trades_button" prop:text="Close" prop:icon="mi:close" prop:appearance="text" prop:role="chart-tool"></anvil-component></div>
+              <anvil-component type="RepeatingPanel" name="chart_trade_panel" prop:item_template="M3_App_1.Components.ChartTradeRow"></anvil-component>
+            </div>
+            <h4 class="chart-title">Cumulative return</h4>
+            <anvil-component type="Plot" name="performance_plot" prop:height="310px"></anvil-component>
+            <h4 class="chart-title">Drawdown from period high</h4>
+            <anvil-component type="Plot" name="drawdown_plot" prop:height="240px"></anvil-component>
             <div class="comparison-metrics">
               <div><span class="comparison-metric-label">Portfolio return</span><anvil-component type="Label" name="window_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
               <div><span class="comparison-metric-label">Benchmark return</span><anvil-component type="Label" name="benchmark_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
@@ -202,11 +227,7 @@
               <div><span class="comparison-metric-label">Benchmark annualized Sharpe</span><anvil-component type="Label" name="benchmark_sharpe_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
             </div>
             <anvil-component type="Label" name="risk_status_label" prop:role="portfolio-help"></anvil-component>
-            <h4 class="chart-title">Cumulative return</h4>
-            <anvil-component type="Plot" name="performance_plot" prop:height="310px"></anvil-component>
-            <h4 class="chart-title">Drawdown from period high</h4>
-            <anvil-component type="Plot" name="drawdown_plot" prop:height="240px"></anvil-component>
-            <p class="fine-print">Both lines start at 0% on the first available close in the selected period. Drawdown is the decline from each line's high within that period. The total-return index reinvests dividends; your portfolio retains dividends as cash.</p>
+            <p class="fine-print">Range buttons update both charts and risk metrics. Drag to zoom or use the chart toolbar; zoom changes the view only. Both lines start at 0% on the first available close in the selected period. Drawdown is the decline from each line's high within that period. Trade arrows sit on your portfolio line at the session used in the analysis; weekends and holidays move to the next completed session. The total-return index reinvests dividends; your portfolio retains dividends as cash.</p>
           </section>
           </section>
         </section>

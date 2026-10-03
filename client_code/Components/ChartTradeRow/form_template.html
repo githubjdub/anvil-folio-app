@@ -1,0 +1,8 @@
+<section class="chart-trade-choice">
+  <div class="chart-trade-choice-copy">
+    <anvil-component type="Label" name="title_label" bind:text="self.item['title']" prop:role="chart-trade-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="detail_label" bind:text="self.item['detail']" prop:role="chart-trade-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="notes_label" bind:text="self.item.get('notes', '')" prop:role="chart-trade-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <anvil-component type="m3._Components.Button" name="open_transaction_button" prop:text="View transaction" prop:appearance="outlined" prop:icon="mi:arrow_back" prop:role="chart-trade-open"></anvil-component>
+</section>

@@ -13,6 +13,7 @@ class HoldingRow(HoldingRowTemplate):
     group = self.item.get("_security_group", "")
     self.security_group_header.visible = bool(group)
     self.classes["starts-security-group"] = bool(group)
+    self.classes["is-chart-target"] = bool(self.item.get("_chart_target", False))
     self._refresh_summary()
     self._show_expanded()
 
