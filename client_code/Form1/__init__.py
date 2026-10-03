@@ -44,6 +44,7 @@ class Form1(Form1Template):
     self._chart_trade_groups = []
     self._chart_point_groups = [[], []]
     self._charts_expanded = False
+    self._transactions_collapsed = False
     self.chart_trade_region.visible = False
     self._market_status_loading = False
     self._readout_page = "overview"
@@ -155,6 +156,20 @@ class Form1(Form1Template):
       self._readout_page = page
       self._apply_readout_page(redraw=True)
       self.dom_nodes["readout_scroller"].scrollTop = 0
+
+  def _set_transactions_collapsed(self, collapsed):
+    if collapsed == self._transactions_collapsed:
+      return
+    self._transactions_collapsed = collapsed
+    self.transactions_column.visible = not collapsed
+    self.workspace_region.classes["transactions-collapsed"] = collapsed
+    self.toggle_transactions_button.text = "Show transactions" if collapsed else "Collapse transactions"
+    self._apply_readout_page(redraw=True)
+
+  @handle("toggle_transactions_button", "click")
+  def toggle_transactions_click(self, **event_args):
+    if not self._busy:
+      self._set_transactions_collapsed(not self._transactions_collapsed)
 
   @handle("overview_tab_button", "click")
   def overview_tab_click(self, **event_args):
@@ -457,6 +472,8 @@ class Form1(Form1Template):
       self.holdings_panel.raise_event_on_children("x-set-collapsed", collapsed=False)
 
   def _show_entry_order_for_error(self, message):
+    if message.startswith("Row ") or message.startswith("Add at least one transaction"):
+      self._set_transactions_collapsed(False)
     # Validation row numbers refer to the original transaction order.
     if message.startswith("Row ") and self.transaction_view_dropdown.selected_value == "security":
       self.transaction_view_dropdown.selected_value = "entry"
@@ -481,7 +498,7 @@ class Form1(Form1Template):
       self.collapse_all_button, self.expand_all_button,
       self.overview_tab_button, self.allocation_tab_button,
       self.performance_tab_button, self.methods_tab_button,
-      self.retrospective_tab_button,
+      self.retrospective_tab_button, self.toggle_transactions_button,
       self.toggle_image_import_button, self.holdings_image_loader,
       self.clear_image_import_button, self.image_import_date_picker,
       self.image_import_mode_dropdown,
@@ -599,6 +616,7 @@ class Form1(Form1Template):
     self._portfolio_dirty = False
     self._readout_page = "overview"
     self._show_results(False)
+    self._set_transactions_collapsed(False)
     self._set_status("Add transactions, then save your portfolio or sync prices.")
     self._set_portfolio_status("New portfolio — enter a name before saving.")
     self._update_controls()
@@ -731,6 +749,7 @@ class Form1(Form1Template):
     self._portfolio_dirty = False
     self._readout_page = "overview"
     self._show_results(False)
+    self._set_transactions_collapsed(False)
     self.saved_portfolios_dropdown.selected_value = portfolio
     self._set_retrospective_tickers(force=True)
     self._set_status("Saved transactions loaded — sync to fetch daily market history.")
@@ -966,6 +985,7 @@ class Form1(Form1Template):
       return
     target = self.transactions[index]
     self._set_charts_expanded(False)
+    self._set_transactions_collapsed(False)
     self.chart_trade_region.visible = False
     for row in self.transactions:
       row["_chart_target"] = row is target

@@ -330,6 +330,7 @@ html, body {
 
 /* Keep the transaction editor beside a readout with independently navigable pages. */
 .workspace-grid { gap: 28px; }
+.workspace-grid.transactions-collapsed { grid-template-columns: minmax(0, 1fr); }
 .transaction-workspace, .readout-workspace { min-width: 0; display: flex; flex-direction: column; }
 .transaction-workspace > .section-intro,
 .readout-workspace > .section-intro,
@@ -344,6 +345,8 @@ html, body {
 .transaction-scroll-region .holdings-card { margin-bottom: 0; }
 .readout-workspace { padding: 18px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 17px; background: var(--paper); box-shadow: var(--shadow); }
 .readout-workspace .section-intro { margin-bottom: 14px; }
+.readout-workspace .results-intro { flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.readout-heading-copy { flex: 1; min-width: 140px; }
 .readout-workspace .section-intro p { font-size: 11px; }
 .readout-workspace .settings-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; padding: 14px; margin-bottom: 8px; box-shadow: none; border-radius: 12px; background: #f9fbfa; }
 .readout-workspace .settings-card .compact-heading { grid-column: 1 / -1; margin-bottom: 2px; }

@@ -59,8 +59,8 @@
       </div>
     </section>
 
-    <section class="workspace-grid">
-      <div class="input-column">
+    <section anvil:name="workspace_region" class="workspace-grid">
+      <div anvil:name="transactions_column" class="input-column">
         <div class="transaction-workspace">
         <div class="section-intro">
           <div class="section-index">01</div>
@@ -118,7 +118,8 @@
         <div class="readout-workspace">
         <div class="section-intro results-intro">
           <div class="section-index accent-index">02</div>
-          <div><h2>Your readout</h2><p>Performance, income, and risk in one view.</p></div>
+          <div class="readout-heading-copy"><h2>Your readout</h2><p>Performance, income, and risk in one view.</p></div>
+          <anvil-component type="m3._Components.Button" name="toggle_transactions_button" prop:text="Collapse transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component>
         </div>
 
         <section class="panel-card settings-card">
