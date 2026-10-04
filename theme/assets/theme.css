@@ -29,7 +29,7 @@ html, body {
 .topbar-status { gap: 8px; color: var(--muted); font-size: 9px; }
 .status-dot, .live-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--mint-strong); box-shadow: 0 0 0 4px rgba(44, 155, 103, .12); }
 
-.portfolio-shell { width: min(1220px, 89vw); margin: 0 auto; padding: 64px 0 48px; }
+.portfolio-shell { width: min(1480px, 94vw); margin: 0 auto; padding: 64px 0 48px; }
 .portfolio-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; margin-bottom: 54px; }
 .eyebrow, .section-index { color: var(--mint-strong); margin-bottom: 15px; }
 .portfolio-hero h1 { max-width: 680px; margin: 0; font-size: clamp(38px, 5vw, 67px); line-height: .98; letter-spacing: -.065em; font-weight: 760; }
@@ -40,7 +40,7 @@ html, body {
 .portfolio-welcome { margin-bottom: 32px; }
 .portfolio-welcome h1 { margin: 0 0 12px; font-size: clamp(32px, 4vw, 48px); line-height: 1.1; letter-spacing: -.05em; }
 
-.workspace-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 48px; align-items: start; }
+.workspace-grid { display: grid; grid-template-columns: minmax(360px, .7fr) minmax(0, 1.3fr); gap: 48px; align-items: start; }
 .section-intro { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
 .section-index { width: 26px; height: 26px; flex: 0 0 26px; display: grid; place-items: center; margin: 0; border: 1px solid #b4d9c3; border-radius: 50%; font-size: 9px; }
 .accent-index { border-color: #fac3b3; color: #df6f57; }
@@ -562,4 +562,136 @@ button.anvil-role-chart-trade-open, .anvil-role-chart-trade-open > button { min-
   .image-import-heading { flex-wrap: wrap; }
   .image-import-settings { grid-template-columns: 1fr; }
   .imported-holding-row { padding: 10px; }
+}
+
+/* Readout uses comfortable type and spacing at every available width. */
+.readout-workspace { padding: 24px; }
+.readout-workspace .section-intro { margin-bottom: 20px; gap: 12px 16px; }
+.readout-workspace .section-intro p { font-size: 14px; line-height: 1.5; }
+.readout-workspace .settings-card { display: block; padding: 16px 18px; margin-bottom: 14px; }
+.settings-card > summary { cursor: pointer; font-size: 14px; font-weight: 700; color: var(--ink); }
+.settings-card > summary > span { display: block; margin: 5px 0 0 20px; color: var(--muted); font-size: 12px; font-weight: 400; }
+.settings-card > summary:focus-visible, .readout-notes > summary:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: 4px; }
+.analysis-settings-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 20px; }
+.readout-workspace .settings-card .card-heading { grid-column: 1 / -1; margin-bottom: 0; }
+.readout-workspace .settings-card .card-heading p { font-size: 13px; }
+.readout-workspace .field-stack label, .readout-workspace .assumption-row label { font-size: 12px; letter-spacing: .04em; }
+.readout-workspace .assumption-row p { font-size: 12px; line-height: 1.5; margin: 6px 0; }
+.readout-workspace .window-badge { font-size: 10px; padding: 7px 9px; }
+.readout-navigation { gap: 6px; margin: 20px 0 8px; padding: 6px; }
+.readout-navigation button { min-height: 44px; padding: 10px 8px; font-size: 13px; line-height: 1.4; }
+.anvil-role-readout-tab-context { font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+.readout-scroll-region { padding-right: 6px; }
+.readout-page { padding-bottom: 16px; }
+.readout-page .detail-card { padding: 24px; margin-top: 24px; }
+.readout-page .detail-card:first-child { margin-top: 0; }
+.readout-workspace .detail-heading { gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+.readout-workspace .detail-heading h3 { font-size: 19px; line-height: 1.35; }
+.readout-workspace .detail-heading span { font-size: 11px; letter-spacing: .06em; }
+.readout-workspace .portfolio-field-caption { font-size: 12px; margin-bottom: 8px; }
+.readout-workspace .anvil-role-portfolio-help, .readout-workspace .security-selection-help { font-size: 14px; line-height: 1.65; }
+.readout-workspace .fine-print { color: #53616b; font-size: 13px; line-height: 1.75; margin-top: 14px; }
+.readout-workspace .readout-meta { flex-wrap: wrap; margin-bottom: 20px; font-size: 11px; letter-spacing: .06em; }
+.readout-workspace .anvil-role-period-label { color: #53616b; font-size: 12px; letter-spacing: .03em; }
+.readout-page .metric-grid { gap: 18px; }
+.readout-page .metric-card { min-height: 150px; padding: 22px; }
+.readout-workspace .metric-label { font-size: 12px; letter-spacing: .06em; }
+.readout-page .anvil-role-metric-value { font-size: 32px; line-height: 1.2; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.readout-workspace .metric-sub { font-size: 13px; line-height: 1.6; color: #53616b; }
+.readout-workspace .metric-card-dark .metric-sub { color: #a7bac5; }
+.readout-workspace .detail-row { font-size: 14px; padding: 18px 0; gap: 16px; }
+.readout-workspace .anvil-role-detail-value { font-size: 16px; }
+.structure-controls { gap: 20px; margin: 20px 0; }
+.structure-summary, .comparison-card .comparison-metrics { gap: 16px; margin: 24px 0; }
+.structure-summary > div, .comparison-card .comparison-metrics > div { padding: 18px; }
+.structure-summary > div > span, .readout-workspace .comparison-metric-label { display: block; font-size: 13px; line-height: 1.5; }
+.readout-workspace .anvil-role-structure-value, .comparison-card .comparison-metrics .anvil-role-comparison-value { font-size: 26px; line-height: 1.35; margin-top: 8px; letter-spacing: -.025em; }
+.structure-chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 24px; align-items: center; margin: 24px 0; }
+.readout-workspace .anvil-role-structure-legend-title { font-size: 15px; }
+.readout-workspace .sector-allocation-row, .readout-workspace .security-allocation-row { padding: 18px 0; gap: 12px; }
+.readout-workspace .anvil-role-sector-name, .readout-workspace .anvil-role-sector-weight,
+.readout-workspace .anvil-role-security-choice, .readout-workspace .anvil-role-security-value { font-size: 15px; }
+.readout-workspace .anvil-role-sector-tickers, .readout-workspace .anvil-role-security-detail,
+.readout-workspace .anvil-role-security-weight { font-size: 12px; line-height: 1.6; }
+.readout-workspace .anvil-role-security-company { font-size: 14px; line-height: 1.5; }
+.security-breakdown-heading { margin-top: 32px; }
+.readout-workspace .security-breakdown-heading h4 { font-size: 17px; }
+.performance-controls { padding: 18px; background: var(--canvas); border-radius: 12px; }
+.performance-chart-panel .comparison-controls { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 18px; }
+.performance-chart-panel .benchmark-return-choice { grid-column: auto; }
+.readout-workspace .chart-panel-heading button span { color: inherit; font-size: 13px; letter-spacing: 0; text-transform: none; }
+.readout-workspace .chart-range-caption { font-size: 13px; margin-top: 0; }
+.readout-workspace .chart-range-buttons { gap: 6px; margin: 10px 0 22px; }
+.readout-workspace .chart-range-buttons button { height: 38px; font-size: 13px; }
+.readout-workspace .chart-trade-toolbar { gap: 12px; margin-top: 24px; }
+.readout-workspace .chart-trade-toolbar .anvil-checkbox { font-size: 14px; }
+.readout-workspace .anvil-role-chart-tool button { height: 40px; font-size: 13px; }
+.performance-chart-block { padding-top: 28px; margin-top: 28px; border-top: 1px solid var(--line); }
+.readout-workspace .chart-title { font-size: 18px; margin: 0 0 16px; }
+.quarterly-figures, .performance-risk-details, .readout-notes { margin: 24px 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; }
+.quarterly-figures > summary, .performance-risk-details > summary, .readout-notes > summary { cursor: pointer; font-size: 14px; font-weight: 700; }
+.quarterly-table { overflow-x: auto; margin-top: 20px; }
+.quarter-return-heading, .quarter-return-row { min-width: 540px; grid-template-columns: minmax(180px, 1.5fr) repeat(3, minmax(100px, 1fr)); gap: 16px; padding: 16px 0; }
+.quarter-return-heading { font-size: 12px; }
+.anvil-role-quarter-label, .anvil-role-quarter-value-positive, .anvil-role-quarter-value-negative, .anvil-role-quarter-value-neutral { font-size: 14px; }
+.anvil-role-quarter-detail { font-size: 12px; line-height: 1.6; margin-top: 6px; }
+.readout-workspace .method-note { padding: 24px; margin: 0 0 24px; }
+.readout-workspace .method-note h3 { font-size: 18px; margin: 0 0 16px; }
+.readout-workspace .method-note p { font-size: 14px; line-height: 1.85; margin: 14px 0 0; max-width: 75ch; }
+.readout-workspace .retrospective-workspace { padding: 24px; }
+.readout-workspace .retrospective-intro, .readout-workspace .retrospective-execution-note { font-size: 14px; line-height: 1.75; }
+.readout-workspace .anvil-role-retrospective-input { font-size: 15px; line-height: 1.65; padding: 14px; }
+.readout-workspace .retrospective-workspace h4 { font-size: 17px; margin: 28px 0 16px; }
+.readout-workspace .retrospective-rule-grid { gap: 20px; margin: 24px 0; }
+@media (min-width: 1280px) {
+  .readout-navigation { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .readout-workspace .chart-range-buttons { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .readout-workspace .structure-summary, .readout-workspace .performance-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 981px) {
+  .transactions-collapsed .readout-navigation { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .transactions-collapsed .metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 981px) and (max-height: 760px) {
+  .readout-workspace { position: static; height: auto; max-height: none; }
+  .readout-scroll-region { max-height: 65vh; max-height: 65dvh; }
+}
+@media (max-width: 620px) {
+  .readout-workspace { padding: 18px 14px; }
+  .readout-page .detail-card, .readout-workspace .retrospective-workspace, .readout-workspace .method-note { padding: 20px 14px; }
+  .readout-workspace .settings-card { padding: 16px 14px; }
+  .analysis-settings-body, .structure-controls { grid-template-columns: 1fr; }
+  .readout-page .metric-grid, .structure-summary, .comparison-card .comparison-metrics { gap: 12px; }
+  .readout-page .metric-card { padding: 18px 14px; }
+  .readout-page .anvil-role-metric-value { font-size: 28px; }
+  .readout-navigation button { padding: 10px 4px; font-size: 12px; }
+  .structure-summary > div, .comparison-card .comparison-metrics > div { padding: 14px; }
+  .readout-workspace .anvil-role-structure-value, .comparison-card .comparison-metrics .anvil-role-comparison-value { font-size: 23px; }
+  .performance-controls { padding: 14px; }
+  .quarterly-figures, .performance-risk-details, .readout-notes { padding: 16px 12px; }
+  .readout-workspace .security-allocation-row { flex-wrap: wrap; }
+  .readout-workspace .security-description { flex-basis: calc(100% - 33px); }
+  .readout-workspace .security-amounts { display: flex; flex-basis: 100%; max-width: none; justify-content: space-between; align-items: baseline; gap: 12px; padding-left: 21px; text-align: left; }
+}
+@media (max-width: 460px) {
+  .readout-page .metric-grid, .structure-summary, .comparison-card .comparison-metrics,
+  .performance-chart-panel.is-expanded .comparison-metrics, .retrospective-rule-grid { grid-template-columns: 1fr; }
+  .structure-summary > div, .comparison-card .comparison-metrics > div { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .structure-summary > div > span, .comparison-card .comparison-metric-label { flex: 1; }
+  .readout-workspace .anvil-role-structure-value, .comparison-card .comparison-metrics .anvil-role-comparison-value { max-width: 55%; margin-top: 0; }
+}
+@media (max-width: 360px) {
+  .structure-summary > div, .comparison-card .comparison-metrics > div { display: block; }
+  .readout-workspace .anvil-role-structure-value, .comparison-card .comparison-metrics .anvil-role-comparison-value { max-width: none; margin-top: 8px; }
+}
+
+/* Keep transaction dates readable beside the wider readout. */
+@container transactions (max-width: 520px) {
+  .transaction-card .holding-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .transaction-card .holding-row .ticker-field { grid-column: 1; grid-row: 1; }
+  .transaction-card .holding-row .trade-action-field { grid-column: 2; grid-row: 1; }
+  .transaction-card .holding-row .trade-date-field { grid-column: 1 / -1; grid-row: 2; }
+  .transaction-card .holding-row .shares-field { grid-column: 1; grid-row: 3; }
+  .transaction-card .holding-row .trade-price-field { grid-column: 2; grid-row: 3; }
+  .transaction-card .holding-row .market-data-field { grid-column: 1 / -1; grid-row: 4; }
 }
