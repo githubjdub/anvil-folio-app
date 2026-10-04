@@ -88,7 +88,7 @@ class ShareComposer(ShareComposerTemplate):
     self.visibility_dropdown.enabled = not busy
     setattr(self.copy_link_button, "enabled", not busy and bool(self._latest_url))
     setattr(self.native_share_button, "enabled", not busy and bool(self._latest_url))
-    self.create_button.text = "Creating snapshot…" if busy else "Create share link"
+    self.create_button.text = "Please wait…" if busy else "Create share link"
     self.share_links_panel.raise_event_on_children("x-sharing-busy", busy=busy)
 
   def _update_visibility(self):
