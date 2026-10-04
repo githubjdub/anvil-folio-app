@@ -169,7 +169,12 @@ class Form1(Form1Template):
   @handle("toggle_transactions_button", "click")
   def toggle_transactions_click(self, **event_args):
     if not self._busy:
-      self._set_transactions_collapsed(not self._transactions_collapsed)
+      collapsed = not self._transactions_collapsed
+      self._set_transactions_collapsed(collapsed)
+      if anvil.js.window.innerWidth <= 980:
+        # On stacked layouts, keep the newly requested workspace in view.
+        target = "readout_workspace" if collapsed else "transactions_workspace"
+        self.dom_nodes[target].scrollIntoView({"block": "start"})
 
   @handle("overview_tab_button", "click")
   def overview_tab_click(self, **event_args):

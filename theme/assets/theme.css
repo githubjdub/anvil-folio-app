@@ -396,6 +396,7 @@ button.anvil-role-readout-tab-active:focus-visible,
 
 @media (max-width: 980px) {
   .workspace-grid { grid-template-columns: 1fr; gap: 28px; }
+  .workspace-grid .input-column, .workspace-grid .results-column { scroll-margin-top: 64px; }
   .transaction-scroll-region { max-height: min(540px, 65vh); max-height: min(540px, 65dvh); }
   .readout-scroll-region { max-height: 70vh; max-height: 70dvh; }
 }

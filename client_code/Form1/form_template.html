@@ -60,7 +60,7 @@
     </section>
 
     <section anvil:name="workspace_region" class="workspace-grid">
-      <div anvil:name="transactions_column" class="input-column">
+      <div anvil:name="transactions_column" anvil:dom-node="transactions_workspace" class="input-column">
         <div class="transaction-workspace">
         <div class="section-intro">
           <div class="section-index">01</div>
@@ -114,7 +114,7 @@
         </div>
       </div>
 
-      <div class="results-column">
+      <div anvil:dom-node="readout_workspace" class="results-column">
         <div class="readout-workspace">
         <div class="section-intro results-intro">
           <div class="section-index accent-index">02</div>
