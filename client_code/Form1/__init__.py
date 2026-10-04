@@ -919,7 +919,7 @@ class Form1(Form1Template):
     return {
       "margin": {"l": 48, "r": 18, "t": 38, "b": 80},
       "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
-      "font": {"family": "Inter, sans-serif", "size": 11, "color": "#6d7881"},
+      "font": {"family": "Inter, sans-serif", "size": 13, "color": "#53616b"},
       "hovermode": "closest" if self.show_trades_checkbox.checked else "x unified",
       "legend": {"orientation": "h", "x": 0, "y": -0.25},
       "xaxis": {"type": "date", "showgrid": False, "fixedrange": False},
@@ -931,7 +931,8 @@ class Form1(Form1Template):
       {"type": "scatter", "mode": "lines", "name": "Your portfolio", "x": dates,
        "y": portfolio, "line": {"color": "#2c9b67", "width": 2.5},
        "hovertemplate": "%{y:.2%}<extra>Your portfolio</extra>"},
-      {"type": "scatter", "mode": "lines", "name": benchmark_name, "x": dates,
+      {"type": "scatter", "mode": "lines", "name": next((label.split(" · ")[0] for label, key in BENCHMARK_CHOICES
+                      if key == self.benchmark_dropdown.selected_value), "Benchmark"), "x": dates,
        "y": benchmark, "line": {"color": "#bd603f", "width": 2},
        "hovertemplate": "%{y:.2%}<extra>" + benchmark_name + "</extra>"},
     ] + markers
@@ -1044,9 +1045,9 @@ class Form1(Form1Template):
       node.removeAttribute("aria-modal")
     self.expand_charts_button.text = "Restore split view" if expanded else "Expand charts"
     self.expand_charts_button.icon = "mi:fullscreen_exit" if expanded else "mi:fullscreen"
-    self.performance_plot.height = "440px" if expanded else "310px"
-    self.drawdown_plot.height = "310px" if expanded else "240px"
-    self.quarterly_plot.height = "340px" if expanded else "280px"
+    self.performance_plot.height = "480px" if expanded else "380px"
+    self.drawdown_plot.height = "360px" if expanded else "300px"
+    self.quarterly_plot.height = "390px" if expanded else "330px"
     if self._history is not None:
       self.performance_plot.redraw()
       self.drawdown_plot.redraw()
@@ -1300,8 +1301,8 @@ class Form1(Form1Template):
     self.quarterly_plot.layout = {
       "barmode": "group", "bargap": 0.3, "margin": {"l": 48, "r": 12, "t": 40, "b": 55},
       "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
-      "font": {"family": "Inter, sans-serif", "size": 11},
-      "legend": {"orientation": "h", "y": 1.2},
+      "font": {"family": "Inter, sans-serif", "size": 13, "color": "#53616b"},
+      "legend": {"orientation": "h", "y": 1.15},
       "xaxis": {"type": "category", "showgrid": False},
       "yaxis": {"tickformat": ".0%", "gridcolor": "#edf0f1", "zerolinecolor": "#a0a6ad"},
     }
@@ -1367,9 +1368,9 @@ class Form1(Form1Template):
     }] if slices else []
     self.sector_plot.layout = {
       "margin": {"l": 8, "r": 8, "t": 15, "b": 15}, "showlegend": False,
-      "paper_bgcolor": "rgba(0,0,0,0)", "font": {"family": "Inter, sans-serif", "size": 12},
+      "paper_bgcolor": "rgba(0,0,0,0)", "font": {"family": "Inter, sans-serif", "size": 14},
       "annotations": [{"text": str(len(holdings)), "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.54, "showarrow": False, "font": {"size": 30, "color": "#19232d"}},
-                      {"text": "open holdings", "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.43, "showarrow": False, "font": {"size": 11, "color": "#6d7881"}}],
+                      {"text": "open holdings", "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.43, "showarrow": False, "font": {"size": 13, "color": "#53616b"}}],
     }
     self.sector_plot.config = {"displayModeBar": False, "responsive": True}
     unknown = [row["symbol"] for row in holdings if row["sector"] == "Unclassified"]
@@ -1395,10 +1396,10 @@ class Form1(Form1Template):
       for sector in sectors
     ]
     self.allocation_history_plot.layout = {
-      "barmode": "stack", "bargap": 0.35, "margin": {"l": 42, "r": 12, "t": 15, "b": 90},
+      "barmode": "stack", "bargap": 0.35, "margin": {"l": 42, "r": 12, "t": 15, "b": 110},
       "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
-      "font": {"family": "Inter, sans-serif", "size": 10},
-      "legend": {"orientation": "h", "y": -0.3},
+      "font": {"family": "Inter, sans-serif", "size": 13, "color": "#53616b"},
+      "legend": {"orientation": "h", "y": -0.25},
       "xaxis": {"type": "category", "showgrid": False},
       "yaxis": {"tickformat": ".0%", "range": [0, 1], "gridcolor": "#edf0f1"},
     }
