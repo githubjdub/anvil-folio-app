@@ -103,6 +103,21 @@ class ShareComposer(ShareComposerTemplate):
   @handle("visibility_dropdown", "change")
   def visibility_change(self, **event_args):
     self._update_visibility()
+    self._clear_changed_snapshot()
+
+  @handle("title_box", "change")
+  def title_change(self, **event_args):
+    self._clear_changed_snapshot()
+
+  def _clear_changed_snapshot(self):
+    if self._latest_share_id is None:
+      return
+    self._latest_share_id = None
+    self._latest_url = ""
+    self.result_region.visible = False
+    self.preview_region.visible = False
+    self._set_status("Options changed. Create a new snapshot; existing links keep their original settings.")
+    self._set_busy(self._busy)
 
   @handle("close_button", "click")
   def close_click(self, **event_args):

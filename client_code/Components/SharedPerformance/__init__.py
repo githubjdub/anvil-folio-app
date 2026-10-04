@@ -23,7 +23,13 @@ def _money(value):
 class SharedPerformance(SharedPerformanceTemplate):
   def __init__(self, **properties):
     super().__init__(**properties)
+    self.performance_plot.config = {"responsive": True}
     self.set_snapshot(self.item)
+
+  @handle("", "show")
+  def form_show(self, **event_args):
+    if self.item:
+      self.performance_plot.redraw()
 
   def set_snapshot(self, snapshot):
     self.item = snapshot
@@ -105,3 +111,4 @@ class SharedPerformance(SharedPerformanceTemplate):
       self.no_holdings_label.visible = not bool(snapshot.get("holdings"))
     else:
       self.holdings_panel.items = []
+    self.performance_plot.redraw()
