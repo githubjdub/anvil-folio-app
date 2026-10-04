@@ -1,0 +1,15 @@
+<div class="quarter-return-row" role="row">
+  <div class="quarter-return-period" role="cell">
+    <anvil-component type="Label" name="quarter_label" bind:text="self.item['label']" prop:role="quarter-label" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="detail_label" bind:text="self.item['detail_text']" prop:role="quarter-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <div role="cell">
+    <anvil-component type="Label" name="portfolio_label" bind:text="self.item['portfolio_text']" prop:role="quarter-value-neutral" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <div role="cell">
+    <anvil-component type="Label" name="benchmark_label" bind:text="self.item['benchmark_text']" prop:role="quarter-value-neutral" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <div role="cell">
+    <anvil-component type="Label" name="excess_label" bind:text="self.item['excess_text']" prop:role="quarter-value-neutral" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+</div>

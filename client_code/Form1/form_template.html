@@ -140,7 +140,7 @@
 
         <nav class="readout-navigation" aria-label="Readout pages">
           <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Overview" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
-          <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Allocation" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Portfolio structure" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="retrospective_tab_button" prop:text="Retrospective" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="methods_tab_button" prop:text="Methods" prop:appearance="text" prop:role="readout-tab"></anvil-component>
@@ -172,24 +172,41 @@
             </div>
           </div>
           </section>
-          <section anvil:name="allocation_panel" class="readout-page" aria-label="Allocation and securities">
-          <section class="detail-card sector-card" aria-label="Sector allocation">
-            <div class="detail-heading"><h3>Sector allocation</h3><span>By market value</span></div>
+          <section anvil:name="allocation_panel" class="readout-page" aria-label="Portfolio structure">
+          <section class="detail-card sector-card" aria-label="Portfolio composition">
+            <div class="detail-heading"><h3>Portfolio structure</h3><span>Closing positions</span></div>
+            <div class="structure-controls">
+              <div><div class="portfolio-field-caption">Snapshot</div><anvil-component type="DropDown" name="allocation_quarter_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+              <div><div class="portfolio-field-caption">Break down by</div><anvil-component type="DropDown" name="allocation_view_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+            </div>
             <anvil-component type="Label" name="sector_period_label" prop:role="portfolio-help"></anvil-component>
+            <div class="structure-summary">
+              <div><span>Position value</span><anvil-component type="Label" name="allocation_value_label" prop:role="structure-value"></anvil-component></div>
+              <div><span>Open holdings</span><anvil-component type="Label" name="allocation_count_label" prop:role="structure-value"></anvil-component></div>
+              <div><span>Largest holding</span><anvil-component type="Label" name="allocation_largest_label" prop:role="structure-value"></anvil-component></div>
+              <div><span>Top 5 concentration</span><anvil-component type="Label" name="allocation_top5_label" prop:role="structure-value"></anvil-component></div>
+            </div>
             <anvil-component type="Label" name="sector_empty_label" prop:text="No open holdings to chart. Add a buy transaction and sync history to see your sector allocation." prop:role="portfolio-help"></anvil-component>
-            <anvil-component type="Plot" name="sector_plot" prop:height="290px"></anvil-component>
-            <anvil-component type="RepeatingPanel" name="sector_panel" prop:item_template="M3_App_1.Components.SectorAllocationRow"></anvil-component>
+            <div class="structure-chart-grid">
+              <anvil-component type="Plot" name="sector_plot" prop:height="310px"></anvil-component>
+              <div class="structure-legend"><anvil-component type="Label" name="allocation_legend_label" prop:role="structure-legend-title"></anvil-component><anvil-component type="RepeatingPanel" name="sector_panel" prop:item_template="M3_App_1.Components.SectorAllocationRow"></anvil-component></div>
+            </div>
             <div class="security-breakdown-heading"><h4>Securities in this analysis</h4><anvil-component type="m3._Components.Button" name="select_all_securities_button" prop:text="Select all" prop:appearance="text"></anvil-component></div>
-            <p class="security-selection-help">Uncheck a security to update the entire readout and charts. Each selection includes all of that security's trades and dividends.</p>
+            <p class="security-selection-help">The snapshot changes composition only. Uncheck a security to recalculate all performance and structure charts instantly, including its trades and dividends.</p>
             <anvil-component type="Label" name="selection_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
             <anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component>
             <anvil-component type="Label" name="sector_status_label" prop:role="portfolio-help"></anvil-component>
-            <p class="fine-print">Open positions only, weighted by market value at the analysis date; sold positions and dividend cash are excluded. Current <a href="https://finviz.com/groups.ashx?g=sector" target="_blank" rel="noopener noreferrer">Finviz sector classifications</a> are used, including for historical valuations. Funds / ETFs are grouped separately, without looking through their holdings.</p>
+            <p class="fine-print">Open positions at the selected close, weighted by market value; sold positions and dividend cash are excluded. Current <a href="https://finviz.com/groups.ashx?g=sector" target="_blank" rel="noopener noreferrer">Finviz sector classifications</a> are used for every snapshot. Funds / ETFs are grouped separately, without looking through their holdings.</p>
+          </section>
+          <section class="detail-card allocation-history-card" aria-label="Quarterly sector allocation">
+            <div class="detail-heading"><h3>Sector allocation over time</h3><span>Quarterly</span></div>
+            <anvil-component type="Label" name="allocation_history_status_label" prop:role="portfolio-help"></anvil-component>
+            <anvil-component type="Plot" name="allocation_history_plot" prop:height="320px"></anvil-component>
           </section>
           </section>
           <section anvil:name="performance_panel" anvil:dom-node="performance_dialog" anvil:on-dom:keydown="self.performance_keydown" class="readout-page performance-chart-panel" role="region" tabindex="-1" aria-label="Performance and risk">
           <section class="detail-card comparison-card" aria-label="Risk and benchmark analyzer">
-            <div class="detail-heading chart-panel-heading"><h3>Risk &amp; benchmark analyzer</h3><anvil-component type="m3._Components.Button" name="expand_charts_button" prop:text="Expand charts" prop:icon="mi:fullscreen" prop:appearance="outlined" prop:role="chart-tool"></anvil-component></div>
+            <div class="detail-heading chart-panel-heading"><h3>Performance history</h3><anvil-component type="m3._Components.Button" name="expand_charts_button" prop:text="Expand charts" prop:icon="mi:fullscreen" prop:appearance="outlined" prop:role="chart-tool"></anvil-component></div>
             <div class="chart-range-caption">Period <span>Daily closes</span></div>
             <nav class="chart-range-buttons" aria-label="Chart time frame">
               <anvil-component type="m3._Components.Button" name="range_1m_button" prop:text="1M" prop:appearance="text" prop:role="chart-range"></anvil-component>
@@ -212,6 +229,12 @@
               <div><label>End date</label><anvil-component type="DatePicker" name="comparison_end_picker" prop:role="date-field"></anvil-component></div>
             </div>
             <anvil-component type="Label" name="comparison_period_label" prop:role="portfolio-help"></anvil-component>
+            <div class="comparison-metrics performance-summary">
+              <div><span class="comparison-metric-label">Portfolio return</span><anvil-component type="Label" name="window_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span class="comparison-metric-label">Benchmark return</span><anvil-component type="Label" name="benchmark_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span class="comparison-metric-label">Difference</span><anvil-component type="Label" name="window_excess_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span class="comparison-metric-label">Portfolio annualized</span><anvil-component type="Label" name="window_annualized_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+            </div>
             <div class="chart-trade-toolbar">
               <anvil-component type="CheckBox" name="show_trades_checkbox" prop:text="Show trades" prop:checked="True" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
               <anvil-component type="m3._Components.Button" name="view_chart_trades_button" prop:text="View trades" prop:appearance="outlined" prop:role="chart-tool"></anvil-component>
@@ -224,18 +247,29 @@
             </div>
             <h4 class="chart-title">Cumulative return</h4>
             <anvil-component type="Plot" name="performance_plot" prop:height="310px"></anvil-component>
+            <h4 class="chart-title">Quarterly returns</h4>
+            <anvil-component type="Label" name="quarterly_period_label" prop:role="portfolio-help"></anvil-component>
+            <anvil-component type="Plot" name="quarterly_plot" prop:height="280px"></anvil-component>
+            <details class="quarterly-figures">
+              <summary>View quarterly figures</summary>
+              <div class="quarterly-table" role="table" aria-label="Quarterly returns compared with benchmark">
+                <div class="quarter-return-heading" role="row"><span role="columnheader">Quarter</span><span role="columnheader">Portfolio</span><span role="columnheader">Benchmark</span><span role="columnheader">Difference</span></div>
+                <anvil-component type="RepeatingPanel" name="quarterly_panel" prop:item_template="M3_App_1.Components.QuarterReturnRow"></anvil-component>
+              </div>
+            </details>
             <h4 class="chart-title">Drawdown from period high</h4>
             <anvil-component type="Plot" name="drawdown_plot" prop:height="240px"></anvil-component>
-            <div class="comparison-metrics">
-              <div><span class="comparison-metric-label">Portfolio return</span><anvil-component type="Label" name="window_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
-              <div><span class="comparison-metric-label">Benchmark return</span><anvil-component type="Label" name="benchmark_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+            <details class="performance-risk-details">
+            <summary>Volatility &amp; Sharpe ratios</summary>
+            <div class="comparison-metrics risk-metrics">
               <div><span class="comparison-metric-label">Portfolio annualized volatility</span><anvil-component type="Label" name="volatility_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
               <div><span class="comparison-metric-label">Benchmark annualized volatility</span><anvil-component type="Label" name="benchmark_volatility_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
               <div><span class="comparison-metric-label">Portfolio annualized Sharpe</span><anvil-component type="Label" name="sharpe_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
               <div><span class="comparison-metric-label">Benchmark annualized Sharpe</span><anvil-component type="Label" name="benchmark_sharpe_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
             </div>
             <anvil-component type="Label" name="risk_status_label" prop:role="portfolio-help"></anvil-component>
-            <p class="fine-print">Range buttons update both charts and risk metrics. Drag to zoom or use the chart toolbar; zoom changes the view only. Both lines start at 0% on the first available close in the selected period. Drawdown is the decline from each line's high within that period. Trade arrows sit on your portfolio line at the session used in the analysis; weekends and holidays move to the next completed session. The total-return index reinvests dividends; your portfolio retains dividends as cash.</p>
+            </details>
+            <p class="fine-print">Range buttons update every performance chart and risk metric. Quarterly returns compound the same daily time-weighted series, retaining dividends as cash. The first close is the baseline; first and last quarterly bars may cover part of a quarter. Hover shows exact closing dates, and differences are percentage points (pp). Both cumulative lines start at 0% on the first displayed close. Trade arrows link to transactions. The total-return benchmark reinvests dividends.</p>
           </section>
           </section>
         </section>

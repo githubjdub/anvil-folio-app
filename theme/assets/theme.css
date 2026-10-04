@@ -394,6 +394,49 @@ button.anvil-role-readout-tab-active:focus-visible,
   .readout-workspace { height: calc(100vh - 40px); height: calc(100dvh - 40px); }
 }
 
+/* Performance summaries and quarterly portfolio composition. */
+.structure-controls { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px; margin: 14px 0; }
+.structure-controls > div { min-width: 0; }
+.structure-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0 4px; }
+.structure-summary > div, .comparison-card .comparison-metrics > div { padding: 12px; background: #f9fbfa; border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.structure-summary > div > span { display: block; color: var(--muted); font-size: 10px; }
+.anvil-role-structure-value { display: block; font-size: 18px; font-weight: 750; color: var(--ink); overflow-wrap: anywhere; }
+.structure-chart-grid, .structure-legend { min-width: 0; }
+.anvil-role-structure-legend-title { font-size: 12px; font-weight: 750; color: var(--ink); }
+.allocation-weight-track { height: 4px; width: 100%; margin-top: 6px; border-radius: 8px; background: #edf0f1; overflow: hidden; }
+.allocation-weight-fill { display: block; height: 100%; border-radius: inherit; }
+.comparison-card .comparison-metrics { gap: 8px; padding: 0; border: 0; margin: 12px 0 16px; }
+.comparison-card .comparison-metrics .anvil-role-comparison-value { font-size: 21px; overflow-wrap: anywhere; }
+.quarterly-figures, .performance-risk-details { margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.quarterly-figures > summary, .performance-risk-details > summary { cursor: pointer; color: var(--ink); font-size: 12px; font-weight: 700; }
+.quarterly-figures > summary:focus-visible, .performance-risk-details > summary:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: 3px; }
+.quarterly-table { margin-top: 12px; }
+.quarter-return-heading, .quarter-return-row { display: grid; grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(0, 1fr)); gap: 8px; align-items: center; }
+.quarter-return-heading { font-size: 9px; color: var(--muted); padding: 8px 0; border-bottom: 1px solid var(--line); }
+.quarter-return-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.quarter-return-heading > :not(:first-child), .quarter-return-row > :not(:first-child) { text-align: right; }
+.anvil-role-quarter-label { color: var(--ink); font-size: 11px; font-weight: 700; }
+.anvil-role-quarter-detail { color: var(--muted); font-size: 9px; overflow-wrap: anywhere; }
+.anvil-role-quarter-value-positive, .anvil-role-quarter-value-negative, .anvil-role-quarter-value-neutral { font-size: 11px; font-weight: 700; overflow-wrap: anywhere; }
+.anvil-role-quarter-value-positive { color: #277b50; }
+.anvil-role-quarter-value-negative { color: #b55269; }
+.anvil-role-quarter-value-neutral { color: var(--muted); }
+.quarter-return-row .anvil-label > span { padding-top: 0; padding-bottom: 0; }
+@media (min-width: 981px) {
+  .transactions-collapsed .structure-chart-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 24px; align-items: center; }
+  .transactions-collapsed .structure-summary, .transactions-collapsed .performance-summary,
+  .performance-chart-panel.is-expanded .performance-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .structure-controls { grid-template-columns: 1fr; gap: 8px; }
+  .structure-summary > div, .comparison-card .comparison-metrics > div { padding: 10px; }
+  .anvil-role-structure-value { font-size: 16px; }
+  .quarterly-figures, .performance-risk-details { padding: 9px; }
+  .quarter-return-heading, .quarter-return-row { gap: 5px; }
+  .quarter-return-heading { font-size: 8px; }
+  .anvil-role-quarter-value-positive, .anvil-role-quarter-value-negative, .anvil-role-quarter-value-neutral { font-size: 10px; }
+}
+
 @media (max-width: 980px) {
   .workspace-grid { grid-template-columns: 1fr; gap: 28px; }
   .workspace-grid .input-column, .workspace-grid .results-column { scroll-margin-top: 64px; }
@@ -444,7 +487,6 @@ button.anvil-role-chart-trade-open, .anvil-role-chart-trade-open > button { min-
 .performance-chart-panel.is-expanded .chart-range-buttons { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 .performance-chart-panel.is-expanded .comparison-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .performance-chart-panel.is-expanded .benchmark-return-choice { grid-column: auto; }
-.performance-chart-panel.is-expanded .comparison-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 620px) {
   .performance-chart-panel.is-expanded { inset: 5px; padding: 10px; border-radius: 10px; }
   .performance-chart-panel.is-expanded .chart-panel-heading { top: -10px; }

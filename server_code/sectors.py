@@ -102,14 +102,21 @@ def _lookup_sector(symbol, instrument_type):
   return sector
 
 
-def build_sector_allocation(open_holdings, as_of, histories):
-  """Group only held securities; sale proceeds and dividend cash are excluded."""
-  symbols = [holding["symbol"] for holding in open_holdings]
+def classify_securities(symbols, histories):
+  """Look up current classifications for analyzed symbols, including sold ones."""
   with ThreadPoolExecutor(max_workers=4) as pool:
-    classifications = dict(zip(symbols, pool.map(
+    return dict(zip(symbols, pool.map(
       lambda symbol: _lookup_sector(symbol, histories[symbol].get("instrument_type")),
       symbols,
     )))
+
+
+def build_sector_allocation(open_holdings, as_of, histories, classifications=None):
+  """Group only held securities; sale proceeds and dividend cash are excluded."""
+  if classifications is None:
+    classifications = classify_securities(
+      [holding["symbol"] for holding in open_holdings], histories
+    )
   holdings = []
   grouped = {}
   for holding in open_holdings:

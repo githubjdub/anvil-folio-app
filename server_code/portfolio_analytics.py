@@ -11,7 +11,7 @@ import urllib.request
 from zoneinfo import ZoneInfo
 
 import anvil.server
-from .sectors import build_sector_allocation
+from .sectors import build_sector_allocation, classify_securities
 
 
 _EXCHANGES = {"NASDAQ", "NYSE", "NYSEARCA", "AMEX", "BATS", "NYSEAMERICAN"}
@@ -305,9 +305,15 @@ def _build_analysis(transactions, as_of, rate, histories):
         security_market_values[symbol] = value
     for symbol, security in securities.items():
       contribution, withdrawal = security_flows[symbol]
+      shares = holdings.get(symbol, 0.0)
+      position_value = security_market_values.get(symbol, 0.0)
       security["days"].append({
-        "nav": security_market_values.get(symbol, 0.0) + security["dividends"],
+        "nav": position_value + security["dividends"],
         "contributions": contribution, "withdrawals": withdrawal,
+        # Allocation snapshots measure invested positions, excluding dividend
+        # cash; quantities reflect splits and all of this session's trades.
+        "market_value": position_value, "shares": shares,
+        "price": histories[symbol]["close"].get(day) if shares > 0 else None,
       })
     nav = market_value + dividend_cash
     denominator = previous_nav + contributions
@@ -447,12 +453,16 @@ def analyze_portfolio_history(transactions, as_of_date, risk_free_rate):
     histories = {symbol: result[0] for symbol, result in fetched.items() if result[0] is not None}
     failures = {symbol: result[1] for symbol, result in fetched.items() if result[1] is not None}
     analysis = _build_analysis(transactions, as_of, rate, histories)
-    analysis["sector_allocation"] = build_sector_allocation(
-      analysis.pop("open_holdings"), analysis["metadata"]["end_date"], histories
+    classifications = classify_securities(
+      [security["symbol"] for security in analysis["selection_data"]["securities"]],
+      histories,
     )
-    sectors = {holding["symbol"]: holding["sector"] for holding in analysis["sector_allocation"]["holdings"]}
+    analysis["sector_allocation"] = build_sector_allocation(
+      analysis.pop("open_holdings"), analysis["metadata"]["end_date"], histories,
+      classifications=classifications,
+    )
     for security in analysis["selection_data"]["securities"]:
-      security["sector"] = sectors.get(security["symbol"], "Unclassified")
+      security["sector"] = classifications.get(security["symbol"], "Unclassified")
     analysis["benchmarks"] = _build_benchmarks(analysis, histories, failures)
     return analysis
   except AnalysisInputError as error:

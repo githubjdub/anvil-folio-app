@@ -7,6 +7,7 @@ class SecurityAllocationRow(SecurityAllocationRowTemplate):
     super().__init__(**properties)
     self.set_event_handler("x-set-editable", self.set_editable)
     self.swatch.style["background-color"] = self.item["color"]
+    self.weight_fill.style.update({"background-color": self.item["color"], "width": "%s%%" % self.item.get("weight_percent", 0)})
     self.classes["is-excluded"] = not self.item["included"]
 
   def set_editable(self, editable, **event_args):

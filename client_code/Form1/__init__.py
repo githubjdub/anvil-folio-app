@@ -8,6 +8,7 @@ from ._anvil_designer import Form1Template
 from anvil import *
 from ..analysis_selection import analyze_selection
 from ..chart_trades import build_trade_markers
+from ..portfolio_periods import quarterly_returns, allocation_snapshots
 from ..HoldingRow import HoldingRow
 
 
@@ -45,6 +46,13 @@ class Form1(Form1Template):
     self._chart_point_groups = [[], []]
     self._charts_expanded = False
     self._transactions_collapsed = False
+    self._allocation_snapshots = []
+    self._allocation_snapshot = None
+    self._security_colors = {}
+    self.allocation_view_dropdown.items = [("Sectors", "sector"), ("Securities", "security")]
+    self.allocation_view_dropdown.selected_value = "sector"
+    self.allocation_quarter_dropdown.items = [("Latest", "latest")]
+    self.allocation_quarter_dropdown.selected_value = "latest"
     self.chart_trade_region.visible = False
     self._market_status_loading = False
     self._readout_page = "overview"
@@ -108,7 +116,7 @@ class Form1(Form1Template):
       self.market_status_timer.interval = 60
 
   def _update_readout_context(self):
-    name = {"overview": "Overview", "allocation": "Allocation",
+    name = {"overview": "Overview", "allocation": "Portfolio structure",
             "performance": "Performance", "retrospective": "Retrospective", "methods": "Methods"}[self._readout_page]
     if self._readout_page == "retrospective":
       self.readout_tab_context.text = "Retrospective · Test a hypothetical strategy against history"
@@ -145,8 +153,11 @@ class Form1(Form1Template):
       # Plotly needs the shown panel's width after leaving a hidden page.
       if self._readout_page == "allocation" and self.sector_plot.visible:
         self.sector_plot.redraw()
+      if self._readout_page == "allocation" and self.allocation_history_plot.visible:
+        self.allocation_history_plot.redraw()
       elif self._readout_page == "performance":
         self.performance_plot.redraw()
+        self.quarterly_plot.redraw()
         self.drawdown_plot.redraw()
 
   def _select_readout_page(self, page):
@@ -498,6 +509,7 @@ class Form1(Form1Template):
       self.analyze_button, self.as_of_date_picker, self.risk_free_box,
       self.timeframe_dropdown, self.benchmark_dropdown,
       self.benchmark_return_dropdown, self.select_all_securities_button,
+      self.allocation_view_dropdown, self.allocation_quarter_dropdown,
       self.comparison_start_picker, self.comparison_end_picker,
       self.transaction_view_dropdown, self.regroup_button,
       self.collapse_all_button, self.expand_all_button,
@@ -794,6 +806,9 @@ class Form1(Form1Template):
       self._analysis_source = None
       self._selected_symbols = set()
       self._analyzed_transactions = []
+      self._allocation_snapshots = []
+      self._allocation_snapshot = None
+      self.allocation_quarter_dropdown.selected_value = "latest"
       self._clear_chart_trades()
     self._apply_readout_page()
 
@@ -1031,9 +1046,11 @@ class Form1(Form1Template):
     self.expand_charts_button.icon = "mi:fullscreen_exit" if expanded else "mi:fullscreen"
     self.performance_plot.height = "440px" if expanded else "310px"
     self.drawdown_plot.height = "310px" if expanded else "240px"
+    self.quarterly_plot.height = "340px" if expanded else "280px"
     if self._history is not None:
       self.performance_plot.redraw()
       self.drawdown_plot.redraw()
+      self.quarterly_plot.redraw()
     if expanded:
       node.scrollTop = 0
       node.focus({"preventScroll": True})
@@ -1053,7 +1070,7 @@ class Form1(Form1Template):
     elif event.key == "Tab":
       # Keep keyboard navigation within the expanded chart dialog.
       nodes = self.dom_nodes["performance_dialog"].querySelectorAll(
-        "button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex='0']"
+        "button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], summary, [tabindex='0']"
       )
       node_at = getattr(nodes, "item")
       visible = [node_at(index) for index in range(nodes.length)
@@ -1101,12 +1118,16 @@ class Form1(Form1Template):
     self.trade_markers_status_label.text = "No transactions to show in this period."
     self.comparison_period_label.text = message
     for label in (self.window_return_label, self.benchmark_return_label,
+                  self.window_excess_label, self.window_annualized_label,
                   self.volatility_label, self.sharpe_label,
                   self.benchmark_volatility_label, self.benchmark_sharpe_label):
       label.text = "—"
     self.risk_status_label.text = ""
     self.performance_plot.data = []
     self.drawdown_plot.data = []
+    self.quarterly_plot.data = []
+    self.quarterly_panel.items = []
+    self.quarterly_period_label.text = message
 
   def _update_benchmark_options(self):
     if self._analysis_source is None:
@@ -1200,6 +1221,13 @@ class Form1(Form1Template):
     self.comparison_period_label.text = "%s – %s · %d daily returns" % (dates[0], dates[-1], observations)
     self.window_return_label.text = self._format_percent(portfolio_returns[-1])
     self.benchmark_return_label.text = self._format_percent(benchmark_returns[-1])
+    self.window_excess_label.text = "%.2f pp" % ((portfolio_returns[-1] - benchmark_returns[-1]) * 100)
+    days = (self._date_from_iso(dates[-1]) - self._date_from_iso(dates[0])).days
+    exponent = math.log(portfolio[-1] / portfolio[0]) * 365.25 / days if days > 0 and portfolio[-1] > 0 and portfolio[0] > 0 else None
+    self.window_annualized_label.text = (
+      self._format_percent(math.exp(exponent) - 1)
+      if exponent is not None and exponent < 700 and not inactive_days else "—"
+    )
     volatility, sharpe = self._daily_risk(portfolio, observed)
     self.volatility_label.text = "—" if volatility is None else "%.2f%%" % (volatility * 100)
     self.sharpe_label.text = self._format_ratio(sharpe)
@@ -1244,69 +1272,183 @@ class Form1(Form1Template):
                     markers["performance_traces"] if self.show_trades_checkbox.checked else [])
     self._set_chart(self.drawdown_plot, dates, drawdowns, self._drawdowns(benchmark), benchmark_name,
                     markers["drawdown_traces"] if self.show_trades_checkbox.checked else [])
+    self._render_quarterly(selected, benchmark_by_date, benchmark_name)
+
+  def _render_quarterly(self, points, benchmark_by_date, benchmark_name):
+    rows = quarterly_returns(points, benchmark_by_date)
+    short_benchmark_name = next((label.split(" · ")[0] for label, key in BENCHMARK_CHOICES
+                                 if key == self.benchmark_dropdown.selected_value), "Benchmark")
+    self.quarterly_panel.items = [dict(row,
+      detail_text="%s – %s%s" % (row["start_date"], row["end_date"], " · window edge" if row["edge_window"] else ""),
+      portfolio_text="—" if row["portfolio_return"] is None else self._format_percent(row["portfolio_return"]),
+      benchmark_text="—" if row["benchmark_return"] is None else self._format_percent(row["benchmark_return"]),
+      excess_text="—" if row["excess_return"] is None else "%.2f pp" % (row["excess_return"] * 100),
+    ) for row in reversed(rows)]
+    self.quarterly_period_label.text = "Calendar quarters within the displayed period · %s. Window edges may be partial; hover for exact dates." % benchmark_name
+    data = [[row["start_date"], row["end_date"], row["observations"]] for row in rows]
+    labels = [row["label"] for row in rows]
+    self.quarterly_plot.data = [
+      {"type": "bar", "name": "Your portfolio", "x": labels,
+       "y": [row["portfolio_return"] for row in rows], "customdata": data,
+       "marker": {"color": ["#b55269" if (row["portfolio_return"] or 0) < 0 else "#2c9b67" for row in rows]},
+       "hovertemplate": "%{x}<br>%{y:.2%}<br>%{customdata[0]} – %{customdata[1]}<br>%{customdata[2]} daily intervals<extra>Your portfolio</extra>"},
+      {"type": "bar", "name": short_benchmark_name, "x": labels,
+       "y": [row["benchmark_return"] for row in rows], "customdata": data,
+       "marker": {"color": "#bd603f"},
+       "hovertemplate": "%{x}<br>%{y:.2%}<br>%{customdata[0]} – %{customdata[1]}<extra>" + benchmark_name + "</extra>"},
+    ]
+    self.quarterly_plot.layout = {
+      "barmode": "group", "bargap": 0.3, "margin": {"l": 48, "r": 12, "t": 40, "b": 55},
+      "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
+      "font": {"family": "Inter, sans-serif", "size": 11},
+      "legend": {"orientation": "h", "y": 1.2},
+      "xaxis": {"type": "category", "showgrid": False},
+      "yaxis": {"tickformat": ".0%", "gridcolor": "#edf0f1", "zerolinecolor": "#a0a6ad"},
+    }
+    self.quarterly_plot.config = {"displayModeBar": False, "responsive": True}
 
   def _render_sectors(self):
+    if self._history is None or self._analysis_source is None:
+      return
+    self._allocation_snapshots = allocation_snapshots(self._analysis_source, self._selected_symbols)
+    previous = self.allocation_quarter_dropdown.selected_value or "latest"
+    self.allocation_quarter_dropdown.items = [(snapshot["label"], snapshot["key"]) for snapshot in reversed(self._allocation_snapshots)] or [("Latest", "latest")]
+    keys = [snapshot["key"] for snapshot in self._allocation_snapshots]
+    self.allocation_quarter_dropdown.selected_value = previous if previous in keys else "latest"
+    palette = list(SECTOR_COLORS.values())
+    symbols = sorted(row["symbol"] for row in self._analysis_source["selection_data"]["securities"])
+    self._security_colors = {symbol: palette[index % len(palette)] for index, symbol in enumerate(symbols)}
+    self._render_allocation_history()
+    self._render_allocation_snapshot()
+
+  def _render_allocation_snapshot(self):
     if self._history is None:
       return
-    allocation = self._history["sector_allocation"]
-    colors = SECTOR_COLORS
+    chosen = self.allocation_quarter_dropdown.selected_value
+    self._allocation_snapshot = next((snapshot for snapshot in self._allocation_snapshots if snapshot["key"] == chosen), None)
+    allocation = self._allocation_snapshot or self._history["sector_allocation"]
+    dated = allocation.get("date", allocation.get("as_of"))
     slices = allocation["slices"]
+    holdings = sorted(allocation["holdings"], key=lambda row: (-row["market_value"], row["symbol"]))
+    total = allocation["total_value"]
+    security_view = self.allocation_view_dropdown.selected_value == "security"
+    groups: list = [dict(holding, sector=holding["symbol"], tickers=[holding["company_name"], holding["sector"]],
+                   weight=holding["market_value"] / total if total else 0)
+              for holding in holdings] if security_view else slices
+    colors = [self._security_colors.get(group["symbol"], "#a0a6ad") if security_view else SECTOR_COLORS.get(group["sector"], "#a0a6ad") for group in groups]
     self.sector_period_label.text = "%s · %s in open positions" % (
-      allocation["as_of"], self._format_currency(allocation["total_value"])
+      dated, self._format_currency(total)
     )
+    self.allocation_value_label.text = self._format_currency(total)
+    self.allocation_count_label.text = str(len(holdings))
+    self.allocation_largest_label.text = ("%s · %.1f%%" % (holdings[0]["symbol"], holdings[0]["market_value"] / total * 100)) if total else "—"
+    self.allocation_top5_label.text = "%.1f%%" % (sum(row["market_value"] for row in holdings[:5]) / total * 100) if total else "—"
+    self.allocation_legend_label.text = "Securities by weight" if security_view else "Sectors by weight"
     self.sector_empty_label.visible = not bool(slices)
     self.sector_empty_label.text = (
       "Select a security below to see its allocation." if not self._selected_symbols
-      else "The selected securities have no open positions at the analysis date. Closed trades and dividends still contribute to returns."
+      else "No selected open positions at this snapshot. Closed trades and dividends still contribute to performance."
     )
     self.sector_plot.visible = bool(slices)
     self.sector_panel.items = [dict(group,
-      color=colors.get(group["sector"], "#a0a6ad"),
-      tickers_text=", ".join(group["tickers"]),
+      color=color, tickers_text=" · ".join(group["tickers"]),
       weight_text="%.1f%%" % (group["weight"] * 100),
       value_text=self._format_currency(group["market_value"]),
-    ) for group in slices]
+    ) for group, color in zip(groups, colors)]
     self.sector_plot.data = [{
-      "type": "pie", "hole": 0.48, "sort": False, "direction": "clockwise",
-      "labels": [group["sector"] for group in slices],
-      "values": [group["market_value"] for group in slices],
-      "customdata": [", ".join(group["tickers"]) for group in slices],
-      "marker": {"colors": [colors.get(group["sector"], "#a0a6ad") for group in slices],
-                 "line": {"color": "#ffffff", "width": 2}},
-      "textinfo": "percent", "textposition": "inside",
+      "type": "pie", "hole": 0.62, "sort": False, "direction": "clockwise",
+      "labels": [group["sector"] for group in groups],
+      "values": [group["market_value"] for group in groups],
+      "customdata": [" · ".join(group["tickers"]) for group in groups],
+      "marker": {"colors": colors, "line": {"color": "#ffffff", "width": 3}},
+      "text": ["%.1f%%" % (group["weight"] * 100) if group["weight"] >= 0.04 else "" for group in groups],
+      "textinfo": "text", "textposition": "inside",
       "hovertemplate": "%{label}: %{percent}<br>$%{value:,.2f}<br>%{customdata}<extra></extra>",
     }] if slices else []
     self.sector_plot.layout = {
-      "margin": {"l": 10, "r": 10, "t": 15, "b": 15}, "showlegend": False,
+      "margin": {"l": 8, "r": 8, "t": 15, "b": 15}, "showlegend": False,
       "paper_bgcolor": "rgba(0,0,0,0)", "font": {"family": "Inter, sans-serif", "size": 12},
+      "annotations": [{"text": str(len(holdings)), "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.54, "showarrow": False, "font": {"size": 30, "color": "#19232d"}},
+                      {"text": "open holdings", "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.43, "showarrow": False, "font": {"size": 11, "color": "#6d7881"}}],
     }
     self.sector_plot.config = {"displayModeBar": False, "responsive": True}
-    unknown = allocation["unclassified_tickers"]
+    unknown = [row["symbol"] for row in holdings if row["sector"] == "Unclassified"]
     self.sector_status_label.text = (
       "Sector unavailable for %s; its value is included under Unclassified." % ", ".join(unknown)
-      if unknown else "Classifications checked %s." % allocation["classification_as_of"]
+      if unknown else "Classifications checked %s." % self._history["sector_allocation"]["classification_as_of"]
     )
+
+  def _render_allocation_history(self):
+    snapshots = self._allocation_snapshots
+    self.allocation_history_plot.visible = bool(snapshots)
+    self.allocation_history_status_label.text = (
+      "Quarter-end closes plus the latest close · Click a bar to inspect that snapshot. Weights exclude dividend cash and sale proceeds."
+      if snapshots else "Select securities and sync history to see quarterly position weights."
+    )
+    sectors = sorted(set(group["sector"] for snapshot in snapshots for group in snapshot["slices"]))
+    self.allocation_history_plot.data = [
+      {"type": "bar", "name": sector, "x": [snapshot["label"] for snapshot in snapshots],
+       "y": [next((group["weight"] for group in snapshot["slices"] if group["sector"] == sector), 0) if snapshot["total_value"] else None for snapshot in snapshots],
+       "customdata": [snapshot["date"] for snapshot in snapshots],
+       "marker": {"color": SECTOR_COLORS.get(sector, "#a0a6ad")},
+       "hovertemplate": "%{x}<br>%{customdata}<br>%{y:.1%}<extra>" + sector + "</extra>"}
+      for sector in sectors
+    ]
+    self.allocation_history_plot.layout = {
+      "barmode": "stack", "bargap": 0.35, "margin": {"l": 42, "r": 12, "t": 15, "b": 90},
+      "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
+      "font": {"family": "Inter, sans-serif", "size": 10},
+      "legend": {"orientation": "h", "y": -0.3},
+      "xaxis": {"type": "category", "showgrid": False},
+      "yaxis": {"tickformat": ".0%", "range": [0, 1], "gridcolor": "#edf0f1"},
+    }
+    self.allocation_history_plot.config = {"displayModeBar": False, "responsive": True}
+
+  @handle("allocation_view_dropdown", "change")
+  @handle("allocation_quarter_dropdown", "change")
+  def allocation_snapshot_change(self, **event_args):
+    if not self._busy and self._history is not None:
+      self._render_allocation_snapshot()
+      self._render_security_rows()
+
+  @handle("allocation_history_plot", "click")
+  def allocation_history_click(self, points, **event_args):
+    if not self._busy:
+      for point in points:
+        index = point.get("point_number")
+        if isinstance(index, int) and 0 <= index < len(self._allocation_snapshots):
+          self.allocation_quarter_dropdown.selected_value = self._allocation_snapshots[index]["key"]
+          self.allocation_snapshot_change()
+          return
 
   def _render_security_rows(self):
     if self._analysis_source is None or self._history is None:
       return
     securities = self._analysis_source["selection_data"]["securities"]
-    total_value = self._history["metrics"]["market_value"]
+    allocation = self._allocation_snapshot or self._history["sector_allocation"]
+    total_value = allocation["total_value"]
+    snapshot_date = allocation.get("date", allocation.get("as_of"))
+    dates = self._analysis_source["selection_data"]["dates"]
+    index = dates.index(snapshot_date) if snapshot_date in dates else None
     rows = []
-    for security in sorted(securities, key=lambda row: (row["sector"], row["symbol"])):
+    for security in securities:
       included = security["symbol"] in self._selected_symbols
-      shares = security["shares"]
+      position_day = security["days"][index] if index is not None else {}
+      shares = position_day.get("shares", security["shares"])
+      value = position_day.get("market_value", security["market_value"])
       shares_text = format(shares, ",.8f").rstrip("0").rstrip(".")
-      position = "%s shares" % shares_text if shares > 0 else "Closed position"
+      position = "%s shares" % shares_text if shares > 0 else "No open position at this snapshot"
       count = security["transaction_count"]
       rows.append(dict(security,
-        included=included, color=SECTOR_COLORS.get(security["sector"], "#a0a6ad"),
-        detail_text="%s · %s · %d trade%s" % (security["sector"], position, count, "" if count == 1 else "s"),
-        value_text=self._format_currency(security["market_value"]),
-        weight_text=("%.1f%% of selection" % (security["market_value"] / total_value * 100)
-                     if included and total_value else "0.0% of selection" if included else "Excluded"),
+        included=included, snapshot_value=value,
+        color=self._security_colors.get(security["symbol"], "#a0a6ad") if self.allocation_view_dropdown.selected_value == "security" else SECTOR_COLORS.get(security["sector"], "#a0a6ad"),
+        detail_text="%s · %s · %d trade%s total" % (security["sector"], position, count, "" if count == 1 else "s"),
+        value_text=self._format_currency(value),
+        weight_percent=value / total_value * 100 if included and total_value else 0,
+        weight_text=("%.1f%% of snapshot" % (value / total_value * 100)
+                     if included and total_value else "0.0% of snapshot" if included else "Excluded"),
       ))
-    self.security_panel.items = rows
+    self.security_panel.items = sorted(rows, key=lambda row: (-row["snapshot_value"], row["symbol"]))
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.selection_status_label.text = (
       "%d of %d securities selected · All metrics and charts use this selection." % (len(self._selected_symbols), len(securities))
