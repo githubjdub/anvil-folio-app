@@ -1,0 +1,9 @@
+<div class="share-holding-row">
+  <div class="share-holding-name">
+    <anvil-component type="Label" name="symbol_label" bind:text="self.item['symbol']" prop:role="share-holding-symbol" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="company_label" bind:text="self.item.get('company_name') or self.item['symbol']" prop:role="share-small" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="sector_label" bind:text="self.item.get('sector') or 'Unclassified'" prop:role="share-small" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <div class="share-holding-quantity"><anvil-component type="Label" name="quantity_label" bind:text="self.quantity_text()" prop:role="share-description" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="price_label" bind:text="self.price_text()" prop:role="share-small" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+  <div class="share-holding-value"><anvil-component type="Label" name="value_label" bind:text="self.value_text()" prop:role="share-stat" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="weight_label" bind:text="self.weight_text()" prop:role="share-small" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+</div>

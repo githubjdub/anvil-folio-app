@@ -17,6 +17,39 @@ html, body {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/* Sharing stays within the readout, with the same comfortable controls. */
+button.anvil-role-share-action { min-height: 40px; margin: 0; padding: 8px 14px; border-radius: 9px; font-size: 13px; white-space: nowrap; }
+button.anvil-role-share-tool { min-height: 36px; margin: 0; padding: 6px 10px; font-size: 13px; white-space: nowrap; }
+.share-composer { padding: 22px; margin: 20px 0; border: 1px solid #c4ddce; border-radius: 14px; background: #f9fcfa; }
+.share-composer-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.share-composer-heading h3 { margin: 0; font-size: 19px; }
+.share-composer-heading p, .share-disclosure { color: #53616b; font-size: 13px; line-height: 1.65; }
+.share-composer-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 16px; margin: 20px 0; }
+.share-composer-fields > div { min-width: 0; }
+.share-composer-fields label { display: block; font-size: 13px; margin-bottom: 8px; color: #53616b; }
+input.anvil-role-share-title-input { width: 100%; min-height: 43px; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); font-size: 14px; }
+.anvil-role-share-help { color: #53616b; font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.share-privacy-note { padding: 14px; border-radius: 10px; background: #edf7f0; }
+.share-privacy-note.is-full { background: #fff4e9; }
+.share-create-actions, .share-link-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; }
+.share-composer-status { margin: 16px 0; }
+.share-composer-status.is-error .anvil-role-share-help { color: #b55248; }
+.anvil-role-share-url { display: block; font-size: 14px; overflow-wrap: anywhere; }
+.share-result { padding: 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; margin-top: 16px; }
+.share-preview { margin-top: 24px; }
+.share-preview h4 { font-size: 16px; margin: 0 0 14px; }
+.share-saved-links { margin-top: 24px; }
+.share-saved-links > summary { cursor: pointer; font-size: 14px; font-weight: 700; }
+.share-link-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--line); padding: 18px 0; margin-top: 14px; }
+.share-link-copy { flex: 1; min-width: min(100%, 180px); }
+.anvil-role-share-link-title { font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.anvil-role-share-open-link { font-size: 13px; }
+.share-link-actions { margin: 0; }
+.share-router { padding: 24px; }
+@media (max-width: 620px) {
+  .share-composer { padding: 18px 12px; }
+}
+
 .portfolio-app { min-height: 100vh; background: var(--canvas); letter-spacing: -.01em; }
 .portfolio-topbar { min-height: 76px; padding: 0 5.5vw; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(25, 35, 45, .08); background: rgba(255, 255, 255, .76); }
 .brand-lockup, .topbar-status, .readout-meta, .detail-heading, .detail-row, .card-heading, .assumption-row, .hero-note, .portfolio-footer { display: flex; align-items: center; }

@@ -1,5 +1,33 @@
 allow_embedding: false
 db_schema:
+  performance_shares:
+    client: none
+    columns:
+    - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      name: token
+      type: string
+    - admin_ui: {}
+      name: title
+      type: string
+    - admin_ui: {}
+      name: visibility
+      type: string
+    - admin_ui: {}
+      name: created_at
+      type: datetime
+    - admin_ui: {}
+      name: revoked
+      type: bool
+    - admin_ui: {}
+      name: snapshot
+      type: simpleObject
+    server: full
+    title: Performance Shares
   portfolios:
     client: none
     columns:
@@ -80,4 +108,4 @@ services:
 - client_config: {allow_remember_me: true, allow_signup: true, confirm_email: false, enable_automatically: true, remember_me_days: 30, require_secure_passwords: true, use_email: true}
   server_config: {user_table: users}
   source: /runtime/services/anvil/users.yml
-startup_form: Form1
+startup_form: Router

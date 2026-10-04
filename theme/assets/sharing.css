@@ -1,0 +1,75 @@
+.share-public-page { max-width: 1000px; margin: 0 auto; padding: 28px 24px 40px; color: var(--portfolio-ink, #243c31); font-family: Arial, sans-serif; }
+.share-public-header { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 28px; }
+.share-public-brand { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 700; letter-spacing: -.7px; }
+.share-brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: #249e68; color: #fff; font-family: Georgia, serif; font-size: 31px; }
+.share-public-kicker { color: #63736b; font-size: 13px; }
+.shared-performance { min-width: 0; color: #243c31; background: #fff; border: 1px solid #dce7e0; border-radius: 22px; overflow: hidden; }
+.share-card-heading { padding: 30px 30px 22px; }
+.share-eyebrow { color: #28734f; font-size: 11px; line-height: 1.5; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 8px; }
+.anvil-role-share-title { color: #243c31; font-size: 28px; line-height: 1.25; font-weight: 700; overflow-wrap: anywhere; }
+.anvil-role-share-description { font-size: 14px; line-height: 1.55; color: #53685c; overflow-wrap: anywhere; }
+.anvil-role-share-small { font-size: 12px; line-height: 1.5; color: #62756a; overflow-wrap: anywhere; }
+.anvil-role-share-privacy { display: inline-block; color: #436451; background: #eef5f0; border: 1px solid #d8e6dc; border-radius: 20px; padding: 5px 11px; font-size: 11px; line-height: 1.5; margin-top: 12px; }
+.share-return-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; padding: 0 30px 28px; }
+.share-return-tile { min-width: 0; padding: 20px 16px; border: 1px solid #e2eae5; border-radius: 15px; background: #f8faf9; }
+.share-return-primary { background: #edf7f1; border-color: #d4e8dc; }
+.share-metric-caption { color: #587060; font-size: 12px; line-height: 1.45; font-weight: 600; }
+.share-metric-note { color: #62756a; font-size: 12px; line-height: 1.5; }
+.anvil-role-share-return { font-size: clamp(25px,3.5vw,36px); line-height: 1.4; font-weight: 700; color: #218256; letter-spacing: -1px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.share-return-tile.is-negative .anvil-role-share-return { color: #a8424c; }
+.share-chart-section, .share-risk-section, .share-amounts-section, .share-holdings-section { padding: 26px 30px; border-top: 1px solid #e6eee9; }
+.shared-performance h2, .share-public-cta h2 { margin: 0 0 14px; color: #243c31; font-size: 19px; line-height: 1.4; font-weight: 700; }
+.share-section-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+.share-section-heading h2 { margin-bottom: 4px; }
+.share-risk-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; margin-bottom: 13px; }
+.share-risk-card { background: #f8faf9; border: 1px solid #e1eae4; border-radius: 13px; padding: 16px 18px; }
+.share-risk-card h3 { margin: 0 0 13px; font-size: 14px; color: #41634e; }
+.share-stat-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-top: 8px; color: #62756a; font-size: 13px; }
+.anvil-role-share-stat { color: #2c4939; font-size: 16px; font-weight: 600; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.share-amount-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(145px,1fr)); gap: 18px; margin-top: 20px; }
+.anvil-role-share-amount { color: #243c31; font-size: 21px; line-height: 1.6; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.anvil-role-share-holdings > div { display: grid; gap: 0; }
+.share-holding-row { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(0,1fr) minmax(0,.8fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid #e9eeeb; }
+.anvil-role-share-holding-symbol { color: #2a4939; font-size: 15px; line-height: 1.5; font-weight: 700; }
+.share-holding-value { text-align: right; }
+.share-card-footer { padding: 22px 30px; border-top: 1px solid #e6eee9; background: #f8faf9; }
+.share-disclosure { color: #526759; font-size: 12px; line-height: 1.6; margin-bottom: 7px; }
+.share-method-details { margin-top: 15px; }
+.share-method-details summary { cursor: pointer; color: #2d6746; font-size: 13px; line-height: 1.6; }
+.anvil-role-share-source { color: #27774d; font-size: 12px; }
+.share-public-cta { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 26px; align-items: center; margin-top: 26px; padding: 28px; background: #eef6f1; border: 1px solid #d5e8dc; border-radius: 20px; }
+.share-public-cta p { max-width: 520px; margin: 0; color: #577060; font-size: 14px; line-height: 1.6; }
+.share-cta-actions { display: grid; gap: 10px; }
+.share-cta-actions > * { min-width: 220px; }
+.share-public-footer { color: #74877b; text-align: center; font-size: 12px; margin-top: 25px; }
+.share-public-message { margin: 50px 0; padding: 30px; background: #fff; border: 1px solid #dce7e0; border-radius: 18px; }
+.share-public-message h1 { color: #243c31; font-size: 26px; line-height: 1.35; margin: 0 0 12px; }
+.share-public-message p { color: #62756a; line-height: 1.6; font-size: 15px; margin: 0; }
+@media (max-width: 700px) {
+  .share-public-page { padding: 20px 15px 30px; }
+  .share-public-kicker { display: none; }
+  .share-card-heading { padding: 24px 20px 18px; }
+  .anvil-role-share-title { font-size: 24px; }
+  .share-return-grid { padding: 0 20px 22px; grid-template-columns: 1fr; gap: 10px; }
+  .share-return-tile { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 4px 12px; padding: 14px 16px; }
+  .share-return-tile .anvil-role-share-return { grid-column: 2; grid-row: 1 / span 2; font-size: 29px; }
+  .share-chart-section, .share-risk-section, .share-amounts-section, .share-holdings-section { padding: 22px 20px; }
+  .share-risk-grid { gap: 12px; }
+  .share-risk-card { padding: 14px 12px; }
+  .share-stat-row { flex-wrap: wrap; gap: 0 8px; }
+  .share-card-footer { padding: 20px; }
+  .share-public-cta { grid-template-columns: 1fr; gap: 20px; padding: 24px 20px; }
+  .share-cta-actions > * { min-width: 0; }
+  .share-holding-row { grid-template-columns: minmax(0,1fr) auto; gap: 8px 14px; }
+  .share-holding-name { grid-column: 1; }
+  .share-holding-quantity { grid-column: 1; }
+  .share-holding-value { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+}
+@media (max-width: 380px) {
+  .share-return-tile { display: block; }
+  .share-return-tile .anvil-role-share-return { font-size: 30px; }
+  .share-risk-grid { grid-template-columns: 1fr; }
+  .share-holding-row { display: block; }
+  .share-holding-quantity { margin-top: 7px; }
+  .share-holding-value { text-align: left; margin-top: 7px; }
+}

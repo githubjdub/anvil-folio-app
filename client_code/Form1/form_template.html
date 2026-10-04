@@ -119,6 +119,7 @@
         <div class="section-intro results-intro">
           <div class="section-index accent-index">02</div>
           <div class="readout-heading-copy"><h2>Your readout</h2><p>Performance, income, and risk in one view.</p></div>
+          <anvil-component type="m3._Components.Button" name="share_performance_button" prop:text="Share!" prop:appearance="filled" prop:icon="mi:share" prop:role="share-action"></anvil-component>
           <anvil-component type="m3._Components.Button" name="toggle_transactions_button" prop:text="Collapse transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component>
         </div>
 
@@ -140,6 +141,7 @@
           <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
         </div>
         <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync history &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
+        <anvil-component type="M3_App_1.Components.ShareComposer" name="share_composer"></anvil-component>
 
         <nav class="readout-navigation" aria-label="Readout pages">
           <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Overview" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>

@@ -1,0 +1,107 @@
+from ._anvil_designer import SharedPerformanceTemplate
+from anvil import *
+
+
+def _percentage(value, difference=False):
+  if value is None:
+    return "—"
+  return ("%+.2f pp" if difference else "%+.2f%%") % (value * 100)
+
+
+def _number(value):
+  return "—" if value is None else "%.2f" % value
+
+
+def _volatility(value):
+  return "—" if value is None else "%.2f%%" % (value * 100)
+
+
+def _money(value):
+  return "—" if value is None else "$%s" % format(value, ",.2f")
+
+
+class SharedPerformance(SharedPerformanceTemplate):
+  def __init__(self, **properties):
+    super().__init__(**properties)
+    self.set_snapshot(self.item)
+
+  def set_snapshot(self, snapshot):
+    self.item = snapshot
+    self.snapshot_content.visible = bool(snapshot)
+    if not snapshot:
+      self.holdings_panel.items = []
+      self.performance_plot.data = []
+      return
+
+    metrics = snapshot["metrics"]
+    benchmark = snapshot["benchmark"]
+    full = snapshot["visibility"] == "full"
+    self.title_label.text = snapshot["title"]
+    self.privacy_label.text = "Holdings & amounts shared" if full else "Holdings & amounts hidden"
+    self.date_label.text = "%s – %s · USD · %s" % (
+      snapshot["start_date"], snapshot["end_date"], benchmark["name"]
+    )
+    self.portfolio_return_label.text = _percentage(metrics.get("portfolio_return"))
+    self.benchmark_return_label.text = _percentage(metrics.get("benchmark_return"))
+    self.excess_return_label.text = _percentage(metrics.get("excess_return"), difference=True)
+    self.benchmark_caption_label.text = benchmark["name"]
+    self.portfolio_sharpe_label.text = _number(metrics.get("portfolio_sharpe"))
+    self.benchmark_sharpe_label.text = _number(metrics.get("benchmark_sharpe"))
+    self.portfolio_volatility_label.text = _volatility(metrics.get("portfolio_volatility"))
+    self.benchmark_volatility_label.text = _volatility(metrics.get("benchmark_volatility"))
+    self.observations_label.text = "%s daily return intervals · Annualized risk metrics" % metrics.get("observations", "—")
+    mode = "Dividends reinvested" if benchmark.get("return_mode") == "total" else "Price return · excludes dividends"
+    self.benchmark_mode_label.text = "Benchmark: %s" % mode
+    self.snapshot_label.text = "Frozen snapshot created %s. Changes to the owner's portfolio do not update this page." % snapshot["created_at"].replace("T", " ")[:16]
+    self.method_label.text = snapshot.get("method") or "Returns are calculated from user-entered or imported trades and historical market data."
+    self.source_label.text = snapshot.get("source") or "Historical prices and dividends; selected market benchmark."
+    self.benchmark_source_link.url = benchmark.get("source_url") or ""
+    self.benchmark_source_link.visible = bool(benchmark.get("source_url"))
+
+    for panel, field in ((self.portfolio_return_tile, "portfolio_return"),
+                         (self.excess_return_tile, "excess_return")):
+      value = metrics.get(field)
+      panel.classes["is-negative"] = value is not None and value < 0
+
+    series = snapshot.get("series", [])
+    self.performance_plot.layout = {
+      "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
+      "font": {"family": "Arial, sans-serif", "size": 13, "color": "#53616b"},
+      "margin": {"l": 58, "r": 16, "t": 22, "b": 85},
+      "xaxis": {"type": "date", "showgrid": False, "fixedrange": True},
+      "yaxis": {"tickformat": ".0%", "gridcolor": "#e9edef", "zerolinecolor": "#cedbd3", "fixedrange": True},
+      "legend": {"orientation": "h", "x": 0, "y": -0.22},
+      "hovermode": "x unified", "autosize": True,
+    }
+    benchmark_chart_name = {
+      "sp500": "S&P 500", "nasdaq": "Nasdaq Composite", "spy": "SPY",
+      "qqq": "QQQ", "dia": "DIA", "iwm": "IWM", "vti": "VTI",
+    }.get(benchmark.get("key"), "Benchmark")
+    self.performance_plot.data = [
+      {"type": "scatter", "mode": "lines", "name": "Portfolio",
+       "x": [point["date"] for point in series],
+       "y": [point.get("portfolio_return") for point in series],
+       "line": {"color": "#249e68", "width": 3},
+       "hovertemplate": "%{y:.2%}<extra>Portfolio</extra>"},
+      {"type": "scatter", "mode": "lines", "name": benchmark_chart_name,
+       "x": [point["date"] for point in series],
+       "y": [point.get("benchmark_return") for point in series],
+       "line": {"color": "#466b9f", "width": 2},
+       "hovertemplate": "%{y:.2%}<extra>Benchmark</extra>"},
+    ]
+
+    self.amounts_region.visible = full
+    self.holdings_region.visible = full
+    if full:
+      amounts = snapshot["amounts"]
+      self.market_value_label.text = _money(amounts.get("market_value"))
+      self.profit_label.text = _money(amounts.get("profit"))
+      self.dividends_label.text = _money(amounts.get("dividends"))
+      self.buy_cost_label.text = _money(amounts.get("buy_cost"))
+      self.sale_proceeds_label.text = _money(amounts.get("sale_proceeds"))
+      as_of = snapshot.get("amounts_as_of_date") or snapshot["end_date"]
+      self.amounts_date_label.text = "Holdings and dollar amounts as of %s · May differ from the chart's end date" % as_of
+      self.holdings_panel.items = snapshot.get("holdings", [])
+      self.no_holdings_label.visible = not bool(snapshot.get("holdings"))
+    else:
+      self.holdings_panel.items = []

@@ -34,6 +34,7 @@ class Form1(Form1Template):
     super().__init__(**properties)
 
     self._user = None
+    self.share_composer.visible = False
     self._current_portfolio = None
     self._portfolio_dirty = False
     self._busy = False
@@ -503,6 +504,7 @@ class Form1(Form1Template):
 
   def _update_controls(self):
     self._update_welcome()
+    setattr(self.share_performance_button, "enabled", not self._busy)
     for component in (
       self.account_button, self.save_portfolio_button, self.new_portfolio_button,
       self.portfolio_name_box, self.add_button, self.sample_button,
@@ -811,6 +813,40 @@ class Form1(Form1Template):
       self.allocation_quarter_dropdown.selected_value = "latest"
       self._clear_chart_trades()
     self._apply_readout_page()
+
+  def _sharing_context(self):
+    if self._history is None or not self._selected_symbols:
+      raise ValueError("Sync your portfolio and select at least one security before sharing performance.")
+    traces = self.performance_plot.data
+    dates = traces[0].get("x", []) if traces else []
+    if not dates:
+      raise ValueError("Choose a valid performance date range and available benchmark before sharing.")
+    transactions = [{
+      "ticker": row["ticker"], "trade_date": row["trade_date"],
+      "action": row["action"], "shares": row["shares"],
+      "trade_price": row.get("trade_price"),
+    } for row in self._analyzed_transactions]
+    benchmark = self.benchmark_dropdown.selected_value
+    return {
+      "transactions": transactions, "as_of_date": self.as_of_date_picker.date,
+      "risk_free_rate": float(self.risk_free_box.text) / 100,
+      "selected_symbols": sorted(self._selected_symbols), "benchmark": benchmark,
+      "benchmark_return": self.benchmark_return_dropdown.selected_value,
+      "start_date": str(dates[0]), "end_date": str(dates[-1]),
+      "benchmark_label": next(label for label, key in BENCHMARK_CHOICES if key == benchmark),
+    }
+
+  @handle("share_performance_button", "click")
+  def share_performance_click(self, **event_args):
+    if self._busy:
+      return
+    self._set_charts_expanded(False)
+    self.share_composer.visible = True
+    self.share_composer.show_for(self._sharing_context, self._ensure_signed_in)
+
+  @handle("share_composer", "x-close-sharing")
+  def close_sharing(self, **event_args):
+    self.share_composer.visible = False
 
   def _set_status(self, message, is_error=False):
     if is_error:
