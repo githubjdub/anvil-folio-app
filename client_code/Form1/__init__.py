@@ -830,7 +830,7 @@ class Form1(Form1Template):
     portfolio_return = traces[0]["y"][-1]
     benchmark_return = traces[1]["y"][-1]
     benchmark_label = next(label for label, key in BENCHMARK_CHOICES if key == benchmark)
-    summary = "\n".join([
+    summary_lines = [
       "My portfolio performance",
       "%s – %s" % (dates[0], dates[-1]),
       "Portfolio: %s" % self._format_percent(portfolio_return),
@@ -838,7 +838,10 @@ class Form1(Form1Template):
       "Versus benchmark: %+.2f percentage points" % ((portfolio_return - benchmark_return) * 100),
       "Benchmark uses %s returns." % ("total" if self.benchmark_return_dropdown.selected_value == "total" else "price"),
       "Based on user-entered trades; portfolio dividends held as cash.",
-    ])
+    ]
+    if not self._history["series"][-1].get("session_complete", True) and str(dates[-1]) == self._history["series"][-1]["date"]:
+      summary_lines.append("Provisional regular-session prices as of %s." % self._history["metadata"].get("quoted_at"))
+    summary = "\n".join(summary_lines)
     return {
       "transactions": transactions, "as_of_date": self.as_of_date_picker.date,
       "risk_free_rate": float(self.risk_free_box.text) / 100,
@@ -1188,18 +1191,19 @@ class Form1(Form1Template):
     selected = self.benchmark_dropdown.selected_value
     self.benchmark_dropdown.items = available
     available_keys = [key for label, key in available]
-    self.benchmark_dropdown.selected_value = selected if selected in available_keys else "sp500"
+    fallback = "sp500" if "sp500" in available_keys else available_keys[0] if available_keys else None
+    self.benchmark_dropdown.selected_value = selected if selected in available_keys else fallback
     selected = self.benchmark_dropdown.selected_value
     modes = []
     for label, mode in [("Total return · dividends reinvested", "total"),
                         ("Price return · excludes dividends", "price")]:
-      if benchmarks.get(selected + "_" + mode, {}).get("series"):
+      if selected and benchmarks.get(selected + "_" + mode, {}).get("series"):
         modes.append((label, mode))
     previous_mode = self.benchmark_return_dropdown.selected_value
     self.benchmark_return_dropdown.items = modes
     self.benchmark_return_dropdown.selected_value = (
       previous_mode if previous_mode in [mode for label, mode in modes]
-      else modes[0][1]
+      else modes[0][1] if modes else None
     )
     self.benchmark_return_dropdown.enabled = not self._busy and len(modes) > 1
 
@@ -1235,9 +1239,15 @@ class Form1(Form1Template):
       return
     benchmark_key = "%s_%s" % (self.benchmark_dropdown.selected_value,
                                self.benchmark_return_dropdown.selected_value)
-    benchmark_data = self._history["benchmarks"][benchmark_key]
+    benchmark_data = self._history["benchmarks"].get(benchmark_key)
+    if not benchmark_data or not benchmark_data.get("series"):
+      self.benchmark_status_label.text = "Portfolio prices are synced. A matching benchmark quote is not available yet; sync again when it updates."
+      self._clear_comparison("No matching benchmark data is available for this period yet.")
+      return
     benchmark_name = benchmark_data["name"]
     benchmark_by_date = {point["date"]: point["index"] for point in benchmark_data["series"]}
+    benchmark_complete = {point["date"]: point.get("session_complete", True)
+                          for point in benchmark_data["series"]}
     available_dates = sorted(benchmark_by_date)
     common = [point for point in selected
               if available_dates[0] <= point["date"] <= available_dates[-1]]
@@ -1264,10 +1274,14 @@ class Form1(Form1Template):
     benchmark = [benchmark_by_date[point["date"]] for point in selected]
     portfolio_returns = [value / portfolio[0] - 1 for value in portfolio]
     benchmark_returns = [value / benchmark[0] - 1 for value in benchmark]
-    observed = [point["return_observed"] for point in selected]
+    completed = [point.get("session_complete", True) for point in selected]
+    observed = [point["return_observed"] and completed[index] for index, point in enumerate(selected)]
     observations = sum(1 for available in observed[1:] if available)
-    inactive_days = len(selected) - 1 - observations
-    self.comparison_period_label.text = "%s – %s · %d daily returns" % (dates[0], dates[-1], observations)
+    inactive_days = sum(completed[index] and not selected[index]["return_observed"]
+                        for index in range(1, len(selected)))
+    provisional = not completed[-1]
+    self.comparison_period_label.text = "%s – %s · %d completed daily returns%s" % (
+      dates[0], dates[-1], observations, " · provisional endpoint" if provisional else "")
     self.window_return_label.text = self._format_percent(portfolio_returns[-1])
     self.benchmark_return_label.text = self._format_percent(benchmark_returns[-1])
     self.window_excess_label.text = "%.2f pp" % ((portfolio_returns[-1] - benchmark_returns[-1]) * 100)
@@ -1275,15 +1289,16 @@ class Form1(Form1Template):
     exponent = math.log(portfolio[-1] / portfolio[0]) * 365.25 / days if days > 0 and portfolio[-1] > 0 and portfolio[0] > 0 else None
     self.window_annualized_label.text = (
       self._format_percent(math.exp(exponent) - 1)
-      if exponent is not None and exponent < 700 and not inactive_days else "—"
+      if exponent is not None and exponent < 700 and not inactive_days and not provisional else "—"
     )
     volatility, sharpe = self._daily_risk(portfolio, observed)
     self.volatility_label.text = "—" if volatility is None else "%.2f%%" % (volatility * 100)
     self.sharpe_label.text = self._format_ratio(sharpe)
     # A benchmark stays invested across every close, including sessions when
     # the selected portfolio had no capital. Use its own observation mask.
-    benchmark_observations = len(benchmark) - 1
-    benchmark_volatility, benchmark_sharpe = self._daily_risk(benchmark, [True] * len(benchmark))
+    benchmark_observed = [benchmark_complete[day] for day in dates]
+    benchmark_observations = sum(benchmark_observed[1:])
+    benchmark_volatility, benchmark_sharpe = self._daily_risk(benchmark, benchmark_observed)
     self.benchmark_volatility_label.text = "—" if benchmark_volatility is None else "%.2f%%" % (benchmark_volatility * 100)
     self.benchmark_sharpe_label.text = self._format_ratio(benchmark_sharpe)
     if observations < 20:
@@ -1301,6 +1316,8 @@ class Form1(Form1Template):
       message += " Benchmark volatility and Sharpe need at least 20 daily returns."
     elif benchmark_sharpe is None:
       message += " The benchmark has no measurable daily variation; its Sharpe is undefined."
+    if provisional:
+      message += " Current-session prices are provisional; the unfinished session is excluded from both risk estimates and annualized return."
     self.risk_status_label.text = message + " Yahoo Finance · 252 trading days/year."
     drawdowns = self._drawdowns(portfolio)
     markers = build_trade_markers(
@@ -1328,12 +1345,12 @@ class Form1(Form1Template):
     short_benchmark_name = next((label.split(" · ")[0] for label, key in BENCHMARK_CHOICES
                                  if key == self.benchmark_dropdown.selected_value), "Benchmark")
     self.quarterly_panel.items = [dict(row,
-      detail_text="%s – %s%s" % (row["start_date"], row["end_date"], " · window edge" if row["edge_window"] else ""),
+      detail_text="%s – %s%s%s" % (row["start_date"], row["end_date"], " · window edge" if row["edge_window"] else "", " · provisional" if row.get("provisional") else ""),
       portfolio_text="—" if row["portfolio_return"] is None else self._format_percent(row["portfolio_return"]),
       benchmark_text="—" if row["benchmark_return"] is None else self._format_percent(row["benchmark_return"]),
       excess_text="—" if row["excess_return"] is None else "%.2f pp" % (row["excess_return"] * 100),
     ) for row in reversed(rows)]
-    self.quarterly_period_label.text = "Calendar quarters within the displayed period · %s. Window edges may be partial; hover for exact dates." % benchmark_name
+    self.quarterly_period_label.text = "Calendar quarters within the displayed period · %s. Window edges may be partial; the latest quarter is provisional when it includes current-session prices." % benchmark_name
     data = [[row["start_date"], row["end_date"], row["observations"]] for row in rows]
     labels = [row["label"] for row in rows]
     self.quarterly_plot.data = [
@@ -1385,8 +1402,9 @@ class Form1(Form1Template):
                    weight=holding["market_value"] / total if total else 0)
               for holding in holdings] if security_view else slices
     colors = [self._security_colors.get(group["symbol"], "#a0a6ad") if security_view else SECTOR_COLORS.get(group["sector"], "#a0a6ad") for group in groups]
-    self.sector_period_label.text = "%s · %s in open positions" % (
-      dated, self._format_currency(total)
+    provisional = (self._allocation_snapshot or {}).get("provisional", bool(self._history["metadata"].get("provisional_date")))
+    self.sector_period_label.text = "%s · %s in open positions%s" % (
+      dated, self._format_currency(total), " · provisional prices" if provisional else ""
     )
     self.allocation_value_label.text = self._format_currency(total)
     self.allocation_count_label.text = str(len(holdings))
@@ -1514,8 +1532,9 @@ class Form1(Form1Template):
       label.text = self._format_currency(metrics[key])
     self.return_label.text = "—" if metrics["simple_return"] is None else self._format_percent(metrics["simple_return"])
     self.annualized_label.text = "—" if metrics["annualized_return"] is None else self._format_percent(metrics["annualized_return"])
-    self.period_label.text = "%s · %d selected open holdings" % (
-      self._history["metadata"]["end_date"], metrics["holding_count"]
+    self.period_label.text = "%s · %d selected open holdings%s" % (
+      self._history["metadata"]["end_date"], metrics["holding_count"],
+      " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
     )
     self._render_comparison()
     self._render_sectors()
@@ -1589,7 +1608,7 @@ class Form1(Form1Template):
       transactions = self._read_transactions()
       as_of_date, risk_free_rate = self._read_analysis_settings(transactions)
       self._show_results(False)
-      self._set_status("Loading daily prices, dividends, sectors, and benchmark history…")
+      self._set_status("Loading history, latest session prices, dividends, sectors, and benchmarks…")
       document = [{
         "ticker": row["ticker"], "trade_date": row["trade_date"],
         "action": row["action"], "shares": row["shares"],
@@ -1607,17 +1626,21 @@ class Form1(Form1Template):
         transaction.update(synced)
         price = synced["current_price"]
         transaction["quote_text"] = "No current holding" if price is None else "USD %s" % self._format_currency(price)
-        transaction["dividend_text"] = "Daily history synced"
+        transaction["dividend_text"] = "Latest session price synced" if result["metadata"].get("provisional_date") else "Daily history synced"
       self._refresh_transactions()
       self.comparison_start_picker.date = self._date_from_iso(result["series"][0]["date"])
       self.comparison_end_picker.date = self._date_from_iso(result["series"][-1]["date"])
       self._show_results(True)
       self._update_benchmark_options()
       self._render_readout()
-      message = "Daily history synced and analysis updated."
+      if result["metadata"].get("provisional_date"):
+        timestamp = result["metadata"]["quoted_at"].replace("T", " ").replace("+00:00", " UTC")
+        message = "Latest regular-session prices synced · oldest portfolio quote %s. Today's values are provisional; daily risk uses completed sessions." % timestamp
+      else:
+        message = "Daily history synced and analysis updated."
       moved_dates = result["metadata"]["moved_transaction_dates"]
       if moved_dates:
-        message += " %d non-trading date(s) use the next completed session." % moved_dates
+        message += " %d non-trading date(s) use the next available session." % moved_dates
       self._set_status(message)
     except ValueError as error:
       self._set_status(str(error), is_error=True)

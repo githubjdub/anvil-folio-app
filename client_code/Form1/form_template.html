@@ -22,7 +22,7 @@
       </div>
       <div class="hero-note">
         <span class="hero-note-icon">↗</span>
-        <div><strong>History in perspective</strong><br><span>Daily closes. The same comparison dates.</span></div>
+        <div><strong>History in perspective</strong><br><span>Daily history and latest prices. The same comparison dates.</span></div>
       </div>
     </section>
 
@@ -92,12 +92,12 @@
                 <p class="image-import-help">Check every row before importing. A holdings snapshot becomes a Buy on the date its share quantities were current; it starts performance tracking there and does not reconstruct earlier trades or dividends. Use actual trade dates only for a transaction history. Purchase prices are filled only from labelled purchase cost or average cost, never the current quote.</p>
                 <div class="image-import-settings"><div><div class="portfolio-field-caption">Snapshot / fallback date</div><anvil-component type="DatePicker" name="image_import_date_picker" prop:role="date-field" prop:tooltip="Used for rows without a date. For current holdings, choose the date these quantities apply to."></anvil-component></div><div><div class="portfolio-field-caption">Import into this portfolio</div><anvil-component type="DropDown" name="image_import_mode_dropdown" prop:role="portfolio-picker"></anvil-component></div></div>
                 <anvil-component type="RepeatingPanel" name="image_import_rows_panel" prop:item_template="M3_App_1.Components.ImportedHoldingRow"></anvil-component>
-                <p class="image-import-help">Leave purchase price blank to use the historical close on the chosen date. Uncheck anything you do not want to import. Adding rows leaves your existing transactions in place. Sync history supports up to 25 different securities per portfolio.</p>
+                <p class="image-import-help">Leave purchase price blank to use the date's closing price, or the latest regular-session quote for today. Uncheck anything you do not want to import. Adding rows leaves your existing transactions in place. Sync supports up to 25 different securities per portfolio.</p>
                 <anvil-component type="m3._Components.Button" name="apply_image_import_button" prop:text="Add selected rows" prop:appearance="filled" prop:icon="mi:playlist_add"></anvil-component>
               </div>
             </div>
           </section>
-          <p class="transaction-price-help">Price per share is optional. Enter what you paid or received in the stock's quote currency, or leave it blank to use the historical close.</p>
+          <p class="transaction-price-help">Price per share is optional. Enter what you paid or received, or leave it blank to use that day's close (the latest regular-session quote for today).</p>
           <div class="transaction-view-toolbar">
             <div class="transaction-view-choice"><div class="portfolio-field-caption">Transaction view</div><anvil-component type="DropDown" name="transaction_view_dropdown" prop:role="portfolio-picker"></anvil-component></div>
             <anvil-component type="m3._Components.Button" name="regroup_button" prop:text="Regroup" prop:appearance="text" prop:icon="mi:sort"></anvil-component>
@@ -126,7 +126,7 @@
         <details class="panel-card settings-card">
           <summary>Analysis settings <span>As-of date &amp; risk-free rate</span></summary>
           <div class="analysis-settings-body">
-          <div class="card-heading compact-heading"><div><h3>Run your analysis</h3><p>Use completed daily closes through this date.</p></div><div class="window-badge">Daily history</div></div>
+          <div class="card-heading compact-heading"><div><h3>Run your analysis</h3><p>Use daily history through this date. Today's analysis also includes the latest available regular-session prices.</p></div><div class="window-badge">History + latest prices</div></div>
           <div class="date-grid single-date-grid">
             <div class="field-stack"><label>Analyze as of</label><anvil-component type="DatePicker" name="as_of_date_picker" prop:role="date-field"></anvil-component></div>
           </div>
@@ -163,9 +163,9 @@
           <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="365 days · 2 open holdings" prop:role="period-label"></anvil-component></div>
           <section anvil:name="overview_panel" class="readout-page" aria-label="Portfolio overview">
           <div class="metric-grid">
-            <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Open positions at last completed close</div></div>
+            <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Open positions at the latest available price</div></div>
             <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Investment profit ÷ total buy capital</div></div>
-            <div class="metric-card"><div class="metric-label">Annualized return</div><anvil-component type="Label" name="annualized_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Time-weighted · from first daily close</div></div>
+            <div class="metric-card"><div class="metric-label">Annualized return</div><anvil-component type="Label" name="annualized_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Time-weighted · completed sessions</div></div>
             <div class="metric-card metric-card-dark"><div class="metric-label">Dividends earned</div><anvil-component type="Label" name="dividends_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Held as cash · before tax</div></div>
           </div>
           <div class="detail-card">
@@ -202,7 +202,7 @@
             <anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component>
             <anvil-component type="Label" name="sector_status_label" prop:role="portfolio-help"></anvil-component>
             <details class="readout-notes"><summary>Composition notes &amp; sources</summary>
-            <p class="fine-print">Open positions at the selected close, weighted by market value; sold positions and dividend cash are excluded. Current <a href="https://finviz.com/groups.ashx?g=sector" target="_blank" rel="noopener noreferrer">Finviz sector classifications</a> are used for every snapshot. Funds / ETFs are grouped separately, without looking through their holdings.</p>
+            <p class="fine-print">Open positions at the selected price mark, weighted by market value; sold positions and dividend cash are excluded. Today's quote-based snapshot is provisional. Current <a href="https://finviz.com/groups.ashx?g=sector" target="_blank" rel="noopener noreferrer">Finviz sector classifications</a> are used for every snapshot. Funds / ETFs are grouped separately, without looking through their holdings.</p>
             </details>
           </section>
           <section class="detail-card allocation-history-card" aria-label="Quarterly sector allocation">
@@ -215,7 +215,7 @@
           <section class="detail-card comparison-card" aria-label="Risk and benchmark analyzer">
             <div class="detail-heading chart-panel-heading"><h3>Performance history</h3><anvil-component type="m3._Components.Button" name="expand_charts_button" prop:text="Expand charts" prop:icon="mi:fullscreen" prop:appearance="outlined" prop:role="chart-tool"></anvil-component></div>
             <div class="performance-controls">
-            <div class="chart-range-caption">Period <span>Daily closes</span></div>
+            <div class="chart-range-caption">Period <span>Daily history + latest prices</span></div>
             <nav class="chart-range-buttons" aria-label="Chart time frame">
               <anvil-component type="m3._Components.Button" name="range_1m_button" prop:text="1M" prop:appearance="text" prop:role="chart-range"></anvil-component>
               <anvil-component type="m3._Components.Button" name="range_3m_button" prop:text="3M" prop:appearance="text" prop:role="chart-range"></anvil-component>
@@ -285,15 +285,15 @@
             <anvil-component type="Label" name="risk_status_label" prop:role="portfolio-help"></anvil-component>
             </details>
             <details class="readout-notes"><summary>Chart notes</summary>
-            <p class="fine-print">Range buttons update every performance chart and risk metric. Quarterly returns compound the same daily time-weighted series, retaining dividends as cash. The first close is the baseline; first and last quarterly bars may cover part of a quarter. Hover shows exact closing dates, and differences are percentage points (pp). Both cumulative lines start at 0% on the first displayed close. Trade arrows link to transactions. The total-return benchmark reinvests dividends.</p>
+            <p class="fine-print">Range buttons update every performance chart and risk metric. Quarterly returns compound the same time-weighted series, retaining dividends as cash. The first price mark is the baseline; first and last quarterly bars may cover part of a quarter. Today's endpoint is provisional when it uses regular-session quotes. Risk metrics use completed daily returns. Comparisons use matching benchmark dates. Trade arrows link to transactions. The total-return benchmark reinvests dividends.</p>
             </details>
           </section>
           </section>
         </section>
         <section anvil:name="methods_panel" class="readout-page" aria-label="Calculation methods and sources">
-          <section class="method-note"><div><h3>Performance &amp; dividends</h3><p>Total return in Overview is investment profit divided by total buy capital. The charts and annualized return use daily time-weighted performance, adjusting for purchases as contributions and sales as withdrawals.</p><p>With no deposit ledger or execution times, buys are treated as beginning-of-day inflows and sells as end-of-day outflows. The first close establishes the comparison baseline; investment profit still includes your entered execution prices.</p><p>Dividends are credited on ex-dividend dates, before tax, without reinvestment. Weekend or holiday trades use the next completed trading session.</p></div></section>
-          <section class="method-note"><div><h3>Volatility &amp; Sharpe ratios</h3><p>Volatility is the sample standard deviation of daily returns × √252. Sharpe is mean daily excess return divided by its standard deviation × √252, using your annual risk-free rate converted to a daily rate.</p><p>Both portfolio and benchmark risk need at least 20 daily returns; short samples remain estimates. Benchmark risk uses the selected price or total-return series over matching chart dates.</p><p>Sessions with no invested portfolio capital are excluded only from portfolio risk. Annualized portfolio return is not shown when history contains these gaps.</p></div></section>
-          <section class="method-note"><div><h3>Data sources</h3><p>Yahoo Finance supplies daily prices, dividends, splits, and benchmark history. Entered prices take precedence over the trade-day close. Analysis uses USD-listed US securities.</p></div></section>
+          <section class="method-note"><div><h3>Performance &amp; dividends</h3><p>Total return in Overview is investment profit divided by total buy capital. The charts use time-weighted performance, adjusting for purchases as contributions and sales as withdrawals.</p><p>With no deposit ledger or execution times, buys are treated as beginning-of-session inflows and sells as end-of-session outflows. The first price mark establishes the comparison baseline; investment profit still includes your entered execution prices.</p><p>Dividends are credited on ex-dividend dates, before tax, without reinvestment. Weekend or holiday trades use the next available trading session. Today's regular-session quote is provisional. Annualized return is withheld while the endpoint is provisional.</p></div></section>
+          <section class="method-note"><div><h3>Volatility &amp; Sharpe ratios</h3><p>Volatility is the sample standard deviation of daily returns × √252. Sharpe is mean daily excess return divided by its standard deviation × √252, using your annual risk-free rate converted to a daily rate.</p><p>Both portfolio and benchmark risk need at least 20 completed daily returns; the unfinished session is excluded. Benchmark risk uses the selected price or total-return series over matching chart dates.</p><p>Sessions with no invested portfolio capital are excluded only from portfolio risk. Annualized portfolio return is not shown when history contains these gaps or a provisional endpoint.</p></div></section>
+          <section class="method-note"><div><h3>Data sources</h3><p>Yahoo Finance supplies daily history and timestamped regular-session quotes, plus dividends, splits, and benchmarks. Quotes may be delayed. Entered execution prices take precedence; otherwise the latest session price is used for a current-day trade. Historical trades use their daily close. Pre-market and after-hours prices are excluded. Analysis uses USD-listed US securities.</p></div></section>
         </section>
         <section anvil:name="retrospective_panel" class="readout-page" aria-label="Retrospective strategy analysis">
           <anvil-component type="M3_App_1.Components.Retrospective" name="retrospective_form"></anvil-component>

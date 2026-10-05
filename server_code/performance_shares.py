@@ -112,38 +112,64 @@ def _build_snapshot(analysis, benchmark, benchmark_return, start_date, end_date,
     raise AnalysisInputError("Choose a start date on or before the end date.")
   selected = [point for point in source_points
               if requested_start <= point["date"] <= requested_end]
-  benchmark_by_date = {point["date"]: point["index"] for point in benchmark_data["series"]}
+  benchmark_points = {point["date"]: point for point in benchmark_data["series"]}
+  benchmark_by_date = {day: point["index"] for day, point in benchmark_points.items()}
   first_benchmark, last_benchmark = min(benchmark_by_date), max(benchmark_by_date)
   common = [point for point in selected
             if first_benchmark <= point["date"] <= last_benchmark]
   if len(common) < 2:
-    raise AnalysisInputError("Choose a period with at least two overlapping completed trading closes.")
+    raise AnalysisInputError("Choose a period with at least two overlapping trading valuations.")
   if any(point["date"] not in benchmark_by_date for point in common):
     raise AnalysisInputError("This benchmark has missing daily closes. Sync again or choose another benchmark.")
   portfolio = [point["portfolio_index"] for point in common]
   benchmark_indices = [benchmark_by_date[point["date"]] for point in common]
   if portfolio[0] <= 0:
     raise AnalysisInputError("The portfolio has no positive return baseline in this period. Choose another start date.")
-  observed = [point["return_observed"] for point in common]
+  completed = [point.get("session_complete", True) for point in common]
+  benchmark_completed = [benchmark_points[point["date"]].get("session_complete", True)
+                         for point in common]
+  observed = [point["return_observed"] and completed[index]
+              for index, point in enumerate(common)]
   portfolio_returns = [value / portfolio[0] - 1 for value in portfolio]
   benchmark_returns = [value / benchmark_indices[0] - 1 for value in benchmark_indices]
   rate = analysis["metadata"]["risk_free_rate"]
   volatility, sharpe = _risk(portfolio, observed, rate)
   benchmark_volatility, benchmark_sharpe = _risk(
-    benchmark_indices, [True] * len(benchmark_indices), rate,
+    benchmark_indices, benchmark_completed, rate,
   )
   observations = sum(bool(value) for value in observed[1:])
-  inactive = len(common) - 1 - observations
+  benchmark_observations = sum(bool(value) for value in benchmark_completed[1:])
+  inactive = sum(completed[index] and not common[index]["return_observed"]
+                 for index in range(1, len(common)))
+  provisional = not (completed[-1] and benchmark_completed[-1])
   days = (_as_date(common[-1]["date"]) - _as_date(common[0]["date"])).days
   annualized = None
-  if days > 0 and portfolio[-1] > 0 and not inactive:
+  if days > 0 and portfolio[-1] > 0 and not inactive and not provisional:
     exponent = math.log(portfolio[-1] / portfolio[0]) * 365.25 / days
     if exponent < 700:
       annualized = math.expm1(exponent)
+  method = _METHOD
+  source = "Yahoo Finance daily history"
+  quoted_at = analysis["metadata"].get("quoted_at") if provisional else None
+  if provisional:
+    method = method.replace("historical daily prices", "historical daily prices and regular-session quotes")
+    method = method.replace("same completed closing date", "same starting valuation date")
+    method = method.replace("The first completed close is the baseline.",
+                            "The first displayed valuation is the baseline.")
+    method = method.replace("next completed session", "next trading session")
+    method += (" The final valuation is provisional. The unfinished session is excluded "
+               "from both volatility and Sharpe, and annualized return is unavailable.")
+    if quoted_at:
+      method += " The oldest included portfolio regular-session quote was recorded at %s." % quoted_at
+    source += " and regular-session quotes"
   snapshot = {
     "version": 1, "title": title, "visibility": "private",
     "created_at": created_at.isoformat(),
     "start_date": common[0]["date"], "end_date": common[-1]["date"],
+    "provisional_date": common[-1]["date"] if provisional else None,
+    "quoted_at": quoted_at,
+    "completed_end_date": next((point["date"] for index, point in reversed(list(enumerate(common)))
+                                if completed[index] and benchmark_completed[index]), None),
     "currency": "USD", "risk_free_rate": rate,
     "benchmark": {
       "key": benchmark, "name": benchmark_data["name"],
@@ -156,14 +182,15 @@ def _build_snapshot(analysis, benchmark, benchmark_return, start_date, end_date,
       "portfolio_annualized_return": annualized,
       "portfolio_volatility": volatility, "portfolio_sharpe": sharpe,
       "benchmark_volatility": benchmark_volatility, "benchmark_sharpe": benchmark_sharpe,
-      "observations": observations, "benchmark_observations": len(common) - 1,
+      "observations": observations, "benchmark_observations": benchmark_observations,
       "uninvested_sessions": inactive,
     },
     "series": [{
       "date": point["date"], "portfolio_return": portfolio_returns[index],
       "benchmark_return": benchmark_returns[index],
+      "session_complete": bool(completed[index] and benchmark_completed[index]),
     } for index, point in enumerate(common)],
-    "method": _METHOD, "source": "Yahoo Finance daily history",
+    "method": method, "source": source,
   }
   return _public_snapshot(snapshot)
 
@@ -175,13 +202,16 @@ def _public_snapshot(stored):
     "currency", "risk_free_rate", "method", "source",
   )}
   result["visibility"] = "private"
+  for key in ("provisional_date", "quoted_at", "completed_end_date"):
+    result[key] = stored.get(key)
   result["benchmark"] = {key: stored["benchmark"][key] for key in (
     "key", "name", "return_mode", "source_url",
   )}
   result["metrics"] = {key: stored["metrics"][key] for key in _METRIC_FIELDS}
-  result["series"] = [{key: point[key] for key in (
+  result["series"] = [dict({key: point[key] for key in (
     "date", "portfolio_return", "benchmark_return",
-  )} for point in stored["series"]]
+  )}, session_complete=point.get("session_complete", True))
+    for point in stored["series"]]
   return result
 
 

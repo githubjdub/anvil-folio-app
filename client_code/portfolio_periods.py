@@ -29,8 +29,10 @@ def quarterly_returns(points, benchmark_by_date):
   ``benchmark_by_date`` maps those ISO dates to benchmark index values. The
   initial displayed close is the first baseline; every later quarter starts
   from the prior quarter's last displayed close. Thus a quarter's first daily
-  return is included. ``observations`` counts close-to-close intervals, rather
-  than prices. A lone initial close has no measured return. Benchmark returns
+  return is included. ``observations`` counts completed close-to-close intervals,
+  rather than prices. An unfinished final session affects the displayed return
+  and sets ``provisional``, without adding a completed daily observation.
+  A lone initial valuation has no measured return. Benchmark returns
   stay unavailable when any displayed comparison date lacks benchmark data.
   First and last groups are flagged as potentially partial window edges.
   """
@@ -47,9 +49,12 @@ def quarterly_returns(points, benchmark_by_date):
     baseline_index = start_index - 1 if start_index else 0
     baseline = points[baseline_index]
     ending = points[end_index]
-    observations = end_index - baseline_index
+    observations = sum(points[index].get("session_complete", True)
+                       for index in range(baseline_index + 1, end_index + 1))
+    provisional = any(not points[index].get("session_complete", True)
+                      for index in range(baseline_index, end_index + 1))
     portfolio_return = benchmark_return = None
-    if observations:
+    if end_index > baseline_index:
       portfolio_return = _period_return(
         baseline["portfolio_index"], ending["portfolio_index"]
       )
@@ -68,6 +73,7 @@ def quarterly_returns(points, benchmark_by_date):
                         and benchmark_return is not None else None),
       "start_date": baseline["date"], "end_date": ending["date"],
       "observations": observations,
+      "provisional": provisional,
       "edge_window": start_index == 0 or end_index == len(points) - 1,
     })
     start_index = end_index + 1
@@ -138,5 +144,6 @@ def allocation_snapshots(source, selected_symbols):
     snapshots.append({
       "key": key, "label": label, "date": dates[index],
       "holdings": holdings, "slices": slices, "total_value": total_value,
+      "provisional": not source["series"][index].get("session_complete", True),
     })
   return snapshots

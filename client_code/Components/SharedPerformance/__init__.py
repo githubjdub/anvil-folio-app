@@ -50,10 +50,13 @@ class SharedPerformance(SharedPerformanceTemplate):
     self.benchmark_sharpe_label.text = _number(metrics.get("benchmark_sharpe"))
     self.portfolio_volatility_label.text = _volatility(metrics.get("portfolio_volatility"))
     self.benchmark_volatility_label.text = _volatility(metrics.get("benchmark_volatility"))
-    self.observations_label.text = "%s daily return intervals · Annualized risk metrics" % metrics.get("observations", "—")
+    self.observations_label.text = "%s completed daily return intervals · Annualized risk metrics" % metrics.get("observations", "—")
     mode = "Dividends reinvested" if benchmark.get("return_mode") == "total" else "Price return · excludes dividends"
     self.benchmark_mode_label.text = "Benchmark: %s" % mode
     self.snapshot_label.text = "Frozen snapshot created %s. Changes to the owner's portfolio do not update this page." % snapshot["created_at"].replace("T", " ")[:16]
+    if snapshot.get("provisional_date"):
+      self.date_label.text += " · provisional endpoint"
+      self.snapshot_label.text += " Portfolio quotes as of %s; the unfinished day is excluded from risk metrics." % snapshot.get("quoted_at")
     self.method_label.text = snapshot.get("method") or "Returns are calculated from user-entered or imported trades and historical market data."
     self.source_label.text = snapshot.get("source") or "Historical prices and dividends; selected market benchmark."
     self.benchmark_source_link.url = benchmark.get("source_url") or ""

@@ -46,8 +46,9 @@ def analyze_selection(source, selected_symbols):
 
   Per-security NAV includes accumulated dividend cash. Buys contribute capital
   at the beginning of a session and sales withdraw it at the end, matching the
-  server's daily return calculation. The chosen securities' first completed
-  close remains the baseline, even when its trade price differs from the close.
+  server's return calculation. The chosen securities' first displayed valuation
+  remains the baseline, even when its trade price differs from that valuation.
+  A provisional mark affects returns but is not a completed risk observation.
   Treat the result as read-only: an all-security selection reuses the server's
   already computed arrays, and benchmark history is shared in every result.
   """
@@ -116,10 +117,11 @@ def analyze_selection(source, selected_symbols):
         withdrawals += daily["withdrawals"]
     denominator = previous_nav + contributions
     return_observed = bool(series) and denominator > 0
+    session_complete = source_points[index].get("session_complete", True)
     if return_observed:
       portfolio_index *= (nav + withdrawals) / denominator
-      observed_sessions += 1
-    elif series:
+      observed_sessions += bool(session_complete)
+    elif series and session_complete:
       uninvested_sessions += 1
     # selection_data dates and paths use the same positions as source series.
     point = dict(source_points[index])
@@ -131,7 +133,8 @@ def analyze_selection(source, selected_symbols):
   profit = market_value + sale_proceeds + dividends - buy_cost
   days = (_date_from_iso(series[-1]["date"]) - _date_from_iso(series[0]["date"])).days
   annualized_return = None
-  if days > 0 and portfolio_index > 0 and not uninvested_sessions:
+  provisional = not series[-1].get("session_complete", True)
+  if days > 0 and portfolio_index > 0 and not uninvested_sessions and not provisional:
     exponent = math.log(portfolio_index / 100) * 365.25 / days
     if exponent < 700:
       annualized_return = math.exp(exponent) - 1
@@ -147,5 +150,8 @@ def analyze_selection(source, selected_symbols):
     "start_date": series[0]["date"], "end_date": series[-1]["date"],
     "observed_return_sessions": observed_sessions,
     "uninvested_sessions": uninvested_sessions,
+    "completed_end_date": next((point["date"] for point in reversed(series)
+                                if point.get("session_complete", True)), None),
+    "provisional_date": series[-1]["date"] if provisional else None,
   })
   return result

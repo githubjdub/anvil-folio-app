@@ -94,7 +94,7 @@ def _transaction_details(transaction, summary, original_index, plotted_date):
   quantity = "%s shares" % _compact_number(shares)
   notes = ""
   if entered_date != plotted_date:
-    notes = "Entered %s; plotted on the next completed session, %s." % (
+    notes = "Entered %s; plotted on the next available session, %s." % (
       entered_date or "date unavailable", plotted_date
     )
   return {
