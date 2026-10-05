@@ -15,16 +15,13 @@ class ShareComposer(ShareComposerTemplate):
     self._busy = False
     self._latest_share_id = None
     self._latest_url = ""
-    self.visibility_dropdown.items = [
-      ("Percentages only · hide holdings and amounts", "private"),
-      ("Show it all · holdings and real amounts", "full"),
-    ]
-    self.visibility_dropdown.selected_value = "private"
+    self._summary = ""
     self.result_region.visible = False
     self.preview_region.visible = False
     self.live_app_link.visible = False
     self.share_status.text = ""
-    self._update_visibility()
+    self.native_share_button.visible = bool(getattr(anvil.js.window.navigator, "share", None))
+    self._set_busy(False)
 
   def _missing_context(self):
     raise ValueError("Sync your portfolio before sharing performance.")
@@ -32,14 +29,14 @@ class ShareComposer(ShareComposerTemplate):
   def show_for(self, context_getter, ensure_signed_in):
     self._context_getter = context_getter
     self._ensure_signed_in = ensure_signed_in
-    self.visibility_dropdown.selected_value = "private"
-    self.title_box.text = "My portfolio performance"
+    self._base_url = ""
+    self._origin_ready = False
     self._latest_share_id = None
     self._latest_url = ""
     self.result_region.visible = False
     self.preview_region.visible = False
-    self._update_visibility()
-    self._set_status("Loading sharing options…")
+    self._set_status("")
+    self._update_summary()
     self._set_busy(True)
     try:
       origin = anvil.server.call("get_performance_share_origin")
@@ -48,24 +45,34 @@ class ShareComposer(ShareComposerTemplate):
       self.live_app_link.url = self._base_url
       self.live_app_link.visible = not self._origin_ready
       self._refresh_links()
-      self._update_period()
-      self._set_status(
-        origin.get("message", "") if not self._origin_ready else
-        "Sign in to create and manage your share links." if anvil.users.get_user() is None else
-        "Choose what to reveal, then create your snapshot."
+      self.link_availability_label.text = (
+        "Chart links are available on the live site. You can copy percentages here, or open live Portfoliora below."
+        if not self._origin_ready else
+        "Sign in when creating a chart link. Copying percentages works without an account."
+        if anvil.users.get_user() is None else
+        "Create a fixed comparison chart that anyone with the link can view."
       )
     finally:
       self._set_busy(False)
 
-  def _update_period(self):
+  def _update_summary(self):
     try:
       context = self._context_getter()
     except ValueError as error:
-      self.period_label.text = str(error)
-      return
-    self.period_label.text = "%s – %s · %s · %s" % (
-      context["start_date"], context["end_date"], context["benchmark_label"],
-      "Total return benchmark" if context["benchmark_return"] == "total" else "Price return benchmark",
+      self._summary = ""
+      self.summary_label.text = str(error)
+      self._set_status(str(error), is_error=True)
+      self._set_busy(self._busy)
+      return None
+    self._summary = context["summary"]
+    self.summary_label.text = self._summary
+    self._set_busy(self._busy)
+    return context
+
+  def _share_text(self):
+    return self._summary + (
+      "\n\nBuild your own comparison on Portfoliora: " + self._base_url
+      if self._base_url else ""
     )
 
   def _refresh_links(self):
@@ -82,42 +89,13 @@ class ShareComposer(ShareComposerTemplate):
 
   def _set_busy(self, busy):
     self._busy = busy
-    setattr(self.create_button, "enabled", not busy and self._origin_ready)
+    setattr(self.create_button, "enabled", not busy and self._origin_ready and bool(self._summary))
     setattr(self.close_button, "enabled", not busy)
-    self.title_box.enabled = not busy
-    self.visibility_dropdown.enabled = not busy
+    setattr(self.copy_summary_button, "enabled", not busy and bool(self._summary))
     setattr(self.copy_link_button, "enabled", not busy and bool(self._latest_url))
-    setattr(self.native_share_button, "enabled", not busy and bool(self._latest_url))
-    self.create_button.text = "Please wait…" if busy else "Create share link"
+    setattr(self.native_share_button, "enabled", not busy and bool(self._summary))
+    self.create_button.text = "Please wait…" if busy else "Create chart link"
     self.share_links_panel.raise_event_on_children("x-sharing-busy", busy=busy)
-
-  def _update_visibility(self):
-    full = self.visibility_dropdown.selected_value == "full"
-    self.privacy_note.text = (
-      "Anyone with this link can see your selected holdings, share quantities, dollar values, invested capital, sales, profit and dividends, alongside percentage returns."
-      if full else
-      "Only percentage returns, the benchmark comparison, date range, growth chart and risk statistics are shared. Security names, quantities and all dollar amounts are hidden."
-    )
-    self.privacy_region.classes["is-full"] = full
-
-  @handle("visibility_dropdown", "change")
-  def visibility_change(self, **event_args):
-    self._update_visibility()
-    self._clear_changed_snapshot()
-
-  @handle("title_box", "change")
-  def title_change(self, **event_args):
-    self._clear_changed_snapshot()
-
-  def _clear_changed_snapshot(self):
-    if self._latest_share_id is None:
-      return
-    self._latest_share_id = None
-    self._latest_url = ""
-    self.result_region.visible = False
-    self.preview_region.visible = False
-    self._set_status("Options changed. Create a new snapshot; existing links keep their original settings.")
-    self._set_busy(self._busy)
 
   @handle("close_button", "click")
   def close_click(self, **event_args):
@@ -127,10 +105,8 @@ class ShareComposer(ShareComposerTemplate):
   def create_click(self, **event_args):
     if self._busy or not self._origin_ready:
       return
-    try:
-      context = self._context_getter()
-    except ValueError as error:
-      self._set_status(str(error), is_error=True)
+    context = self._update_summary()
+    if context is None:
       return
     self._set_busy(True)
     try:
@@ -142,7 +118,7 @@ class ShareComposer(ShareComposerTemplate):
         "create_performance_share", context["transactions"], context["as_of_date"],
         context["risk_free_rate"], context["selected_symbols"], context["benchmark"],
         context["benchmark_return"], context["start_date"], context["end_date"],
-        self.visibility_dropdown.selected_value, self.title_box.text,
+        "private", "My portfolio performance",
       )
       if not result["ok"]:
         self._set_status(result["message"], is_error=True)
@@ -153,25 +129,34 @@ class ShareComposer(ShareComposerTemplate):
       self.share_link.text = self._latest_url
       self.share_link.url = self._latest_url
       self.result_region.visible = True
-      self.snapshot_card.set_snapshot(result["snapshot"])
       self.preview_region.visible = True
-      self.native_share_button.visible = bool(getattr(anvil.js.window.navigator, "share", None))
+      self.snapshot_card.set_snapshot(result["snapshot"])
       self._refresh_links()
-      self._set_status("Snapshot ready. The preview below shows what others can see. Copy the link to share it.")
+      self._set_status("Chart link ready. It shows percentages only. Copy the link or review the preview below.")
     finally:
       self._set_busy(False)
 
-  def _copy_url(self, url):
+  def _copy_text(self, text, success, fallback):
     clipboard = getattr(anvil.js.window.navigator, "clipboard", None)
     if clipboard is None:
-      self._set_status("Clipboard is unavailable. Open the snapshot link, then copy its address.")
+      self._set_status(fallback)
       return
     try:
-      clipboard.writeText(url)
+      clipboard.writeText(text)
     except anvil.js.ExternalError:
-      self._set_status("Your browser blocked copying. Open the snapshot link, then copy its address.")
+      self._set_status(fallback)
       return
-    self._set_status("Share link copied.")
+    self._set_status(success)
+
+  def _copy_url(self, url):
+    self._copy_text(url, "Share link copied.", "Select the link above to copy it, or open it and copy its address.")
+
+  @handle("copy_summary_button", "click")
+  def copy_summary_click(self, **event_args):
+    if self._busy or self._update_summary() is None:
+      return
+    self._copy_text(self._share_text(), "Percentages copied. Paste them into a message or post.",
+                    "Your browser blocked copying. Select the percentage summary above and copy it.")
 
   @handle("copy_link_button", "click")
   def copy_link_click(self, **event_args):
@@ -184,18 +169,17 @@ class ShareComposer(ShareComposerTemplate):
 
   @handle("native_share_button", "click")
   def native_share_click(self, **event_args):
-    if not self._latest_url:
+    if self._busy or self._update_summary() is None:
       return
     try:
       anvil.js.window.navigator.share({
         "title": "My Portfoliora performance",
-        "text": "See my portfolio performance and build your own comparison on Portfoliora.",
-        "url": self._latest_url,
+        "text": self._share_text(),
       })
     except anvil.js.ExternalError as error:
       if getattr(error.original_error, "name", "") == "AbortError":
         return
-      self._set_status("Sharing is unavailable in this browser. Use Copy link instead.")
+      self._set_status("Sharing is unavailable in this browser. Use Copy percentages instead.")
 
   @handle("share_links_panel", "x-revoke-share")
   def revoke_share(self, share, **event_args):
@@ -208,8 +192,10 @@ class ShareComposer(ShareComposerTemplate):
         self._set_status(result["message"], is_error=True)
         return
       if share.get_id() == self._latest_share_id:
+        self._latest_share_id = None
         self._latest_url = ""
         self.result_region.visible = False
+        self.preview_region.visible = False
       self._refresh_links()
       self._set_status("Share link revoked. New visits cannot view this snapshot.")
     finally:

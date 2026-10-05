@@ -5,7 +5,8 @@ from anvil import *
 def _percentage(value, difference=False):
   if value is None:
     return "—"
-  return ("%+.2f pp" if difference else "%+.2f%%") % (value * 100)
+  return "%s%.2f%s" % ("+" if value >= 0 else "", value * 100,
+                       " pp" if difference else "%")
 
 
 def _number(value):
@@ -14,10 +15,6 @@ def _number(value):
 
 def _volatility(value):
   return "—" if value is None else "%.2f%%" % (value * 100)
-
-
-def _money(value):
-  return "—" if value is None else "$%s" % format(value, ",.2f")
 
 
 class SharedPerformance(SharedPerformanceTemplate):
@@ -35,16 +32,14 @@ class SharedPerformance(SharedPerformanceTemplate):
     self.item = snapshot
     self.snapshot_content.visible = bool(snapshot)
     if not snapshot:
-      self.holdings_panel.items = []
       self.performance_plot.data = []
       return
 
     metrics = snapshot["metrics"]
     benchmark = snapshot["benchmark"]
-    full = snapshot["visibility"] == "full"
     self.title_label.text = snapshot["title"]
-    self.privacy_label.text = "Holdings & amounts shared" if full else "Holdings & amounts hidden"
-    self.date_label.text = "%s – %s · USD · %s" % (
+    self.privacy_label.text = "Percentages only · holdings and amounts hidden"
+    self.date_label.text = "%s – %s · %s" % (
       snapshot["start_date"], snapshot["end_date"], benchmark["name"]
     )
     self.portfolio_return_label.text = _percentage(metrics.get("portfolio_return"))
@@ -65,6 +60,7 @@ class SharedPerformance(SharedPerformanceTemplate):
     self.benchmark_source_link.visible = bool(benchmark.get("source_url"))
 
     for panel, field in ((self.portfolio_return_tile, "portfolio_return"),
+                         (self.benchmark_return_tile, "benchmark_return"),
                          (self.excess_return_tile, "excess_return")):
       value = metrics.get(field)
       panel.classes["is-negative"] = value is not None and value < 0
@@ -96,19 +92,4 @@ class SharedPerformance(SharedPerformanceTemplate):
        "hovertemplate": "%{y:.2%}<extra>Benchmark</extra>"},
     ]
 
-    self.amounts_region.visible = full
-    self.holdings_region.visible = full
-    if full:
-      amounts = snapshot["amounts"]
-      self.market_value_label.text = _money(amounts.get("market_value"))
-      self.profit_label.text = _money(amounts.get("profit"))
-      self.dividends_label.text = _money(amounts.get("dividends"))
-      self.buy_cost_label.text = _money(amounts.get("buy_cost"))
-      self.sale_proceeds_label.text = _money(amounts.get("sale_proceeds"))
-      as_of = snapshot.get("amounts_as_of_date") or snapshot["end_date"]
-      self.amounts_date_label.text = "Holdings and dollar amounts as of %s · May differ from the chart's end date" % as_of
-      self.holdings_panel.items = snapshot.get("holdings", [])
-      self.no_holdings_label.visible = not bool(snapshot.get("holdings"))
-    else:
-      self.holdings_panel.items = []
     self.performance_plot.redraw()

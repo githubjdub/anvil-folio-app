@@ -827,13 +827,25 @@ class Form1(Form1Template):
       "trade_price": row.get("trade_price"),
     } for row in self._analyzed_transactions]
     benchmark = self.benchmark_dropdown.selected_value
+    portfolio_return = traces[0]["y"][-1]
+    benchmark_return = traces[1]["y"][-1]
+    benchmark_label = next(label for label, key in BENCHMARK_CHOICES if key == benchmark)
+    summary = "\n".join([
+      "My portfolio performance",
+      "%s – %s" % (dates[0], dates[-1]),
+      "Portfolio: %s" % self._format_percent(portfolio_return),
+      "%s: %s" % (benchmark_label, self._format_percent(benchmark_return)),
+      "Versus benchmark: %+.2f percentage points" % ((portfolio_return - benchmark_return) * 100),
+      "Benchmark uses %s returns." % ("total" if self.benchmark_return_dropdown.selected_value == "total" else "price"),
+      "Based on user-entered trades; portfolio dividends held as cash.",
+    ])
     return {
       "transactions": transactions, "as_of_date": self.as_of_date_picker.date,
       "risk_free_rate": float(self.risk_free_box.text) / 100,
       "selected_symbols": sorted(self._selected_symbols), "benchmark": benchmark,
       "benchmark_return": self.benchmark_return_dropdown.selected_value,
       "start_date": str(dates[0]), "end_date": str(dates[-1]),
-      "benchmark_label": next(label for label, key in BENCHMARK_CHOICES if key == benchmark),
+      "benchmark_label": benchmark_label, "summary": summary,
     }
 
   @handle("share_performance_button", "click")

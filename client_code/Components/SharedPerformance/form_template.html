@@ -16,7 +16,7 @@ custom_component: true
         <anvil-component type="Label" name="portfolio_return_label" prop:role="share-return" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
         <div class="share-metric-note">Selected period</div>
       </div>
-      <div class="share-return-tile">
+      <div anvil:name="benchmark_return_tile" class="share-return-tile">
         <div class="share-metric-caption">Benchmark return</div>
         <anvil-component type="Label" name="benchmark_return_label" prop:role="share-return" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
         <anvil-component type="Label" name="benchmark_caption_label" prop:role="share-small" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
@@ -40,24 +40,6 @@ custom_component: true
         <div class="share-risk-card"><h3>Benchmark</h3><div class="share-stat-row"><span>Sharpe ratio</span><anvil-component type="Label" name="benchmark_sharpe_label" prop:role="share-stat" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div><div class="share-stat-row"><span>Volatility</span><anvil-component type="Label" name="benchmark_volatility_label" prop:role="share-stat" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div></div>
       </div>
       <anvil-component type="Label" name="observations_label" prop:role="share-small" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    </section>
-
-    <section anvil:name="amounts_region" class="share-amounts-section" aria-label="Shared dollar amounts">
-      <h2>The dollar view</h2>
-      <anvil-component type="Label" name="amounts_date_label" prop:role="share-small" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-      <div class="share-amount-grid">
-        <div><div class="share-metric-caption">Holdings value</div><anvil-component type="Label" name="market_value_label" prop:role="share-amount" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-        <div><div class="share-metric-caption">Net profit / loss</div><anvil-component type="Label" name="profit_label" prop:role="share-amount" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-        <div><div class="share-metric-caption">Cash dividends</div><anvil-component type="Label" name="dividends_label" prop:role="share-amount" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-        <div><div class="share-metric-caption">Purchase cost</div><anvil-component type="Label" name="buy_cost_label" prop:role="share-amount" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-        <div><div class="share-metric-caption">Sale proceeds</div><anvil-component type="Label" name="sale_proceeds_label" prop:role="share-amount" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-      </div>
-    </section>
-
-    <section anvil:name="holdings_region" class="share-holdings-section" aria-label="Shared holdings">
-      <h2>Holdings</h2>
-      <anvil-component type="RepeatingPanel" name="holdings_panel" prop:item_template="M3_App_1.Components.SharedHoldingRow" prop:role="share-holdings"></anvil-component>
-      <anvil-component type="Label" name="no_holdings_label" prop:text="No open positions at this snapshot date." prop:role="share-description" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     </section>
 
     <footer class="share-card-footer">

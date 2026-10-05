@@ -1,7 +1,7 @@
 <article class="share-link-row">
   <div class="share-link-copy">
     <anvil-component type="Label" name="title_label" bind:text="self.item['title']" prop:role="share-link-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <anvil-component type="Label" name="detail_label" bind:text="('Percentages only' if self.item['visibility'] == 'private' else 'Holdings and amounts included') + ' · ' + str(self.item['created_at'].date()) + (' · Revoked' if self.item['revoked'] else '')" prop:role="share-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="detail_label" bind:text="'Percentages only · ' + str(self.item['created_at'].date()) + (' · Revoked' if self.item['revoked'] else '')" prop:role="share-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
   </div>
   <div class="share-link-actions">
     <anvil-component type="Link" name="open_link" prop:text="Open snapshot" prop:target="_blank" prop:role="share-open-link"></anvil-component>

@@ -1,4 +1,4 @@
-"""Revocable, unlisted performance snapshots with server-enforced privacy.
+"""Revocable, unlisted percentage-only performance snapshots.
 
 Only the finished public document is stored. Editable transactions, account
 details and per-security history never become part of a share snapshot.
@@ -26,10 +26,6 @@ _METRIC_FIELDS = (
   "portfolio_annualized_return", "portfolio_volatility", "portfolio_sharpe",
   "benchmark_volatility", "benchmark_sharpe", "observations",
   "benchmark_observations", "uninvested_sessions",
-)
-_AMOUNT_FIELDS = ("market_value", "dividends", "buy_cost", "sale_proceeds", "profit")
-_HOLDING_FIELDS = (
-  "symbol", "company_name", "sector", "shares", "price", "market_value", "weight",
 )
 _METHOD = (
   "Self-reported transactions, recalculated using historical daily prices. "
@@ -145,7 +141,7 @@ def _build_snapshot(analysis, benchmark, benchmark_return, start_date, end_date,
     if exponent < 700:
       annualized = math.expm1(exponent)
   snapshot = {
-    "version": 1, "title": title, "visibility": visibility,
+    "version": 1, "title": title, "visibility": "private",
     "created_at": created_at.isoformat(),
     "start_date": common[0]["date"], "end_date": common[-1]["date"],
     "currency": "USD", "risk_free_rate": rate,
@@ -169,26 +165,16 @@ def _build_snapshot(analysis, benchmark, benchmark_return, start_date, end_date,
     } for index, point in enumerate(common)],
     "method": _METHOD, "source": "Yahoo Finance daily history",
   }
-  if visibility == "full":
-    # The date label separates the analyzed position values from a shorter
-    # performance window. Amounts are never mislabeled as window-only profit.
-    snapshot["amounts_as_of_date"] = analysis["metadata"]["end_date"]
-    snapshot["amounts"] = {key: analysis["metrics"][key] for key in _AMOUNT_FIELDS}
-    holdings = analysis["sector_allocation"]["holdings"]
-    market_value = analysis["metrics"]["market_value"]
-    snapshot["holdings"] = [dict(
-      {key: holding[key] for key in _HOLDING_FIELDS if key != "weight"},
-      weight=holding["market_value"] / market_value if market_value else 0.0,
-    ) for holding in sorted(holdings, key=lambda item: (-item["market_value"], item["symbol"]))]
   return _public_snapshot(snapshot)
 
 
 def _public_snapshot(stored):
-  """Allowlist again on read so extra stored fields can never leak publicly."""
+  """Only percentages and comparison details, including for older full shares."""
   result = {key: stored[key] for key in (
-    "version", "title", "visibility", "created_at", "start_date", "end_date",
+    "version", "title", "created_at", "start_date", "end_date",
     "currency", "risk_free_rate", "method", "source",
   )}
+  result["visibility"] = "private"
   result["benchmark"] = {key: stored["benchmark"][key] for key in (
     "key", "name", "return_mode", "source_url",
   )}
@@ -196,11 +182,6 @@ def _public_snapshot(stored):
   result["series"] = [{key: point[key] for key in (
     "date", "portfolio_return", "benchmark_return",
   )} for point in stored["series"]]
-  if stored["visibility"] == "full":
-    result["amounts_as_of_date"] = stored["amounts_as_of_date"]
-    result["amounts"] = {key: stored["amounts"][key] for key in _AMOUNT_FIELDS}
-    result["holdings"] = [{key: holding[key] for key in _HOLDING_FIELDS}
-                          for holding in stored["holdings"]]
   return result
 
 
@@ -227,7 +208,10 @@ def create_performance_share(transactions, as_of_date, risk_free_rate,
     return {"ok": False, "message": origin["message"]}
   try:
     if visibility not in ("private", "full"):
-      raise AnalysisInputError("Choose percentages only or full details for your share.")
+      raise AnalysisInputError("Performance shares show percentages only.")
+    # Accept the old positional option without creating another full-details
+    # snapshot. Older clients therefore receive the same percentage-only result.
+    visibility = "private"
     if not isinstance(benchmark, str) or benchmark not in _BENCHMARKS:
       raise AnalysisInputError("Choose a supported comparison benchmark.")
     if benchmark_return not in ("total", "price"):

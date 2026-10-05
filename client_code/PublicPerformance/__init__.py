@@ -7,6 +7,8 @@ from anvil import *
 class PublicPerformance(PublicPerformanceTemplate):
   def __init__(self, token=None, **properties):
     super().__init__(**properties)
+    self.share_token = token
+    self.return_to_account = False
     self.performance_card.visible = False
     self.unavailable_region.visible = False
     self.loading_region.visible = True
@@ -20,8 +22,8 @@ class PublicPerformance(PublicPerformanceTemplate):
 
   @handle("build_comparison_button", "click")
   def build_comparison_button_click(self, **event_args):
+    self.return_to_account = False
     set_url_hash("")
-    open_form("Form1")
 
   @handle("join_button", "click")
   def join_button_click(self, **event_args):
@@ -29,5 +31,5 @@ class PublicPerformance(PublicPerformanceTemplate):
       user = anvil.users.login_with_form(allow_cancel=True)
       if user is None:
         return
+    self.return_to_account = True
     set_url_hash("")
-    open_form("Form1")
