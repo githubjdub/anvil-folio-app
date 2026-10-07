@@ -828,10 +828,6 @@ input.anvil-role-creator-search:focus { border-color: var(--mint-strong); outlin
 .creator-portfolio-facts { display: flex; flex-wrap: wrap; gap: 5px 16px; margin-top: 10px; }
 .creator-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 22px 0 18px; }
 .creator-pagination .anvil-role-creator-caption { text-align: center; }
-.readout-navigation.has-creator, .transactions-collapsed .readout-navigation.has-creator { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (max-width: 460px) {
-  .readout-navigation.has-creator, .transactions-collapsed .readout-navigation.has-creator { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 @media (max-width: 620px) {
   .creator-workspace { padding: 20px 14px; }
   .creator-workspace-heading { gap: 15px; }
@@ -842,4 +838,119 @@ input.anvil-role-creator-search:focus { border-color: var(--mint-strong); outlin
   .creator-portfolio-action { width: 100%; }
   .creator-portfolio-action .anvil-role-creator-action > button { width: 100%; }
   .creator-pagination .anvil-role-creator-tool > button { padding: 9px 12px; }
+}
+
+/* Stock popularity counts saved buy entries across the creator library. */
+.creator-stock-popularity { margin: 0 0 26px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--canvas); }
+.creator-stock-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; margin-bottom: 10px; }
+.creator-stock-heading h4 { font-size: 18px; line-height: 1.5; margin: 0; color: var(--ink); }
+.creator-stock-description { font-size: 13px; line-height: 1.75; color: var(--muted); margin: 0 0 10px; }
+.anvil-role-creator-stock-empty { font-size: 13px; line-height: 1.75; color: var(--muted); margin-top: 14px; }
+.anvil-role-creator-stock-list > div { display: grid; gap: 9px; margin-top: 14px; }
+.creator-stock-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+.creator-stock-identity { display: flex; align-items: baseline; gap: 9px; flex: 0 0 104px; }
+.anvil-role-creator-stock-rank { font-size: 12px; line-height: 1.7; color: var(--muted); font-variant-numeric: tabular-nums; }
+.anvil-role-creator-stock-ticker { font-size: 16px; line-height: 1.7; font-weight: 750; color: var(--ink); overflow-wrap: anywhere; }
+.creator-stock-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 18px; flex: 1 1 280px; min-width: 0; }
+.creator-stock-stats > div { min-width: 0; }
+.anvil-role-creator-stock-value { font-size: 13px; line-height: 1.65; color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.creator-stock-stats > div > span { display: block; font-size: 11px; line-height: 1.6; color: var(--muted); }
+.creator-stock-stats .anvil-role-creator-caption { font-size: 11px; }
+.creator-stock-action { margin-left: auto; }
+.creator-stock-action .anvil-role-creator-tool > button { min-height: 38px; padding: 7px 11px; font-size: 12px; }
+.creator-stock-more { margin-top: 16px; }
+.creator-stock-more > summary { cursor: pointer; font-size: 13px; line-height: 1.7; color: var(--mint-strong); font-weight: 650; padding: 5px 0; }
+@media (max-width: 620px) {
+  .creator-stock-popularity { padding: 16px 12px; }
+  .creator-stock-row { padding: 13px 11px; }
+  .creator-stock-identity { flex: 1 1 auto; order: 1; }
+  .creator-stock-action { order: 2; }
+  .creator-stock-stats { flex-basis: 100%; order: 3; gap: 10px; }
+}
+
+/* Account actions and the creator's own account reference. */
+.portfolio-account-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; max-width: 100%; }
+.portfolio-account-actions > * { margin: 0; }
+.creator-setup-region { margin: 18px 0 22px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--canvas); }
+.creator-setup-region > strong { display: block; font-size: 15px; line-height: 1.5; color: var(--ink); }
+.creator-setup-region > p { max-width: 72ch; margin: 9px 0 14px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.creator-setup-region > label { display: block; margin-bottom: 8px; color: var(--ink); font-size: 12px; line-height: 1.5; font-weight: 650; }
+.creator-setup-region input.anvil-role-creator-search { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 14px; user-select: text; }
+.creator-setup-region input.anvil-role-creator-search::selection { background: var(--mint); color: var(--navy); }
+.creator-setup-region > p.fine-print { margin: 11px 0 0; font-size: 12px; }
+@media (max-width: 620px) {
+  .portfolio-account-actions { justify-content: flex-start; }
+  .creator-setup-region { padding: 17px 14px; }
+}
+
+/* The creator overview opens independently above the portfolio editor. */
+.creator-entry-card { margin: 0 0 26px; padding: 24px; }
+.creator-entry-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; }
+.creator-entry-heading > div { flex: 1; min-width: min(100%, 240px); }
+.creator-entry-heading h2 { color: var(--ink); font-size: 22px; line-height: 1.4; margin: 0 0 7px; }
+.creator-entry-heading p { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 0; }
+.creator-entry-content { min-width: 0; margin-top: 22px; }
+.creator-entry-content .creator-workspace { border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 28px 0 0; }
+.creator-workspace-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 6px; background: var(--canvas); border: 1px solid var(--line); border-radius: 12px; margin: 0 0 16px; }
+.creator-workspace-tabs > * { min-width: 0; }
+.anvil-role-creator-tab > button, .anvil-role-creator-tab-active > button { width: 100%; min-height: 44px; margin: 0; padding: 10px 14px; border: 1px solid transparent; border-radius: 9px; font-size: 14px; font-weight: 650; text-transform: none; box-shadow: none; white-space: normal; color: var(--muted); background: transparent; }
+.anvil-role-creator-tab-active > button { background: var(--paper); color: var(--navy); border-color: var(--line); }
+.anvil-role-creator-tab > button:hover, .anvil-role-creator-tab > button:focus-visible { background: var(--paper); color: var(--ink); }
+.anvil-role-creator-tab > button:disabled, .anvil-role-creator-tab-active > button:disabled { opacity: .5; }
+.creator-global-tools, .creator-scope-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; }
+.creator-global-tools { margin: 0 0 20px; }
+.creator-scope-actions { justify-content: flex-end; }
+.creator-view { min-width: 0; padding-top: 12px; }
+.creator-view-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; margin-bottom: 14px; }
+.creator-view-heading h4 { color: var(--ink); font-size: 20px; line-height: 1.4; margin: 0; }
+.creator-view-description { color: var(--muted); font-size: 13px; line-height: 1.75; margin: 12px 0 20px; }
+.creator-action-filter { flex: 0 1 220px; min-width: min(100%, 180px); }
+.creator-action-filter > label { display: block; font-size: 12px; line-height: 1.5; color: var(--muted); margin-bottom: 7px; }
+.anvil-role-creator-select select { width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 12px; color: var(--ink); font-size: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
+.anvil-role-creator-select select:focus { border-color: var(--mint-strong); outline: 2px solid rgba(44,155,103,.15); outline-offset: 1px; }
+.anvil-role-creator-account-directory > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 16px; margin-top: 24px; }
+.creator-directory-card { height: 100%; box-sizing: border-box; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.creator-directory-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 18px; }
+.creator-directory-header > div { flex: 1; min-width: min(100%, 190px); }
+.anvil-role-creator-directory-email { font-size: 16px; line-height: 1.6; font-weight: 750; color: var(--ink); overflow-wrap: anywhere; }
+.anvil-role-creator-account-state, .anvil-role-creator-account-disabled { display: inline-block; font-size: 11px; line-height: 1.6; font-weight: 650; padding: 3px 9px; border-radius: 16px; margin-top: 8px; }
+.anvil-role-creator-account-state { color: #277b50; background: #edf7f1; }
+.anvil-role-creator-account-disabled { color: #966041; background: #fff2e8; }
+.creator-directory-counts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin: 22px 0; }
+.creator-directory-counts > div { min-width: 0; padding: 14px 16px; background: var(--canvas); border-radius: 9px; }
+.creator-directory-counts > div > span, .creator-directory-dates > div > span { display: block; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.anvil-role-creator-directory-count { color: var(--ink); font-size: 25px; line-height: 1.4; font-weight: 750; font-variant-numeric: tabular-nums; }
+.creator-directory-dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%,180px),1fr)); gap: 14px 20px; }
+.creator-selected-account { margin: 0 0 22px; }
+.creator-selected-account .creator-directory-card { background: var(--canvas); }
+.creator-selected-account .creator-directory-counts { max-width: 560px; }
+.creator-selected-account .creator-directory-counts > div { background: var(--paper); }
+.anvil-role-creator-scope-caption { color: var(--navy); font-size: 14px; line-height: 1.7; font-weight: 650; overflow-wrap: anywhere; margin-bottom: 18px; }
+.creator-portfolio-action { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.creator-portfolio-preview { flex-basis: 100%; min-width: 0; width: 100%; border-top: 1px solid var(--line); padding-top: 20px; margin-top: 2px; }
+.creator-transaction-table { overflow-x: auto; padding-bottom: 6px; }
+.creator-transaction-heading, .creator-transaction-row { display: grid; grid-template-columns: minmax(120px,1fr) minmax(100px,1fr) minmax(75px,.65fr) minmax(95px,.8fr) minmax(150px,1.2fr); gap: 16px; min-width: 620px; }
+.creator-transaction-heading { color: var(--muted); font-size: 11px; line-height: 1.5; font-weight: 650; padding: 14px 0 12px; border-bottom: 1px solid var(--line); }
+.creator-transaction-row { align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.anvil-role-creator-transaction-value, .anvil-role-creator-transaction-ticker, .anvil-role-creator-transaction-buy, .anvil-role-creator-transaction-sell { font-size: 13px; line-height: 1.6; color: var(--ink); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.anvil-role-creator-transaction-ticker { font-weight: 750; }
+.anvil-role-creator-transaction-buy { color: #277b50; font-weight: 650; }
+.anvil-role-creator-transaction-sell { color: #aa5349; font-weight: 650; }
+.creator-preview-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; }
+.creator-preview-note { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 14px 0 0; }
+.anvil-role-creator-activity-title { color: var(--ink); font-size: 18px; line-height: 1.5; font-weight: 750; }
+.creator-entry-content .creator-stock-popularity { margin-top: 22px; }
+@media (max-width: 620px) {
+  .creator-entry-card { padding: 20px 14px; }
+  .creator-entry-content .creator-workspace { padding-top: 22px; }
+  .creator-workspace-tabs { gap: 3px; padding: 4px; }
+  .anvil-role-creator-tab > button, .anvil-role-creator-tab-active > button { padding: 9px 5px; font-size: 12px; }
+  .creator-view-heading { gap: 14px; }
+  .creator-directory-card { padding: 18px 14px; }
+  .creator-directory-counts { gap: 10px; }
+  .creator-directory-counts > div { padding: 12px; }
+  .creator-directory-dates { grid-template-columns: 1fr; gap: 12px; }
+  .creator-portfolio-action { justify-content: flex-start; }
+  .creator-portfolio-action > * { flex: 1 1 140px; }
+  .creator-portfolio-action .anvil-role-creator-action > button, .creator-portfolio-action .anvil-role-creator-tool > button { width: 100%; }
 }

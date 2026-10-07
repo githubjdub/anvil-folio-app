@@ -32,13 +32,33 @@
       <anvil-component type="Label" name="welcome_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     </section>
 
+    <section anvil:name="creator_access_region" class="panel-card creator-entry-card" aria-label="Creator workspace">
+      <div class="creator-entry-heading">
+        <div><h2>Creator</h2><p>Accounts, saved portfolios, and trading activity.</p></div>
+        <anvil-component type="m3._Components.Button" name="creator_tab_button" prop:text="Open creator workspace" prop:appearance="outlined" prop:icon="mi:manage_accounts" prop:visible="False"></anvil-component>
+      </div>
+      <section anvil:name="creator_panel" class="creator-entry-content" aria-label="Creator accounts and portfolios">
+        <anvil-component type="M3_App_1.Components.CreatorWorkspace" name="creator_workspace"></anvil-component>
+      </section>
+    </section>
+
     <section class="panel-card portfolio-library" aria-label="Saved portfolios">
       <div class="card-heading portfolio-library-heading">
         <div>
           <h2>Your portfolios</h2>
           <anvil-component type="Label" name="account_label" prop:text="Sign in to save and reopen portfolios on any device. Saved portfolios are accessible to you and the platform creator." prop:role="portfolio-help"></anvil-component>
         </div>
-        <anvil-component type="m3._Components.Button" name="account_button" prop:text="Sign in / Create account" prop:appearance="outlined" prop:icon="mi:person"></anvil-component>
+        <div class="portfolio-account-actions">
+          <anvil-component type="m3._Components.Button" name="creator_setup_button" prop:text="Creator setup" prop:appearance="outlined" prop:icon="mi:settings" prop:visible="False"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="account_button" prop:text="Sign in / Create account" prop:appearance="outlined" prop:icon="mi:person"></anvil-component>
+        </div>
+      </div>
+      <div anvil:name="creator_setup_region" class="creator-setup-region">
+        <strong>Finish creator access</strong>
+        <p>Your signed-in account is in this app's database. Copy the account reference below and send it to your app editor assistant to enable this account's Creator workspace.</p>
+        <label>Signed-in account reference</label>
+        <anvil-component type="TextBox" name="creator_reference_box" prop:role="creator-search" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+        <p class="fine-print">This reference identifies your account; it is not your password or an access code.</p>
       </div>
       <div class="portfolio-save-row">
         <div class="portfolio-name-field">
@@ -149,7 +169,6 @@
           <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="retrospective_tab_button" prop:text="Retrospective" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="methods_tab_button" prop:text="Methods" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-          <anvil-component type="m3._Components.Button" name="creator_tab_button" prop:text="Creator" prop:appearance="text" prop:role="readout-tab" prop:visible="False"></anvil-component>
         </nav>
         <div class="readout-page-status" role="status" aria-live="polite"><anvil-component type="Label" name="readout_tab_context" prop:role="readout-tab-context" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
         <div anvil:dom-node="readout_scroller" class="readout-scroll-region" tabindex="0" role="region" aria-label="Readout content">
@@ -298,9 +317,6 @@
         </section>
         <section anvil:name="retrospective_panel" class="readout-page" aria-label="Retrospective strategy analysis">
           <anvil-component type="M3_App_1.Components.Retrospective" name="retrospective_form"></anvil-component>
-        </section>
-        <section anvil:name="creator_panel" class="readout-page" aria-label="Creator saved portfolios">
-          <anvil-component type="M3_App_1.Components.CreatorWorkspace" name="creator_workspace"></anvil-component>
         </section>
         </div>
         </div>

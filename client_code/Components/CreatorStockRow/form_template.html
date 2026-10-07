@@ -1,0 +1,9 @@
+<article class="creator-stock-row">
+  <div class="creator-stock-identity"><anvil-component type="Label" name="rank_label" bind:text="'#' + str(self.item['rank'])" prop:role="creator-stock-rank" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="ticker_label" bind:text="self.item['ticker']" prop:role="creator-stock-ticker" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+  <div class="creator-stock-stats">
+    <div><anvil-component type="Label" name="portfolios_label" bind:text="str(self.item['portfolio_count']) + (' portfolio' if self.item['portfolio_count'] == 1 else ' portfolios')" prop:role="creator-stock-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="percentage_label" bind:text="'{:.1f}% of portfolios'.format(self.item['portfolio_percentage'])" prop:role="creator-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+    <div><anvil-component type="Label" name="accounts_label" bind:text="str(self.item['account_count']) + (' account' if self.item['account_count'] == 1 else ' accounts')" prop:role="creator-stock-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><span>Recorded this security</span></div>
+    <div><anvil-component type="Label" name="buys_label" bind:text="str(self.item['transaction_count']) + (' ' + self.item['action'].lower() + ' entry' if self.item['transaction_count'] == 1 else ' ' + self.item['action'].lower() + ' entries')" prop:role="creator-stock-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><span>Across saved transactions</span></div>
+  </div>
+  <div class="creator-stock-action"><anvil-component type="Button" name="view_button" prop:text="View portfolios" prop:role="creator-tool" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+</article>
