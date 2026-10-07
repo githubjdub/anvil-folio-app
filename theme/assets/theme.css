@@ -792,3 +792,54 @@ button.anvil-role-import-toggle:focus-visible { outline: 2px solid var(--mint-st
   .share-return-tile .anvil-role-share-return { font-size: 30px; }
   .share-risk-grid { grid-template-columns: 1fr; }
 }
+
+/* The creator library uses independent copies for analysis. */
+.creator-workspace { padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
+.creator-workspace-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.creator-workspace-heading > div:first-child { flex: 1; min-width: min(100%, 240px); }
+.creator-workspace-eyebrow { font-size: 11px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; color: var(--mint-strong); margin-bottom: 10px; }
+.creator-workspace h3 { font-size: 23px; line-height: 1.3; margin: 0 0 10px; color: var(--ink); }
+.creator-workspace-heading p, .creator-library-note, .creator-library-options p { font-size: 13px; line-height: 1.7; color: var(--muted); margin: 0; }
+.creator-account { max-width: 100%; padding: 12px 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--canvas); }
+.creator-account > span, .creator-search-field > label { display: block; font-size: 12px; line-height: 1.5; color: var(--muted); margin-bottom: 7px; }
+.anvil-role-creator-email { color: var(--ink); font-size: 13px; line-height: 1.6; font-weight: 650; overflow-wrap: anywhere; }
+.creator-search-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+.creator-search-field { flex: 1; min-width: min(100%, 240px); }
+input.anvil-role-creator-search { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); font-size: 14px; background: var(--paper); box-sizing: border-box; }
+input.anvil-role-creator-search:focus { border-color: var(--mint-strong); outline: 2px solid rgba(44, 155, 103, .15); outline-offset: 1px; }
+.anvil-role-creator-action > button, .anvil-role-creator-tool > button { min-height: 44px; padding: 9px 16px; margin: 0; border-radius: 9px; text-transform: none; font-size: 13px; line-height: 1.5; font-weight: 650; box-shadow: none; white-space: nowrap; }
+.anvil-role-creator-action > button { background: var(--navy); color: var(--paper); border: 1px solid var(--navy); }
+.anvil-role-creator-tool > button { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+.anvil-role-creator-action > button:hover, .anvil-role-creator-action > button:focus-visible { background: var(--ink); color: var(--paper); }
+.anvil-role-creator-tool > button:hover, .anvil-role-creator-tool > button:focus-visible { background: var(--canvas); color: var(--ink); }
+.anvil-role-creator-action > button:disabled, .anvil-role-creator-tool > button:disabled { opacity: .45; cursor: default; }
+.creator-library-options { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; margin: 18px 0 22px; }
+.anvil-role-creator-choice { font-size: 13px; color: var(--ink); }
+.creator-library-status { margin: 0 0 15px; }
+.creator-library-status.is-error .anvil-role-creator-caption { color: #b55248; }
+.anvil-role-creator-caption { font-size: 12px; line-height: 1.65; color: var(--muted); overflow-wrap: anywhere; }
+.anvil-role-creator-empty { font-size: 14px; line-height: 1.75; padding: 22px; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; background: var(--canvas); }
+.anvil-role-creator-library > div { display: grid; gap: 12px; }
+.creator-portfolio-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 18px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.creator-portfolio-copy { flex: 1; min-width: min(100%, 230px); }
+.anvil-role-creator-portfolio-title { font-size: 17px; line-height: 1.5; font-weight: 750; color: var(--ink); overflow-wrap: anywhere; }
+.anvil-role-creator-owner { font-size: 13px; line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
+.anvil-role-creator-tickers { font-size: 13px; line-height: 1.7; color: var(--mint-strong); overflow-wrap: anywhere; margin-top: 10px; }
+.creator-portfolio-facts { display: flex; flex-wrap: wrap; gap: 5px 16px; margin-top: 10px; }
+.creator-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 22px 0 18px; }
+.creator-pagination .anvil-role-creator-caption { text-align: center; }
+.readout-navigation.has-creator, .transactions-collapsed .readout-navigation.has-creator { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 460px) {
+  .readout-navigation.has-creator, .transactions-collapsed .readout-navigation.has-creator { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .creator-workspace { padding: 20px 14px; }
+  .creator-workspace-heading { gap: 15px; }
+  .creator-account { width: 100%; box-sizing: border-box; }
+  .creator-search-field { flex-basis: 100%; }
+  .creator-library-options { gap: 12px; }
+  .creator-portfolio-row { padding: 17px 14px; gap: 15px; }
+  .creator-portfolio-action { width: 100%; }
+  .creator-portfolio-action .anvil-role-creator-action > button { width: 100%; }
+  .creator-pagination .anvil-role-creator-tool > button { padding: 9px 12px; }
+}

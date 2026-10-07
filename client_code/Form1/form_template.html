@@ -36,7 +36,7 @@
       <div class="card-heading portfolio-library-heading">
         <div>
           <h2>Your portfolios</h2>
-          <anvil-component type="Label" name="account_label" prop:text="Sign in to save your portfolios privately and reopen them on any device." prop:role="portfolio-help"></anvil-component>
+          <anvil-component type="Label" name="account_label" prop:text="Sign in to save and reopen portfolios on any device. Saved portfolios are accessible to you and the platform creator." prop:role="portfolio-help"></anvil-component>
         </div>
         <anvil-component type="m3._Components.Button" name="account_button" prop:text="Sign in / Create account" prop:appearance="outlined" prop:icon="mi:person"></anvil-component>
       </div>
@@ -143,12 +143,13 @@
         <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync history &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
         <anvil-component type="M3_App_1.Components.ShareComposer" name="share_composer"></anvil-component>
 
-        <nav class="readout-navigation" aria-label="Readout pages">
+        <nav anvil:name="readout_navigation" class="readout-navigation" aria-label="Readout pages">
           <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Overview" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
           <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Portfolio structure" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="retrospective_tab_button" prop:text="Retrospective" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="methods_tab_button" prop:text="Methods" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="creator_tab_button" prop:text="Creator" prop:appearance="text" prop:role="readout-tab" prop:visible="False"></anvil-component>
         </nav>
         <div class="readout-page-status" role="status" aria-live="polite"><anvil-component type="Label" name="readout_tab_context" prop:role="readout-tab-context" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
         <div anvil:dom-node="readout_scroller" class="readout-scroll-region" tabindex="0" role="region" aria-label="Readout content">
@@ -297,6 +298,9 @@
         </section>
         <section anvil:name="retrospective_panel" class="readout-page" aria-label="Retrospective strategy analysis">
           <anvil-component type="M3_App_1.Components.Retrospective" name="retrospective_form"></anvil-component>
+        </section>
+        <section anvil:name="creator_panel" class="readout-page" aria-label="Creator saved portfolios">
+          <anvil-component type="M3_App_1.Components.CreatorWorkspace" name="creator_workspace"></anvil-component>
         </section>
         </div>
         </div>

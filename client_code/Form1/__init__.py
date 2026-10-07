@@ -34,6 +34,9 @@ class Form1(Form1Template):
     super().__init__(**properties)
 
     self._user = None
+    self._creator_enabled = False
+    self.creator_tab_button.visible = False
+    self.creator_panel.visible = False
     self.share_composer.visible = False
     self._current_portfolio = None
     self._portfolio_dirty = False
@@ -118,8 +121,11 @@ class Form1(Form1Template):
 
   def _update_readout_context(self):
     name = {"overview": "Overview", "allocation": "Portfolio structure",
-            "performance": "Performance", "retrospective": "Retrospective", "methods": "Methods"}[self._readout_page]
-    if self._readout_page == "retrospective":
+            "performance": "Performance", "retrospective": "Retrospective", "methods": "Methods",
+            "creator": "Creator"}[self._readout_page]
+    if self._readout_page == "creator":
+      self.readout_tab_context.text = "Creator · Browse saved portfolios across accounts"
+    elif self._readout_page == "retrospective":
       self.readout_tab_context.text = "Retrospective · Test a hypothetical strategy against history"
     elif self._readout_page == "methods":
       self.readout_tab_context.text = "Methods · Calculations and data sources"
@@ -133,7 +139,7 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    portfolio_page = self._readout_page not in ("methods", "retrospective")
+    portfolio_page = self._readout_page not in ("methods", "retrospective", "creator")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
     for name, panel, button in (
@@ -142,6 +148,7 @@ class Form1(Form1Template):
       ("performance", self.performance_panel, self.performance_tab_button),
       ("methods", self.methods_panel, self.methods_tab_button),
       ("retrospective", self.retrospective_panel, self.retrospective_tab_button),
+      ("creator", self.creator_panel, self.creator_tab_button),
     ):
       active = name == self._readout_page
       panel.visible = active
@@ -162,12 +169,37 @@ class Form1(Form1Template):
         self.drawdown_plot.redraw()
 
   def _select_readout_page(self, page):
+    if page == "creator" and not self._creator_enabled:
+      return
     if not self._busy:
       if page != "performance":
         self._set_charts_expanded(False)
       self._readout_page = page
       self._apply_readout_page(redraw=True)
       self.dom_nodes["readout_scroller"].scrollTop = 0
+      if page == "creator":
+        self.creator_workspace.open_library()
+
+  @handle("creator_tab_button", "click")
+  def creator_tab_button_click(self, **event_args):
+    self._select_readout_page("creator")
+
+  @handle("creator_workspace", "x-import-creator-portfolio")
+  def import_creator_portfolio(self, portfolio_id, **event_args):
+    if self._busy or not self._creator_enabled or not self._confirm_discard():
+      return
+    self._set_busy(True)
+    try:
+      result = anvil.server.call("import_creator_portfolio", portfolio_id)
+      if not result["ok"]:
+        self.creator_workspace.show_status(result["message"], is_error=True)
+        return
+      portfolio = result["portfolio"]
+      self._apply_portfolio(portfolio)
+      self._refresh_portfolios()
+      self._set_portfolio_status('Imported "%s" as a saved copy in your account. Sync to analyze it.' % portfolio["name"])
+    finally:
+      self._set_busy(False)
 
   def _set_transactions_collapsed(self, collapsed):
     if collapsed == self._transactions_collapsed:
@@ -518,6 +550,7 @@ class Form1(Form1Template):
       self.overview_tab_button, self.allocation_tab_button,
       self.performance_tab_button, self.methods_tab_button,
       self.retrospective_tab_button, self.toggle_transactions_button,
+      self.creator_tab_button,
       self.toggle_image_import_button, self.holdings_image_loader,
       self.clear_image_import_button, self.image_import_date_picker,
       self.image_import_mode_dropdown,
@@ -540,6 +573,7 @@ class Form1(Form1Template):
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.retrospective_form.raise_event("x-set-editable", editable=not self._busy)
+    self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
     self.benchmark_return_dropdown.enabled = not self._busy and len(self.benchmark_return_dropdown.items) > 1
     self._update_image_import_controls()
 
@@ -565,10 +599,18 @@ class Form1(Form1Template):
     self._user = anvil.users.get_user()
     self.account_button.text = "Sign out" if self._user is not None else "Sign in / Create account"
     self.account_label.text = (
-      "Signed in as %s · Only you can access your portfolios." % self._user["email"]
+      "Signed in as %s · Saved portfolios are accessible to you and the platform creator." % self._user["email"]
       if self._user is not None
-      else "Sign in to save your portfolios privately and reopen them on any device."
+      else "Sign in to save and reopen portfolios on any device. Saved portfolios are accessible to you and the platform creator."
     )
+    creator = anvil.server.call("get_creator_access") if self._user is not None else {"enabled": False, "email": None}
+    self._creator_enabled = creator["enabled"]
+    self.creator_tab_button.visible = self._creator_enabled
+    self.creator_workspace.configure_access(self._creator_enabled, creator["email"])
+    self.readout_navigation.classes["has-creator"] = self._creator_enabled
+    if not self._creator_enabled and self._readout_page == "creator":
+      self._readout_page = "overview"
+    self._apply_readout_page()
     self._refresh_portfolios()
 
   def _update_welcome(self):

@@ -1,0 +1,9 @@
+<article class="creator-portfolio-row">
+  <div class="creator-portfolio-copy">
+    <anvil-component type="Label" name="name_label" bind:text="self.item['portfolio']['name']" prop:role="creator-portfolio-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="owner_label" bind:text="self.item['owner_email']" prop:role="creator-owner" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="tickers_label" bind:text="self.item['tickers'] or 'No securities recorded'" prop:role="creator-tickers" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <div class="creator-portfolio-facts"><anvil-component type="Label" name="transaction_count_label" bind:text="str(self.item['transaction_count']) + (' transaction' if self.item['transaction_count'] == 1 else ' transactions')" prop:role="creator-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="as_of_label" bind:text="'As of ' + (str(self.item['portfolio']['as_of_date']) if self.item['portfolio']['as_of_date'] is not None else 'latest available prices')" prop:role="creator-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="updated_label" bind:text="'Saved ' + (self.item['portfolio']['updated_at'].strftime('%b %d, %Y %H:%M UTC') if self.item['portfolio']['updated_at'] is not None else 'date unavailable')" prop:role="creator-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+  </div>
+  <div class="creator-portfolio-action"><anvil-component type="Button" name="import_button" prop:text="Import a copy" prop:role="creator-action" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+</article>

@@ -1,0 +1,20 @@
+---
+custom_component: true
+---
+<section class="creator-workspace" aria-label="Creator portfolio library">
+  <header class="creator-workspace-heading">
+    <div><div class="creator-workspace-eyebrow">Creator workspace</div><h3>Saved portfolio library</h3><p>Browse saved portfolios, including saved test portfolios, and import a copy to analyze.</p></div>
+    <div class="creator-account"><span>Creator account</span><anvil-component type="Label" name="creator_email_label" prop:role="creator-email" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+  </header>
+  <div class="creator-search-controls">
+    <div class="creator-search-field"><label>Find a portfolio</label><anvil-component type="TextBox" name="search_box" prop:placeholder="Search account email, portfolio name, or ticker" prop:role="creator-search" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+    <anvil-component type="Button" name="search_button" prop:text="Search" prop:role="creator-action" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Button" name="refresh_button" prop:text="Refresh" prop:role="creator-tool" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <div class="creator-library-options"><anvil-component type="CheckBox" name="include_own_checkbox" prop:text="Include my own portfolios" prop:role="creator-choice" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><p>Imports create your own copy. The original portfolio stays unchanged.</p></div>
+  <div anvil:name="status_region" class="creator-library-status" role="status" aria-live="polite"><anvil-component type="Label" name="status_label" prop:role="creator-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+  <anvil-component type="Label" name="empty_label" prop:text="No saved portfolios match these filters. Try another search or include your own portfolios. Unsaved tests are not stored in the library." prop:role="creator-empty" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  <anvil-component type="RepeatingPanel" name="portfolios_panel" prop:item_template="M3_App_1.Components.CreatorPortfolioRow" prop:role="creator-library" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  <nav class="creator-pagination" aria-label="Saved portfolio pages"><anvil-component type="Button" name="previous_button" prop:text="Previous" prop:role="creator-tool" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="page_label" prop:role="creator-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Button" name="next_button" prop:text="Next" prop:role="creator-tool" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></nav>
+  <p class="creator-library-note">Only portfolios that have been saved to an account appear here. Refresh to see the latest saved changes.</p>
+</section>
