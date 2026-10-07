@@ -57,6 +57,32 @@ db_schema:
       type: datetime
     server: full
     title: Portfolios
+  site_visits:
+    client: none
+    columns:
+    - admin_ui: {}
+      name: started_at
+      type: datetime
+    - admin_ui: {}
+      name: last_seen_at
+      type: datetime
+    - admin_ui: {}
+      name: page_views
+      type: number
+    - admin_ui: {}
+      name: pages
+      type: simpleObject
+    - admin_ui: {}
+      name: country_code
+      type: string
+    - admin_ui: {}
+      name: country_name
+      type: string
+    - admin_ui: {}
+      name: is_creator
+      type: bool
+    server: full
+    title: Site Visits
   users:
     client: none
     columns:

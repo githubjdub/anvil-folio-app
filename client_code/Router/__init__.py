@@ -3,6 +3,7 @@ from ._anvil_designer import RouterTemplate
 from anvil import *
 from ..Form1 import Form1
 from ..PublicPerformance import PublicPerformance
+from ..site_tracking import record_page
 
 
 class Router(RouterTemplate):
@@ -40,6 +41,7 @@ class Router(RouterTemplate):
       # A server call can yield while the user changes the URL again.
       if self._share_token() == token:
         open_form(reader)
+        record_page("shared")
     else:
       if isinstance(active, Form1):
         self._editor_form = active
@@ -49,3 +51,4 @@ class Router(RouterTemplate):
       if self._share_token() is None:
         self._editor_form = editor
         open_form(editor)
+        record_page("dashboard")

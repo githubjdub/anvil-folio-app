@@ -6,7 +6,10 @@ unique_ids:
   forms:
     Components.ChartTradeRow: '1791044691129.2880635782575681'
     Components.CreatorAccountRow: '1791341837635.35748330289712726'
+    Components.CreatorAnalyticsPageRow: '1791346125129.9750820464722909'
+    Components.CreatorAnalyticsRegionRow: '1791346125131.7010121043229551'
     Components.CreatorPortfolioRow: '1791339307451.32373828896271994'
+    Components.CreatorSiteAnalytics: '1791346125138.647342575310035'
     Components.CreatorStockRow: '1791340780660.1309262005447871'
     Components.CreatorTransactionRow: '1791341837637.5124907222729066'
     Components.CreatorWorkspace: '1791339307546.9713245703447795'
@@ -29,6 +32,7 @@ unique_ids:
     analysis_selection: '1790971264783.8815088112478028'
     chart_trades: '1791044846657.1983321258314661'
     portfolio_periods: '1791091435498.3648185378230874'
+    site_tracking: '1791345901647.5120180450121529'
   scripts: {}
   server_modules:
     creator_portfolios: '1791339247466.41600851704876873'
@@ -42,3 +46,4 @@ unique_ids:
     retrospective_engine: '1791050597051.5292650757813551'
     retrospective_prompts: '1791050645186.3699879751107503'
     sectors: '1790919676379.8687735736658988'
+    site_analytics: '1791346289027.25006931170290847'

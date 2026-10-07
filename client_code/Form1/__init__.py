@@ -10,6 +10,7 @@ from ..analysis_selection import analyze_selection
 from ..chart_trades import build_trade_markers
 from ..portfolio_periods import quarterly_returns, allocation_snapshots
 from ..HoldingRow import HoldingRow
+from ..site_tracking import record_page
 
 
 SECTOR_COLORS = {
@@ -173,11 +174,14 @@ class Form1(Form1Template):
     if page not in ("overview", "allocation", "performance", "retrospective", "methods"):
       return
     if not self._busy:
+      changed = page != self._readout_page
       if page != "performance":
         self._set_charts_expanded(False)
       self._readout_page = page
       self._apply_readout_page(redraw=True)
       self.dom_nodes["readout_scroller"].scrollTop = 0
+      if changed:
+        record_page(page)
 
   def _set_creator_open(self, opened):
     self._creator_open = bool(opened and self._creator_enabled)
@@ -663,12 +667,16 @@ class Form1(Form1Template):
     self._set_portfolio_status('Welcome back — reopened "%s".' % portfolio["name"])
 
   def _ensure_signed_in(self):
+    new_login = False
     if anvil.users.get_user() is None:
       user = anvil.users.login_with_form(allow_cancel=True)
       if user is None:
         self._set_portfolio_status("Sign-in canceled. Your unsaved portfolio is still here.")
         return False
+      new_login = True
     self._refresh_account()
+    if new_login:
+      record_page(self._readout_page)
     return True
 
   def _mark_portfolio_dirty(self):
