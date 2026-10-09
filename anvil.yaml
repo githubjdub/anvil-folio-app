@@ -1,5 +1,98 @@
 allow_embedding: false
 db_schema:
+  hedge_fund_models:
+    client: none
+    columns:
+    - admin_ui: {}
+      name: fund_key
+      type: string
+    - admin_ui: {}
+      name: as_of_date
+      type: date
+    - admin_ui: {}
+      name: fingerprint
+      type: string
+    - admin_ui: {}
+      name: model
+      type: simpleObject
+    - admin_ui: {}
+      name: updated_at
+      type: datetime
+    server: full
+    title: Hedge Fund Models
+  hedge_fund_snapshots:
+    client: none
+    columns:
+    - admin_ui: {}
+      name: fund_key
+      type: string
+    - admin_ui: {}
+      name: quarter
+      type: string
+    - admin_ui: {}
+      name: accession
+      type: string
+    - admin_ui: {}
+      name: source_url
+      type: string
+    - admin_ui: {}
+      name: period_end
+      type: date
+    - admin_ui: {}
+      name: filed_at
+      type: date
+    - admin_ui: {}
+      name: fetched_at
+      type: datetime
+    - admin_ui: {}
+      name: holdings
+      type: simpleObject
+    - admin_ui: {}
+      name: coverage
+      type: simpleObject
+    server: full
+    title: Hedge Fund Filings
+  hedge_funds:
+    client: none
+    columns:
+    - admin_ui: {}
+      name: fund_key
+      type: string
+    - admin_ui: {}
+      name: name
+      type: string
+    - admin_ui: {}
+      name: manager
+      type: string
+    - admin_ui: {}
+      name: cik
+      type: string
+    - admin_ui: {}
+      name: source_url
+      type: string
+    - admin_ui: {}
+      name: hedgefollow_url
+      type: string
+    - admin_ui: {}
+      name: last_error
+      type: string
+    - admin_ui: {}
+      name: update_job_id
+      type: string
+    - admin_ui: {}
+      name: updated_at
+      type: datetime
+    - admin_ui: {}
+      name: last_checked_at
+      type: datetime
+    - admin_ui: {}
+      name: update_started_at
+      type: datetime
+    - admin_ui: {}
+      name: tracked
+      type: bool
+    server: full
+    title: Hedge Funds
   performance_shares:
     client: none
     columns:
@@ -127,6 +220,12 @@ runtime_options:
   client_version: '3'
   server_spec: {base: python310-minimal}
   version: 3
+scheduled_tasks:
+- job_id: portfoliora-13f-check
+  task_name: check_hedge_fund_filings
+  time_spec:
+    at: {minute: 20}
+    every: hour
 services:
 - client_config: {}
   server_config: {}

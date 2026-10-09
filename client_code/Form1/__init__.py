@@ -145,6 +145,7 @@ class Form1(Form1Template):
     portfolio_page = self._readout_page not in ("methods", "retrospective")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
+    self.hedge_fund_panel.visible = self._readout_page == "performance"
     for name, panel, button in (
       ("overview", self.overview_panel, self.overview_tab_button),
       ("allocation", self.allocation_panel, self.allocation_tab_button),
@@ -169,6 +170,8 @@ class Form1(Form1Template):
         self.performance_plot.redraw()
         self.quarterly_plot.redraw()
         self.drawdown_plot.redraw()
+    if redraw and self._readout_page == "performance":
+      self.hedge_fund_comparison.redraw()
 
   def _select_readout_page(self, page):
     if page not in ("overview", "allocation", "performance", "retrospective", "methods"):
@@ -596,6 +599,7 @@ class Form1(Form1Template):
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.retrospective_form.raise_event("x-set-editable", editable=not self._busy)
     self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
+    self.hedge_fund_comparison.raise_event("x-set-editable", editable=not self._busy)
     self.benchmark_return_dropdown.enabled = not self._busy and len(self.benchmark_return_dropdown.items) > 1
     self._update_image_import_controls()
 
@@ -634,6 +638,7 @@ class Form1(Form1Template):
     self.creator_tab_button.visible = self._creator_enabled
     self.creator_access_region.visible = self._creator_enabled
     self.creator_workspace.configure_access(self._creator_enabled, creator["email"])
+    self.hedge_fund_comparison.set_creator_access(self._creator_enabled)
     self._set_creator_open(False)
     self._apply_readout_page()
     self._refresh_portfolios()
@@ -883,6 +888,7 @@ class Form1(Form1Template):
       self._allocation_snapshot = None
       self.allocation_quarter_dropdown.selected_value = "latest"
       self._clear_chart_trades()
+      self.hedge_fund_comparison.reset_context()
     self._apply_readout_page()
 
   def _sharing_context(self):
@@ -1238,6 +1244,7 @@ class Form1(Form1Template):
 
   def _clear_comparison(self, message):
     self._clear_chart_trades()
+    self.hedge_fund_comparison.reset_context()
     self.trade_markers_status_label.text = "No transactions to show in this period."
     self.comparison_period_label.text = message
     for label in (self.window_return_label, self.benchmark_return_label,
@@ -1340,6 +1347,11 @@ class Form1(Form1Template):
       notice += " Unavailable this sync: %s." % ", ".join(missing)
     self.benchmark_status_label.text = notice.strip()
     selected = common
+    self.hedge_fund_comparison.configure_context([{
+      "date": point["date"], "index": point["portfolio_index"],
+      "return_observed": point["return_observed"],
+      "session_complete": point.get("session_complete", True),
+    } for point in selected], self._history["metadata"]["risk_free_rate"])
     dates = [point["date"] for point in selected]
     portfolio = [point["portfolio_index"] for point in selected]
     benchmark = [benchmark_by_date[point["date"]] for point in selected]

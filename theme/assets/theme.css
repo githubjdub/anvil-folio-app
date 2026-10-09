@@ -1011,3 +1011,66 @@ input.anvil-role-creator-search:focus { border-color: var(--mint-strong); outlin
   .creator-analytics-row-values { flex-basis: calc(100% - 78px); }
   .creator-analytics-method { padding: 17px 14px; }
 }
+
+/* Public 13F research within the Performance readout. */
+.hedge-fund-comparison { margin-top: 28px; padding-top: 28px; border-top: 1px solid #e5eaf0; min-width: 0; }
+.hedge-fund-heading, .hedge-fund-chart-heading, .hedge-fund-profile, .hedge-fund-source-line { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.hedge-fund-heading { align-items: flex-start; }
+.hedge-fund-heading h3 { margin: 4px 0 8px; font-size: 21px; line-height: 1.3; color: #263b48; }
+.hedge-fund-heading p, .hedge-fund-chart-heading p { margin: 0; color: #75838e; font-size: 13px; line-height: 1.7; max-width: 680px; }
+.hedge-fund-eyebrow { color: #7b6a9b; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; }
+.hedge-fund-workspace { display: flex; flex-direction: column; gap: 20px; margin-top: 22px; }
+.hedge-fund-method-note { background: #f5f1fa; border: 1px solid #e9dff2; padding: 16px 20px; border-radius: 12px; color: #68567d; font-size: 13px; line-height: 1.7; }
+.hedge-fund-method-note strong { font-weight: 650; }
+.hedge-fund-method-note p { margin: 4px 0 0; }
+.hedge-fund-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 20px; }
+.hedge-fund-filters label { display: block; margin-bottom: 7px; color: #6b7c87; font-size: 12px; font-weight: 600; }
+.hedge-fund-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.anvil-role-hedge-fund-primary button, .anvil-role-hedge-fund-tool button { border-radius: 9px; padding: 9px 14px; font-family: inherit; font-size: 12px; font-weight: 600; box-shadow: none; text-transform: none; min-height: 36px; }
+.anvil-role-hedge-fund-primary button { color: #fff; background: #7860a0; border: 1px solid #7860a0; }
+.anvil-role-hedge-fund-tool button { background: #fff; border: 1px solid #dfe5eb; color: #607887; }
+.anvil-role-hedge-fund-primary button:disabled, .anvil-role-hedge-fund-tool button:disabled { opacity: .48; }
+.anvil-role-hedge-fund-select select, .anvil-role-hedge-fund-input input { width: 100%; min-height: 40px; border: 1px solid #dfe5eb; border-radius: 9px; padding: 9px 12px; background: #fff; color: #455b69; font-family: inherit; font-size: 13px; }
+.hedge-fund-status { padding: 9px 13px; border-radius: 8px; background: #f5f8fa; }
+.hedge-fund-status.is-error { background: #fff1ed; color: #ab5548; }
+.anvil-role-hedge-fund-caption { color: #778691; font-size: 12px; line-height: 1.75; white-space: pre-line; }
+.hedge-fund-status.is-error .anvil-role-hedge-fund-caption { color: #ab5548; }
+.hedge-fund-profile { padding: 17px 20px; border: 1px solid #e5eaf0; border-radius: 12px; background: #fbfcfd; }
+.anvil-role-hedge-fund-profile-title { color: #334c5b; font-size: 17px; font-weight: 650; }
+.anvil-role-hedge-fund-source { color: #746099; font-size: 12px; font-weight: 600; }
+.hedge-fund-source-links { flex-shrink: 0; }
+.hedge-fund-results { display: flex; flex-direction: column; gap: 18px; }
+.hedge-fund-chart-heading h4, .hedge-fund-detail-card h4 { margin: 0 0 6px; color: #355060; font-size: 15px; font-weight: 650; }
+.hedge-fund-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.hedge-fund-metrics article { padding: 18px; background: #f8fafc; border: 1px solid #e9edf1; border-radius: 12px; min-width: 0; }
+.hedge-fund-metrics article > span { color: #6f828e; font-size: 11px; font-weight: 650; }
+.anvil-role-hedge-fund-number { font-size: 24px; color: #385d70; font-weight: 650; margin: 8px 0 !important; }
+.anvil-role-hedge-fund-rank-note { padding: 12px 15px; background: #f3f0f8; color: #786192; border-radius: 9px; font-size: 12px; line-height: 1.7; }
+.hedge-fund-detail-card { display: flex; flex-direction: column; gap: 14px; padding: 20px; border: 1px solid #e6ecf0; border-radius: 12px; }
+.hedge-fund-detail-card .anvil-role-hedge-fund-select { min-width: 150px; }
+.hedge-fund-table-scroll { max-height: 440px; overflow: auto; overscroll-behavior: contain; }
+.hedge-fund-table-head { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 650; color: #8b98a0; padding: 0 0 10px; border-bottom: 1px solid #e7edf0; }
+.hedge-fund-holding-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(80px, .6fr) minmax(110px, .8fr); gap: 14px; align-items: center; }
+.hedge-fund-holding-grid > :nth-child(n+2) { text-align: right; }
+.hedge-fund-holding-row { padding: 12px 0; border-bottom: 1px solid #edf1f4; }
+.anvil-role-hedge-fund-row-title { font-size: 12px; color: #426072; font-weight: 650; overflow-wrap: anywhere; }
+.anvil-role-hedge-fund-row-value { font-size: 12px; color: #5d7585; font-variant-numeric: tabular-nums; }
+.hedge-fund-trade-row { padding: 12px 0; border-bottom: 1px solid #edf1f4; }
+.hedge-fund-trade-summary { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.hedge-fund-trade-details { margin: 9px 0 0; padding: 12px 14px; border-radius: 8px; background: #f8f5fc; }
+.hedge-fund-model-badge { color: #8774a3; font-size: 10px; font-weight: 650; }
+.hedge-fund-rank-row { display: grid; grid-template-columns: 26px minmax(0, 1.2fr) minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 0; border-bottom: 1px solid #edf1f4; }
+.anvil-role-hedge-fund-row-rank { font-size: 15px; color: #8b74a6; font-weight: 650; }
+@media (max-width: 760px) {
+  .hedge-fund-heading, .hedge-fund-chart-heading, .hedge-fund-profile { flex-direction: column; align-items: flex-start; }
+  .hedge-fund-filters { grid-template-columns: 1fr; gap: 15px; }
+  .hedge-fund-metrics { grid-template-columns: 1fr; }
+  .hedge-fund-detail-card { padding: 16px; }
+  .hedge-fund-rank-row { grid-template-columns: 22px minmax(0, 1fr) auto; }
+  .hedge-fund-rank-row > div:nth-child(3) { grid-column: 2 / 4; grid-row: 2; }
+  .hedge-fund-holding-grid { grid-template-columns: minmax(110px, 1fr) 80px 100px; font-size: 11px; }
+  .hedge-fund-source-line { flex-wrap: wrap; }
+}
+
+.hedge-fund-source-links { display: flex; flex-wrap: wrap; gap: 12px; }
+.anvil-role-hedge-fund-metric-title { color: #6f828e; font-size: 11px; font-weight: 650; }
