@@ -47,6 +47,13 @@
         <div>
           <h2>Your portfolios</h2>
           <anvil-component type="Label" name="account_label" prop:text="Sign in to save and reopen portfolios on any device. Saved portfolios are accessible to you and the platform creator." prop:role="portfolio-help"></anvil-component>
+          <div anvil:name="membership_region" class="account-membership" aria-label="Your membership">
+            <div class="account-membership-heading">
+              <anvil-component type="Label" name="membership_badge" prop:text="Free" prop:role="membership-badge-free" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="refresh_membership_button" prop:text="Refresh plan" prop:appearance="text" prop:role="quiet-action"></anvil-component>
+            </div>
+            <anvil-component type="Label" name="membership_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+          </div>
         </div>
         <div class="portfolio-account-actions">
           <anvil-component type="m3._Components.Button" name="creator_setup_button" prop:text="Creator setup" prop:appearance="outlined" prop:icon="mi:settings" prop:visible="False"></anvil-component>
@@ -167,7 +174,10 @@
           <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Overview" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
           <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Portfolio structure" prop:appearance="text" prop:role="readout-tab"></anvil-component>
           <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-          <anvil-component type="m3._Components.Button" name="retrospective_tab_button" prop:text="Retrospective" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+          <div class="readout-tab-with-badge">
+            <anvil-component type="m3._Components.Button" name="retrospective_tab_button" prop:text="Retrospective" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+            <span class="feature-beta-badge" title="Work in progress">Beta</span>
+          </div>
           <anvil-component type="m3._Components.Button" name="methods_tab_button" prop:text="Methods" prop:appearance="text" prop:role="readout-tab"></anvil-component>
         </nav>
         <div class="readout-page-status" role="status" aria-live="polite"><anvil-component type="Label" name="readout_tab_context" prop:role="readout-tab-context" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>

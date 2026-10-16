@@ -9,6 +9,7 @@ from anvil.tables import app_tables, RowDeleted
 
 from portfolios import _validate_inputs
 from portfolio_analytics import _normalise_ticker, _EXCHANGES
+from memberships import membership_for
 
 
 # Pin existing accounts as well as their exact email. Public signup cannot claim
@@ -123,6 +124,7 @@ def _account_summary(account, totals):
   return {"account_id": account_id, "email": account["email"],
           "enabled": account["enabled"] is True, "signed_up": account["signed_up"],
           "last_login": account["last_login"],
+          "membership": membership_for(account),
           "portfolio_count": counts.get("portfolio_count", 0),
           "transaction_count": counts.get("transaction_count", 0),
           "latest_saved_at": counts.get("latest_saved_at")}

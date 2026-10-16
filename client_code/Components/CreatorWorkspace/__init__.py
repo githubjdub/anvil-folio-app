@@ -166,6 +166,28 @@ class CreatorWorkspace(CreatorWorkspaceTemplate):
       self._loading = False
       self._update_controls()
 
+  @handle("accounts_panel", "x-save-membership")
+  @handle("selected_account_panel", "x-save-membership")
+  def save_membership(self, account_id, tier, expires_on=None, **event_args):
+    generation = self._begin_load("Saving account membership…")
+    if generation is None:
+      return
+    try:
+      result = anvil.server.call("creator_set_membership", account_id, tier, expires_on)
+      if generation != self._access_generation or not self._access_enabled:
+        return
+      if not result["ok"]:
+        self.show_status(result["message"], is_error=True)
+        return
+      membership = result["membership"]
+      for panel in (self.accounts_panel, self.selected_account_panel):
+        panel.raise_event_on_children("x-membership-updated", account_id=account_id,
+                                      membership=membership)
+      self.show_status(result["message"])
+      self.raise_event("x-membership-changed", account_id=account_id, membership=membership)
+    finally:
+      self._finish_load(generation)
+
   def _load_accounts(self, page):
     generation = self._begin_load("Loading account directory…")
     if generation is None:

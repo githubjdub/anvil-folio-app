@@ -36,6 +36,7 @@ class Form1(Form1Template):
     super().__init__(**properties)
 
     self._user = None
+    self.membership_region.visible = False
     self._creator_enabled = False
     self._creator_open = False
     self._creator_reference = None
@@ -566,6 +567,7 @@ class Form1(Form1Template):
     setattr(self.share_performance_button, "enabled", not self._busy)
     for component in (
       self.account_button, self.save_portfolio_button, self.new_portfolio_button,
+      self.refresh_membership_button,
       self.portfolio_name_box, self.add_button, self.sample_button,
       self.analyze_button, self.as_of_date_picker, self.risk_free_box,
       self.timeframe_dropdown, self.benchmark_dropdown,
@@ -631,6 +633,7 @@ class Form1(Form1Template):
       if self._user is not None
       else "Sign in to save and reopen portfolios on any device. Saved portfolios are accessible to you and the platform creator."
     )
+    self._refresh_membership()
     creator = anvil.server.call("get_creator_access") if self._user is not None else {"enabled": False, "email": None}
     self._creator_enabled = creator["enabled"]
     self._creator_reference = creator.get("setup_reference")
@@ -644,6 +647,41 @@ class Form1(Form1Template):
     self._set_creator_open(False)
     self._apply_readout_page()
     self._refresh_portfolios()
+
+  def _display_membership(self, membership):
+    self.membership_badge.text = membership["label"]
+    self.membership_badge.role = (
+      "membership-badge-premium" if membership["is_premium"] else "membership-badge-free"
+    )
+    self.membership_detail_label.text = membership["detail"]
+    self.membership_region.visible = True
+
+  def _refresh_membership(self):
+    self.membership_region.visible = False
+    if self._user is None:
+      self.membership_badge.text = "Free"
+      self.membership_badge.role = "membership-badge-free"
+      self.membership_detail_label.text = ""
+      return
+    account_id = self._user.get_id()
+    membership = anvil.server.call("get_my_membership")
+    if self._user is not None and self._user.get_id() == account_id:
+      self._display_membership(membership)
+
+  @handle("refresh_membership_button", "click")
+  def refresh_membership_click(self, **event_args):
+    if self._busy or self._user is None:
+      return
+    self._set_busy(True)
+    try:
+      self._refresh_membership()
+    finally:
+      self._set_busy(False)
+
+  @handle("creator_workspace", "x-membership-changed")
+  def creator_membership_changed(self, account_id, membership, **event_args):
+    if self._user is not None and self._user.get_id() == account_id:
+      self._display_membership(membership)
 
   def _update_welcome(self):
     signed_in = self._user is not None

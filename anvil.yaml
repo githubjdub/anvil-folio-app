@@ -206,6 +206,27 @@ db_schema:
       client_hidden: true
       name: n_password_failures
       type: number
+    - admin_ui: {}
+      client_hidden: true
+      name: membership_tier
+      type: string
+    - admin_ui: {}
+      client_hidden: true
+      name: membership_source
+      type: string
+    - admin_ui: {}
+      client_hidden: true
+      name: membership_expires_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: membership_updated_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: membership_updated_by
+      target: users
+      type: link_single
     server: full
     title: Users
 dependencies:
