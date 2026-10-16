@@ -217,12 +217,13 @@
               <div class="structure-legend"><anvil-component type="Label" name="allocation_legend_label" prop:role="structure-legend-title"></anvil-component><anvil-component type="RepeatingPanel" name="sector_panel" prop:item_template="M3_App_1.Components.SectorAllocationRow"></anvil-component></div>
             </div>
             <div class="security-breakdown-heading"><h4>Securities in this analysis</h4><anvil-component type="m3._Components.Button" name="select_all_securities_button" prop:text="Select all" prop:appearance="text"></anvil-component></div>
-            <p class="security-selection-help">The snapshot changes composition only. Uncheck a security to recalculate all performance and structure charts instantly, including its trades and dividends.</p>
+            <p class="security-selection-help">Position values, P&amp;L and average trade prices below follow the selected snapshot. P&amp;L includes sales and dividends; average prices are weighted by shares and adjusted for splits. Uncheck a security to recalculate your portfolio charts and totals instantly.</p>
             <anvil-component type="Label" name="selection_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
             <anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component>
             <anvil-component type="Label" name="sector_status_label" prop:role="portfolio-help"></anvil-component>
             <details class="readout-notes"><summary>Composition notes &amp; sources</summary>
             <p class="fine-print">Open positions at the selected price mark, weighted by market value; sold positions and dividend cash are excluded. Today's quote-based snapshot is provisional. Current <a href="https://finviz.com/groups.ashx?g=sector" target="_blank" rel="noopener noreferrer">Finviz sector classifications</a> are used for every snapshot. Funds / ETFs are grouped separately, without looking through their holdings.</p>
+            <p class="fine-print">For each security, total P&amp;L is position value plus sale proceeds and dividends minus all buy costs through the snapshot. Return on buys is P&amp;L divided by those buy costs. These figures include closed trades. Average buy and sell prices cover all trades on each side through that date, on the snapshot's split-adjusted share basis; they are not the cost basis of the remaining shares. Performance charts use time-weighted returns over their own selected period.</p>
             </details>
           </section>
           <section class="detail-card allocation-history-card" aria-label="Quarterly sector allocation">

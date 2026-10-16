@@ -318,7 +318,7 @@ button.anvil-role-share-tool { min-height: 36px; margin: 0; padding: 6px 10px; f
 .security-breakdown-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 20px; }
 .security-breakdown-heading h4 { color: var(--ink); font-size: 13px; margin: 0; }
 .security-selection-help { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 4px 0 8px; }
-.security-allocation-row { display: flex; align-items: flex-start; gap: 9px; padding: 12px 0; border-top: 1px solid var(--line); }
+.security-allocation-row { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; align-items: start; gap: 9px; padding: 12px 0; border-top: 1px solid var(--line); }
 .security-swatch { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; margin-top: 10px; }
 .security-description { flex: 1; min-width: 0; }
 .security-amounts { flex: 0 0 auto; text-align: right; padding-top: 5px; }
@@ -327,8 +327,16 @@ button.anvil-role-share-tool { min-height: 36px; margin: 0; padding: 6px 10px; f
 .anvil-role-security-detail, .anvil-role-security-weight { display: block; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
 .anvil-role-security-value { display: block; color: var(--ink); font-size: 12px; font-weight: 700; }
 .security-allocation-row.is-excluded .anvil-role-security-company,
-.security-allocation-row.is-excluded .security-amounts { opacity: .65; }
+.security-allocation-row.is-excluded .security-amounts,
+.security-allocation-row.is-excluded .security-performance-metrics { opacity: .65; }
 .security-allocation-row.is-excluded .security-swatch { background-color: #a0a6ad !important; }
+.security-performance-metrics { grid-column: 2 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 125px), 1fr)); gap: 16px; padding: 14px; margin-top: 4px; border-radius: 10px; background: var(--canvas); }
+.security-performance-stat { min-width: 0; }
+.security-stat-caption { display: block; color: #53616b; font-size: 12px; line-height: 1.5; margin-bottom: 4px; }
+.anvil-role-security-stat-value { color: var(--ink); font-size: 15px; line-height: 1.6; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.security-performance-metrics.is-positive .security-profit-stat .anvil-role-security-stat-value { color: #277b50; }
+.security-performance-metrics.is-negative .security-profit-stat .anvil-role-security-stat-value { color: #b55269; }
+.anvil-label.anvil-role-security-stat-value > span { padding-top: 0; padding-bottom: 0; }
 .anvil-label.anvil-role-security-company > span,
 .anvil-label.anvil-role-security-detail > span,
 .anvil-label.anvil-role-security-value > span,
@@ -336,7 +344,7 @@ button.anvil-role-share-tool { min-height: 36px; margin: 0; padding: 6px 10px; f
 .benchmark-return-choice { grid-column: 1 / -1; }
 @media (max-width: 620px) {
   .security-allocation-row { gap: 7px; }
-  .security-amounts { max-width: 38%; }
+  .security-amounts { grid-column: 2 / -1; display: flex; justify-content: space-between; gap: 12px; text-align: left; }
 }
 
 /* Regular and extended session status stays visible on phones and desktop. */
@@ -703,9 +711,9 @@ button.anvil-role-import-toggle:focus-visible { outline: 2px solid var(--mint-st
   .readout-workspace .anvil-role-structure-value, .comparison-card .comparison-metrics .anvil-role-comparison-value { font-size: 23px; }
   .performance-controls { padding: 14px; }
   .quarterly-figures, .performance-risk-details, .readout-notes { padding: 16px 12px; }
-  .readout-workspace .security-allocation-row { flex-wrap: wrap; }
-  .readout-workspace .security-description { flex-basis: calc(100% - 33px); }
-  .readout-workspace .security-amounts { display: flex; flex-basis: 100%; max-width: none; justify-content: space-between; align-items: baseline; gap: 12px; padding-left: 21px; text-align: left; }
+  .readout-workspace .security-description { grid-column: 2 / -1; }
+  .readout-workspace .security-amounts { align-items: baseline; padding-top: 0; }
+  .security-performance-metrics { grid-column: 1 / -1; gap: 12px; }
 }
 @media (max-width: 460px) {
   .readout-page .metric-grid, .structure-summary, .comparison-card .comparison-metrics,

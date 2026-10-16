@@ -295,6 +295,25 @@ def _current_session(transactions, as_of, histories, now):
   return staged, today, min(quote["quoted_at"] for quote in quotes)
 
 
+def _security_trade_metrics(security, market_value):
+  """Cumulative P&L and trade averages on the valuation date's share basis.
+
+  Buys and sales are weighted by executed shares. Their cumulative quantities
+  follow stock splits, including shares sold before the split, so the averages
+  remain comparable with this date's price. Cash totals do not change on splits.
+  """
+  buy_cost = security["buy_cost"]
+  profit = market_value + security["sale_proceeds"] + security["dividends"] - buy_cost
+  return {
+    "buy_cost": buy_cost, "sale_proceeds": security["sale_proceeds"],
+    "dividends": security["dividends"],
+    "buy_shares": security["buy_shares"], "sell_shares": security["sell_shares"],
+    "profit": profit, "profit_return": profit / buy_cost if buy_cost else None,
+    "average_buy_price": buy_cost / security["buy_shares"] if security["buy_shares"] else None,
+    "average_sell_price": security["sale_proceeds"] / security["sell_shares"] if security["sell_shares"] else None,
+  }
+
+
 def _build_analysis(transactions, as_of, rate, histories, now=None):
   now = now or datetime.now(timezone.utc)
   histories, provisional_day, quoted_at = _current_session(transactions, as_of, histories, now)
@@ -321,6 +340,7 @@ def _build_analysis(transactions, as_of, rate, histories, now=None):
   securities = {symbol: {
     "symbol": symbol, "company_name": histories[symbol]["company_name"],
     "sector": "Unclassified", "buy_cost": 0.0, "sale_proceeds": 0.0,
+    "buy_shares": 0.0, "sell_shares": 0.0,
     "dividends": 0.0, "transaction_count": 0, "start_date": None, "days": [],
   } for symbol in sorted({transaction["symbol"] for transaction in transactions})}
   moved_dates = 0
@@ -362,8 +382,11 @@ def _build_analysis(transactions, as_of, rate, histories, now=None):
     # Ex-date dividends belong to yesterday's holders, including today's sellers.
     for symbol, shares in list(holdings.items()):
       history = histories[symbol]
-      shares *= history["splits"].get(day, 1)
+      split = history["splits"].get(day, 1)
+      shares *= split
       holdings[symbol] = shares
+      securities[symbol]["buy_shares"] *= split
+      securities[symbol]["sell_shares"] *= split
       dividend = shares * history["dividends"].get(day, 0)
       dividend_cash += dividend
       securities[symbol]["dividends"] += dividend
@@ -379,6 +402,7 @@ def _build_analysis(transactions, as_of, rate, histories, now=None):
         contributions += value
         buy_cost += value
         securities[symbol]["buy_cost"] += value
+        securities[symbol]["buy_shares"] += shares
         security_flows[symbol][0] += value
       else:
         remaining = held - shares
@@ -391,6 +415,7 @@ def _build_analysis(transactions, as_of, rate, histories, now=None):
         withdrawals += value
         sale_proceeds += value
         securities[symbol]["sale_proceeds"] += value
+        securities[symbol]["sell_shares"] += shares
         security_flows[symbol][1] += value
     market_value = 0.0
     security_market_values = {}
@@ -415,6 +440,7 @@ def _build_analysis(transactions, as_of, rate, histories, now=None):
         # cash; quantities reflect splits and all of this session's trades.
         "market_value": position_value, "shares": shares,
         "price": histories[symbol]["close"].get(day) if shares > 0 else None,
+        **_security_trade_metrics(security, position_value),
       })
     nav = market_value + dividend_cash
     denominator = previous_nav + contributions
@@ -450,6 +476,7 @@ def _build_analysis(transactions, as_of, rate, histories, now=None):
     price = histories[symbol]["close"].get(end)
     security.update({"shares": shares, "price": price,
                      "market_value": shares * price if shares > 0 else 0.0})
+    security.update(_security_trade_metrics(security, security["market_value"]))
   return {
     "ok": True, "series": series, "rows": row_summaries, "open_holdings": open_holdings,
     "selection_data": {"dates": [day.isoformat() for day in sessions],

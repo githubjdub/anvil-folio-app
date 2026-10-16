@@ -1600,14 +1600,29 @@ class Form1(Form1Template):
       position_day = security["days"][index] if index is not None else {}
       shares = position_day.get("shares", security["shares"])
       value = position_day.get("market_value", security["market_value"])
+      # Historical snapshots must use only trades/dividends through that date.
+      # An older analysis without daily stats shows blanks until the next sync.
+      stats = position_day if index is not None else security
+      buy_cost = stats.get("buy_cost")
+      profit = stats.get("profit") if buy_cost else None
+      profit_return = stats.get("profit_return") if buy_cost else None
+      average_buy = stats.get("average_buy_price")
+      average_sell = stats.get("average_sell_price")
       shares_text = format(shares, ",.8f").rstrip("0").rstrip(".")
       position = "%s shares" % shares_text if shares > 0 else "No open position at this snapshot"
+      if shares <= 0 and buy_cost is not None:
+        position = "Closed position" if buy_cost > 0 else "No trades by this snapshot"
       count = security["transaction_count"]
       rows.append(dict(security,
         included=included, snapshot_value=value,
         color=self._security_colors.get(security["symbol"], "#a0a6ad") if self.allocation_view_dropdown.selected_value == "security" else SECTOR_COLORS.get(security["sector"], "#a0a6ad"),
         detail_text="%s · %s · %d trade%s total" % (security["sector"], position, count, "" if count == 1 else "s"),
         value_text=self._format_currency(value),
+        profit=profit,
+        profit_text=("—" if profit is None else ("+" if profit > 0 else "-" if profit < 0 else "") + self._format_currency(abs(profit))),
+        profit_return_text="—" if profit_return is None else self._format_percent(profit_return),
+        average_buy_text=self._format_average_price(average_buy),
+        average_sell_text=self._format_average_price(average_sell),
         weight_percent=value / total_value * 100 if included and total_value else 0,
         weight_text=("%.1f%% of snapshot" % (value / total_value * 100)
                      if included and total_value else "0.0% of snapshot" if included else "Excluded"),
@@ -1618,6 +1633,13 @@ class Form1(Form1Template):
       "%d of %d securities selected · All metrics and charts use this selection." % (len(self._selected_symbols), len(securities))
       if self._selected_symbols else "No securities selected. Check a security or choose Select all."
     )
+
+  def _format_average_price(self, price):
+    if price is None:
+      return "—"
+    # Preserve useful precision for low-priced securities as well as averages.
+    digits = 8 if price < .01 else 4 if price < 1 else 2
+    return "$%s" % format(price, ",.%df" % digits)
 
   def _render_readout(self):
     if self._history is None:
