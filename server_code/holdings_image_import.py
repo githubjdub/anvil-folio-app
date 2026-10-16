@@ -222,6 +222,108 @@ def _lines(blocks):
   return lines
 
 
+def _table_columns(line):
+  columns = [(block["x"], _header(block["text"])) for block in line["blocks"]]
+  fields = {field for _, field in columns if field}
+  if len(fields) >= 2 and ("shares" in fields or "ticker" in fields):
+    # Unknown headings still separate columns, e.g. current price versus cost.
+    return columns
+  return None
+
+
+def _table_cells(line, columns):
+  cells = {}
+  for block in line["blocks"]:
+    _, field = min(columns, key=lambda column: abs(column[0] - block["x"]))
+    if field:
+      cells.setdefault(field, []).append(block)
+  return cells
+
+
+def _cell_text(cells, field):
+  return " ".join(block["text"] for block in cells.get(field, []))
+
+
+def _table_ticker(cells):
+  blocks = cells.get("ticker", [])
+  ticker = _symbol(_cell_text(cells, "ticker"), labelled=True)
+  return ticker or (_symbol(blocks[0]["text"], labelled=True) if blocks else "")
+
+
+def _row_boundary(line):
+  text = line["text"].replace(" · ", " ").strip()
+  return bool(_table_columns(line) or _CASH.search(text) or _account_currency(text)
+              or _PDF_PAGE_FOOTER.search(text) or _PDF_BOILERPLATE.search(text)
+              or _PDF_OTHER_SECTION.fullmatch(text) or _PDF_POSITION_SECTION.fullmatch(text))
+
+
+def _join_wrapped_table_rows(lines):
+  """Pair a ticker and quantity split across adjacent baselines in one table.
+
+  Broker lot views often put the symbol slightly above its quantity. Match only
+  complementary cells under known headings; never join two ticker rows or use
+  an unlabelled number beneath a symbol as the share quantity.
+  """
+  joined = []
+  columns = None
+  consumed = set()
+  for index, line in enumerate(lines):
+    if index in consumed:
+      continue
+    headings = _table_columns(line)
+    if headings or _row_boundary(line):
+      columns = headings
+      joined.append(line)
+      continue
+    if columns is None or index + 1 == len(lines) or _row_boundary(lines[index + 1]):
+      joined.append(line)
+      continue
+    following = lines[index + 1]
+    cells = [_table_cells(part, columns) for part in (line, following)]
+    tickers = [_table_ticker(part) for part in cells]
+    shares = [_number(_cell_text(part, "shares")) for part in cells]
+    anchor = 0 if tickers[0] and not tickers[1] else 1 if tickers[1] and not tickers[0] else None
+    if anchor is None or shares[anchor] or not shares[1 - anchor]:
+      joined.append(line)
+      continue
+    fragment = 1 - anchor
+    symbol_text = _cell_text(cells[fragment], "ticker")
+    # A named security without a readable ticker belongs in its own draft.
+    if symbol_text and not _number(symbol_text):
+      joined.append(line)
+      continue
+    height = min(line["height"], following["height"])
+    distance = abs(line["y"] - following["y"])
+    if distance > max(7, height * 1.5):
+      joined.append(line)
+      continue
+    # Conflicting dates, prices or actions can indicate distinct transactions.
+    overlap = (set(cells[0]) & set(cells[1])) - {"ticker"}
+    if overlap:
+      joined.append(line)
+      continue
+    fragment_line = (line, following)[fragment]
+    ambiguous = False
+    for neighbor in (index - 1, index + 2):
+      if 0 <= neighbor < len(lines) and not _row_boundary(lines[neighbor]):
+        other = lines[neighbor]
+        if (_table_ticker(_table_cells(other, columns))
+            and abs(other["y"] - fragment_line["y"]) <= distance + height * .35):
+          ambiguous = True
+    if ambiguous:
+      joined.append(line)
+      continue
+    # A repeated quantity below the symbol is display text, not a second lot.
+    duplicate_symbol_blocks = cells[fragment].get("ticker", [])
+    blocks = [block for part in (line, following) for block in part["blocks"]
+              if not any(block is duplicate for duplicate in duplicate_symbol_blocks)]
+    blocks.sort(key=lambda block: block["left"])
+    joined.append({"blocks": blocks, "y": line["y"], "height": max(line["height"], following["height"]),
+                   "text": " · ".join(block["text"] for block in blocks), "joined_row": True})
+    consumed.add(index + 1)
+  return joined
+
+
 def _draft(ticker="", shares="", price="", action="Buy", trade_date=None, row_kind="holding", notes=None, include=True):
   notes = list(notes or [])
   if not ticker:
@@ -273,13 +375,10 @@ def _parse_table(lines, document=False, account_currency=None):
         other_section = False
         used_lines.add(index)
         continue
-    recognized = [(block, _header(block["text"])) for block in line["blocks"]]
-    recognized = [(block, field) for block, field in recognized if field]
-    fields = {field for _, field in recognized}
-    if len(fields) >= 2 and ("shares" in fields or "ticker" in fields):
-      # Include every header box as a column boundary, including current prices/value.
-      columns = [(block["x"], _header(block["text"])) for block in line["blocks"]]
-      is_transaction = "action" in fields
+    headings = _table_columns(line)
+    if headings:
+      columns = headings
+      is_transaction = any(field == "action" for _, field in columns)
       other_section = False
       used_lines.add(index)
       continue
@@ -291,11 +390,7 @@ def _parse_table(lines, document=False, account_currency=None):
     if _CASH.search(line["text"]):
       used_lines.add(index)
       continue
-    cells = {}
-    for block in line["blocks"]:
-      center, field = min(columns, key=lambda column: abs(column[0] - block["x"]))
-      if field:
-        cells.setdefault(field, []).append(block)
+    cells = _table_cells(line, columns)
     ticker_blocks = cells.get("ticker", [])
     ticker_text = " ".join(block["text"] for block in ticker_blocks)
     ticker = _symbol(ticker_text, labelled=True)
@@ -319,6 +414,8 @@ def _parse_table(lines, document=False, account_currency=None):
       continue  # Dividends, deposits, transfers and fees are not share trades.
     action = "Sell" if action_match and action_match.group() in ("sell", "sold", "sale") else "Buy"
     notes = []
+    if line.get("joined_row"):
+      notes.append("Ticker and quantity matched across adjacent text lines; check them against the source.")
     if is_transaction and action_text and not action_match and action_text not in ("stock", "stocks", "etf", "equity", "fund", "mutual fund"):
       notes.append("Type/action read as %s; kept as a holding for review." % action_text[:80])
     if not ticker and ticker_text:
@@ -411,7 +508,7 @@ def _parse_cards(lines, used_lines, document=False, account_currency=None):
 
 def _parse_blocks(blocks, document=False, account_currency=None):
   blocks = _deskew_blocks(blocks)
-  lines = _lines(blocks)
+  lines = _join_wrapped_table_rows(_lines(blocks))
   rows, used_lines = _parse_table(lines, document=document, account_currency=account_currency)
   rows.extend(_parse_cards(lines, used_lines, document=document, account_currency=account_currency))
   caption = " ".join(block["text"] for block in blocks)

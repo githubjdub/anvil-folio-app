@@ -970,7 +970,8 @@ class Form1(Form1Template):
     # Read the editors before disabling or rebuilding them so Sync and Save
     # include the last active field even if its change event is still pending.
     for row_form in self.holdings_panel.get_components():
-      row_form.commit_inputs()
+      if isinstance(row_form, HoldingRow):
+        row_form.commit_inputs()
     clean_transactions = []
     for row_number, row in enumerate(self.transactions, start=1):
       values = [
