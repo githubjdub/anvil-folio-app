@@ -6,8 +6,9 @@ from anvil import *
 
 class HoldingRow(HoldingRowTemplate):
   def __init__(self, **properties):
+    # Template bindings can raise input events before the row is attached.
+    self._editable = False
     super().__init__(**properties)
-    self._editable = True
     self.set_event_handler("x-set-editable", self.set_editable)
     self.set_event_handler("x-set-collapsed", self.set_collapsed)
     group = self.item.get("_security_group", "")
@@ -16,6 +17,7 @@ class HoldingRow(HoldingRowTemplate):
     self.classes["is-chart-target"] = bool(self.item.get("_chart_target", False))
     self._refresh_summary()
     self._show_expanded()
+    self._editable = True
 
   def _positive_number(self, value):
     try:
@@ -65,7 +67,27 @@ class HoldingRow(HoldingRowTemplate):
     self.classes["is-collapsed"] = collapsed
 
   def _update_item(self, key, value):
-    self.item[key] = value
+    self._apply_inputs({key: value})
+
+  def commit_inputs(self):
+    """Capture the current editor values before the parent validates a sync/save."""
+    if not self._editable or self.parent is None:
+      return
+    self._apply_inputs({
+      "ticker": self.ticker_box.text,
+      "trade_date": self.trade_date_picker.date,
+      "action": self.action_dropdown.selected_value,
+      "shares": self.shares_box.text,
+      "trade_price": self.trade_price_box.text,
+    })
+
+  def _apply_inputs(self, values):
+    if not self._editable or self.parent is None:
+      return
+    changed = {key: value for key, value in values.items() if not self._same_input(key, value)}
+    if not changed:
+      return
+    self.item.update(changed)
     self.item.update({
       "entry_price": None,
       "current_price": None,
@@ -80,13 +102,27 @@ class HoldingRow(HoldingRowTemplate):
     self._refresh_summary()
     self.parent.raise_event("x-holding-changed")
 
+  def _same_input(self, key, value):
+    existing = self.item.get(key)
+    if existing == value:
+      return True
+    if key == "trade_price" and (existing is None or not str(existing).strip()) and (value is None or not str(value).strip()):
+      return True
+    if key in ("shares", "trade_price"):
+      number = self._positive_number(value)
+      return number is not None and number == self._positive_number(existing)
+    return False
+
   def set_editable(self, editable, **event_args):
-    self._editable = editable
+    # Disabling a focused editor can trigger a pending blur/change event.
+    # The parent commits editor values before locking the rows for a request.
+    self._editable = False
     for component in (
       self.ticker_box, self.trade_date_picker, self.action_dropdown,
       self.shares_box, self.trade_price_box, self.remove_button, self.toggle_button,
     ):
       setattr(component, "enabled", editable)
+    self._editable = editable
 
   def set_collapsed(self, collapsed, **event_args):
     if self._editable:
@@ -121,4 +157,5 @@ class HoldingRow(HoldingRowTemplate):
 
   @handle("remove_button", "click")
   def remove_button_click(self, **event_args):
-    self.parent.raise_event("x-remove-holding", item=self.item)
+    if self._editable and self.parent is not None:
+      self.parent.raise_event("x-remove-holding", item=self.item)

@@ -99,10 +99,16 @@ def _owned_portfolio(portfolio_id, user):
   return portfolio
 
 
+def _portfolio_timestamp(value):
+  # Older/imported rows can lack either timestamp. Keep them available while
+  # placing them after dated portfolios, including dates before the Unix epoch.
+  return value.timestamp() if value is not None else float("-inf")
+
+
 def _portfolios_for(user):
   return sorted(
     app_tables.portfolios.search(owner=user),
-    key=lambda portfolio: portfolio["updated_at"],
+    key=lambda portfolio: _portfolio_timestamp(portfolio["updated_at"]),
     reverse=True,
   )
 
@@ -118,7 +124,7 @@ def get_last_portfolio():
   portfolio = max(
     app_tables.portfolios.search(owner=user),
     key=lambda row: (row["last_used_at"] is not None,
-                     (row["last_used_at"] or row["updated_at"]).timestamp()),
+                     _portfolio_timestamp(row["last_used_at"] or row["updated_at"])),
     default=None,
   )
   return {"ok": True, "portfolio": portfolio}

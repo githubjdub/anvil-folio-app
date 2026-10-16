@@ -32,6 +32,7 @@ BENCHMARK_CHOICES = [
 
 class Form1(Form1Template):
   def __init__(self, **properties):
+    self._initializing = True
     super().__init__(**properties)
 
     self._user = None
@@ -105,6 +106,7 @@ class Form1(Form1Template):
         self._restore_last_portfolio()
       finally:
         self._set_busy(False)
+    self._initializing = False
 
   @handle("market_status_timer", "tick")
   def market_status_timer_tick(self, **event_args):
@@ -750,12 +752,17 @@ class Form1(Form1Template):
 
   @handle("portfolio_name_box", "change")
   def portfolio_name_box_change(self, **event_args):
-    self._mark_portfolio_dirty()
+    if not self._initializing and not self._busy:
+      self._mark_portfolio_dirty()
 
   @handle("as_of_date_picker", "change")
   @handle("risk_free_box", "change")
   @handle("holdings_panel", "x-holding-changed")
   def portfolio_inputs_change(self, **event_args):
+    # Binding/rebuilding editors is not a user edit. In particular, a date
+    # change emitted while syncing must not discard the result being rendered.
+    if self._initializing or self._busy:
+      return
     self._mark_portfolio_dirty()
     self._show_results(False)
 
@@ -831,7 +838,9 @@ class Form1(Form1Template):
     self.retrospective_form.reset_workspace()
     self._current_portfolio = portfolio
     self.portfolio_name_box.text = portfolio["name"]
-    self.as_of_date_picker.date = portfolio["as_of_date"]
+    # Reopening a portfolio starts a fresh analysis through today. Users can
+    # still choose a historical date for the current analysis.
+    self._set_dates()
     self.risk_free_box.text = str(portfolio["risk_free_rate"])
     self.transactions = [self._new_transaction(
       transaction["ticker"],
@@ -958,6 +967,10 @@ class Form1(Form1Template):
     return parsed
 
   def _read_transactions(self):
+    # Read the editors before disabling or rebuilding them so Sync and Save
+    # include the last active field even if its change event is still pending.
+    for row_form in self.holdings_panel.get_components():
+      row_form.commit_inputs()
     clean_transactions = []
     for row_number, row in enumerate(self.transactions, start=1):
       values = [
@@ -1686,10 +1699,16 @@ class Form1(Form1Template):
   def analyze_button_click(self, **event_args):
     if self._busy:
       return
-    self._set_busy(True)
     try:
       transactions = self._read_transactions()
       as_of_date, risk_free_rate = self._read_analysis_settings(transactions)
+    except ValueError as error:
+      self._set_status(str(error), is_error=True)
+      self._show_results(False)
+      return
+
+    self._set_busy(True)
+    try:
       self._show_results(False)
       self._set_status("Loading history, latest session prices, dividends, sectors, and benchmarks…")
       document = [{
@@ -1725,8 +1744,5 @@ class Form1(Form1Template):
       if moved_dates:
         message += " %d non-trading date(s) use the next available session." % moved_dates
       self._set_status(message)
-    except ValueError as error:
-      self._set_status(str(error), is_error=True)
-      self._show_results(False)
     finally:
       self._set_busy(False)
