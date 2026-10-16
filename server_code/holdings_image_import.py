@@ -292,6 +292,11 @@ def _join_wrapped_table_rows(lines):
     if symbol_text and not _number(symbol_text):
       joined.append(line)
       continue
+    if symbol_text and Decimal(_number(symbol_text)) != Decimal(shares[fragment]):
+      # Only discard an actual repeat of the labelled quantity. A different
+      # number or sign must remain visible in its own draft for review.
+      joined.append(line)
+      continue
     height = min(line["height"], following["height"])
     distance = abs(line["y"] - following["y"])
     if distance > max(7, height * 1.5):
@@ -303,12 +308,20 @@ def _join_wrapped_table_rows(lines):
       joined.append(line)
       continue
     fragment_line = (line, following)[fragment]
+    anchor_line = (line, following)[anchor]
     ambiguous = False
     for neighbor in (index - 1, index + 2):
       if 0 <= neighbor < len(lines) and not _row_boundary(lines[neighbor]):
         other = lines[neighbor]
-        if (_table_ticker(_table_cells(other, columns))
+        other_cells = _table_cells(other, columns)
+        other_ticker = _table_ticker(other_cells)
+        if (other_ticker
             and abs(other["y"] - fragment_line["y"]) <= distance + height * .35):
+          ambiguous = True
+        other_symbol_text = _cell_text(other_cells, "ticker")
+        if (not other_ticker and _number(_cell_text(other_cells, "shares"))
+            and (not other_symbol_text or _number(other_symbol_text))
+            and abs(other["y"] - anchor_line["y"]) <= distance + height * .35):
           ambiguous = True
     if ambiguous:
       joined.append(line)
