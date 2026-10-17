@@ -1,0 +1,13 @@
+<section class="username-setup">
+  <p class="username-setup-intro">Make your account your own. Choose a username to continue to your portfolio.</p>
+  <anvil-component type="Label" name="account_label" prop:role="username-account" prop:spacing_above="none" prop:spacing_below="medium"></anvil-component>
+  <anvil-component type="Label" name="username_label" prop:text="Username" prop:bold="true" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
+  <anvil-component type="TextBox" name="username_box" prop:placeholder="e.g. AlexInvests" prop:tooltip="Username" prop:role="subscription-username-input" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  <p class="subscription-muted">3–24 characters. Start with a letter; use letters, numbers, or underscores. Usernames are unique, regardless of capitalization.</p>
+  <div role="status" aria-live="polite"><anvil-component type="Label" name="status_label" prop:role="username-error" prop:visible="false"></anvil-component></div>
+  <div class="subscription-actions username-setup-actions">
+    <anvil-component type="Button" name="save_button" prop:text="Save &amp; continue" prop:role="subscription-primary" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Button" name="signout_button" prop:text="Sign out" prop:role="subscription-button" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <p class="subscription-muted">You will still sign in with your email. You can change your username in My subscription.</p>
+</section>

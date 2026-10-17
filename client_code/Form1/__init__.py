@@ -11,6 +11,7 @@ from ..chart_trades import build_trade_markers
 from ..portfolio_periods import quarterly_returns, allocation_snapshots
 from ..HoldingRow import HoldingRow
 from ..site_tracking import record_page
+from ..account_profile import ensure_username
 
 
 SECTOR_COLORS = {
@@ -36,6 +37,7 @@ class Form1(Form1Template):
     super().__init__(**properties)
 
     self._user = None
+    self._username = ""
     self.account_id = None
     self.membership_region.visible = False
     self._creator_enabled = False
@@ -630,10 +632,19 @@ class Form1(Form1Template):
   def _refresh_account(self):
     self._user = anvil.users.get_user()
     self.account_id = self._user.get_id() if self._user is not None else None
+    self._username = ""
+    if self._user is not None:
+      # A saved profile can be newer than the Users row cached in this browser.
+      profile = anvil.server.call("get_my_profile")
+      current_user = anvil.users.get_user()
+      if current_user is None or current_user.get_id() != self.account_id:
+        self._refresh_account()
+        return
+      self._username = profile["username"] or ""
     self.subscription_button.visible = self._user is not None
     self.account_button.text = "Sign out" if self._user is not None else "Sign in / Create account"
     self.account_label.text = (
-      "Signed in as %s · Saved portfolios are accessible to you and the platform creator." % self._user["email"]
+      "Signed in as %s · Saved portfolios are accessible to you and the platform creator." % (self._username or self._user["email"])
       if self._user is not None
       else "Sign in to save and reopen portfolios on any device. Saved portfolios are accessible to you and the platform creator."
     )
@@ -715,10 +726,13 @@ class Form1(Form1Template):
     self.welcome_region.visible = signed_in
     if not signed_in:
       self.welcome_detail_label.text = ""
-    elif self._current_portfolio is not None:
-      self.welcome_detail_label.text = 'Continue with "%s" below.' % self._current_portfolio["name"]
     else:
-      self.welcome_detail_label.text = "Continue your draft below, or open a saved portfolio. We'll remember the portfolio you open or save."
+      greeting = "Welcome back, %s. " % self._username if self._username else ""
+      self.welcome_detail_label.text = greeting + (
+        'Continue with "%s" below.' % self._current_portfolio["name"]
+        if self._current_portfolio is not None else
+        "Continue your draft below, or open a saved portfolio. We'll remember the portfolio you open or save."
+      )
 
   def _restore_last_portfolio(self):
     result = anvil.server.call("get_last_portfolio")
@@ -745,6 +759,10 @@ class Form1(Form1Template):
         self._set_portfolio_status("Sign-in canceled. Your unsaved portfolio is still here.")
         return False
       new_login = True
+    if not ensure_username():
+      self._refresh_account()
+      self._set_portfolio_status("Choose a username when you sign in to continue saving your portfolio.")
+      return False
     self._refresh_account()
     if new_login:
       record_page(self._readout_page)

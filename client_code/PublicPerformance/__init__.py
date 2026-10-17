@@ -2,6 +2,7 @@ import anvil.server
 import anvil.users
 from ._anvil_designer import PublicPerformanceTemplate
 from anvil import *
+from ..account_profile import ensure_username
 
 
 class PublicPerformance(PublicPerformanceTemplate):
@@ -31,5 +32,8 @@ class PublicPerformance(PublicPerformanceTemplate):
       user = anvil.users.login_with_form(allow_cancel=True)
       if user is None:
         return
+    if not ensure_username():
+      return
     self.return_to_account = True
-    set_url_hash("")
+    if get_open_form() is self:
+      set_url_hash("")

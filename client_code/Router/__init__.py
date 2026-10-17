@@ -7,6 +7,7 @@ from ..PublicPerformance import PublicPerformance
 from ..Subscribe import Subscribe
 from ..MySubscription import MySubscription
 from ..site_tracking import record_page
+from ..account_profile import ensure_username, username_prompt_open
 
 
 class Router(RouterTemplate):
@@ -15,6 +16,7 @@ class Router(RouterTemplate):
     self._routed = False
     self._route_generation = 0
     self._editor_form = None
+    self._discarded_editor = None
     self._hash_listener = anvil.js.report_exceptions(self.hash_changed)
 
   @handle("", "show")
@@ -41,10 +43,18 @@ class Router(RouterTemplate):
   def _open_route(self):
     self._route_generation += 1
     generation = self._route_generation
+    # Remembered sessions need the same setup as a fresh login. Navigation may
+    # continue underneath an existing modal, without creating a second prompt.
+    if anvil.users.get_user() is not None and not username_prompt_open():
+      ready = ensure_username()
+      if generation != self._route_generation:
+        return
+      if not ready and anvil.users.get_user() is not None:
+        return
     route = self._route_key()
     page, token = route
     active = get_open_form()
-    if isinstance(active, Form1):
+    if isinstance(active, Form1) and active is not self._discarded_editor:
       self._editor_form = active
     if page == "shared":
       if isinstance(active, PublicPerformance) and active.share_token == token:
@@ -64,8 +74,6 @@ class Router(RouterTemplate):
         open_form(destination)
         record_page(page)
     else:
-      if isinstance(active, Form1):
-        return
       user = anvil.users.get_user()
       account_id = user.get_id() if user is not None else None
       # Keep drafts for the same account, including a guest who just signed in.
@@ -79,10 +87,17 @@ class Router(RouterTemplate):
       user = anvil.users.get_user()
       current_account_id = user.get_id() if user is not None else None
       if generation == self._route_generation and self._route_key() == route:
-        if editor.account_id not in (None, current_account_id):
+        if (account_id is not None and current_account_id != account_id) or editor.account_id not in (None, current_account_id):
+          # Refreshing account details can change editor.account_id while its
+          # transactions still belong to the previous account. Discard that
+          # workspace, including when it is already the visible Form.
+          if get_open_form() is editor:
+            self._discarded_editor = editor
           self._editor_form = None
           self._open_route()
           return
         self._editor_form = editor
-        open_form(editor)
-        record_page("dashboard")
+        if get_open_form() is not editor:
+          open_form(editor)
+          record_page("dashboard")
+        self._discarded_editor = None

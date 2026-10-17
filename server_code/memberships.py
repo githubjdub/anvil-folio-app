@@ -8,6 +8,7 @@ feature endpoints should call require_premium() when premium features are added.
 """
 
 from datetime import date, datetime, time, timedelta, timezone
+from typing import Any
 
 import anvil.server
 import anvil.users
@@ -69,8 +70,9 @@ def require_premium():
 @anvil.server.callable(require_user=True)
 def creator_set_membership(account_id, tier, expires_on=None):
   # Late import keeps creator account summaries free to use membership_for().
-  from creator_portfolios import _require_creator
-  creator = _require_creator()
+  from . import creator_portfolios
+  creator_module: Any = creator_portfolios
+  creator = creator_module._require_creator()
   if not isinstance(account_id, str) or not 1 <= len(account_id) <= 200:
     return {"ok": False, "message": "Choose a valid account."}
   if not isinstance(tier, str) or tier not in ("free", "premium"):
@@ -92,7 +94,7 @@ def creator_set_membership(account_id, tier, expires_on=None):
     if account is None:
       return {"ok": False, "message": "This account is no longer available."}
     if tier == "premium" and account["enabled"] is not True:
-      return {"ok": False, "message": "Enable this account before granting Premium access."}
+      return {"ok": False, "message": "Enable this account before setting Premium membership."}
     values = {"membership_tier": tier, "membership_source": "creator",
               "membership_expires_at": expires_at, "membership_updated_at": now,
               "membership_updated_by": creator}
