@@ -51,11 +51,13 @@
             <div class="account-membership-heading">
               <anvil-component type="Label" name="membership_badge" prop:text="Free" prop:role="membership-badge-free" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
               <anvil-component type="m3._Components.Button" name="refresh_membership_button" prop:text="Refresh plan" prop:appearance="text" prop:role="quiet-action"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="subscription_button" prop:text="My subscription" prop:appearance="text" prop:role="quiet-action" prop:visible="false"></anvil-component>
             </div>
             <anvil-component type="Label" name="membership_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
           </div>
         </div>
         <div class="portfolio-account-actions">
+          <anvil-component type="m3._Components.Button" name="plans_button" prop:text="Plans" prop:appearance="text"></anvil-component>
           <anvil-component type="m3._Components.Button" name="creator_setup_button" prop:text="Creator setup" prop:appearance="outlined" prop:icon="mi:settings" prop:visible="False"></anvil-component>
           <anvil-component type="m3._Components.Button" name="account_button" prop:text="Sign in / Create account" prop:appearance="outlined" prop:icon="mi:person"></anvil-component>
         </div>

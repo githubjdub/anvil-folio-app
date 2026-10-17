@@ -36,6 +36,7 @@ class Form1(Form1Template):
     super().__init__(**properties)
 
     self._user = None
+    self.account_id = None
     self.membership_region.visible = False
     self._creator_enabled = False
     self._creator_open = False
@@ -568,6 +569,7 @@ class Form1(Form1Template):
     for component in (
       self.account_button, self.save_portfolio_button, self.new_portfolio_button,
       self.refresh_membership_button,
+      self.plans_button, self.subscription_button,
       self.portfolio_name_box, self.add_button, self.sample_button,
       self.analyze_button, self.as_of_date_picker, self.risk_free_box,
       self.timeframe_dropdown, self.benchmark_dropdown,
@@ -627,6 +629,8 @@ class Form1(Form1Template):
 
   def _refresh_account(self):
     self._user = anvil.users.get_user()
+    self.account_id = self._user.get_id() if self._user is not None else None
+    self.subscription_button.visible = self._user is not None
     self.account_button.text = "Sign out" if self._user is not None else "Sign in / Create account"
     self.account_label.text = (
       "Signed in as %s · Saved portfolios are accessible to you and the platform creator." % self._user["email"]
@@ -647,6 +651,28 @@ class Form1(Form1Template):
     self._set_creator_open(False)
     self._apply_readout_page()
     self._refresh_portfolios()
+
+  def resume_account(self):
+    if self._busy:
+      return
+    was_guest = self.account_id is None
+    self._set_busy(True)
+    try:
+      self._refresh_account()
+      if was_guest and self._user is not None and not self._has_unsaved_work():
+        self._restore_last_portfolio()
+    finally:
+      self._set_busy(False)
+
+  @handle("plans_button", "click")
+  def plans_click(self, **event_args):
+    if not self._busy:
+      set_url_hash({"page": "subscribe"})
+
+  @handle("subscription_button", "click")
+  def subscription_click(self, **event_args):
+    if not self._busy:
+      set_url_hash({"page": "subscription"})
 
   def _display_membership(self, membership):
     self.membership_badge.text = membership["label"]

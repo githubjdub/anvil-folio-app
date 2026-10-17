@@ -1,0 +1,58 @@
+<main class="subscription-page">
+  <header class="subscription-topbar">
+    <div class="subscription-brand"><span class="share-brand-mark" aria-hidden="true">π</span><span>Portfoliora</span></div>
+    <nav class="subscription-nav" aria-label="Account navigation">
+      <anvil-component type="m3._Components.Button" name="dashboard_button" prop:text="Portfolio" prop:appearance="text" prop:icon="mi:arrow_back"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="plans_button" prop:text="View plans" prop:appearance="outlined"></anvil-component>
+    </nav>
+  </header>
+  <div class="subscription-content">
+    <section class="subscription-intro">
+      <div class="eyebrow">Your account</div>
+      <h1>My subscription</h1>
+      <p>Your plan, membership status, and billing information in one place.</p>
+    </section>
+    <section anvil:name="signed_out_region" class="subscription-plan-card subscription-signin" aria-label="Sign in to view your subscription">
+      <h2>Make yourself at home.</h2>
+      <p>Sign in to view your membership, or create a free account to start saving your portfolios.</p>
+      <anvil-component type="m3._Components.Button" name="signin_button" prop:text="Sign in / Create account" prop:appearance="filled" prop:icon="mi:person"></anvil-component>
+    </section>
+    <div anvil:name="account_region">
+      <section class="subscription-plan-card subscription-current-plan" aria-label="Current membership">
+        <div class="subscription-heading-row">
+          <div><div class="subscription-plan-kicker">Current plan</div><anvil-component type="Label" name="plan_badge" prop:text="Free" prop:role="membership-badge-free" prop:spacing_above="small" prop:spacing_below="small"></anvil-component></div>
+          <anvil-component type="m3._Components.Button" name="refresh_button" prop:text="Refresh details" prop:appearance="text" prop:icon="mi:refresh"></anvil-component>
+        </div>
+        <anvil-component type="Label" name="membership_detail_label" prop:role="subscription-plan-copy" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+        <div class="subscription-actions"><anvil-component type="m3._Components.Button" name="account_plans_button" prop:text="Explore plans" prop:appearance="outlined" prop:icon="mi:arrow_forward"></anvil-component></div>
+        <div role="status" aria-live="polite"><anvil-component type="Label" name="refresh_status_label" prop:role="portfolio-help" prop:visible="false"></anvil-component></div>
+      </section>
+      <div class="subscription-account-grid">
+        <section class="subscription-plan-card" aria-label="Membership details">
+          <h2>Membership details</h2>
+          <dl class="subscription-details">
+            <div class="subscription-detail-row"><dt>Email address</dt><dd><anvil-component type="Label" name="email_label" prop:role="subscription-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></dd></div>
+            <div class="subscription-detail-row"><dt>Member since</dt><dd><anvil-component type="Label" name="member_since_label" prop:role="subscription-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></dd></div>
+            <div class="subscription-detail-row"><dt>Status</dt><dd><anvil-component type="Label" name="status_label" prop:role="subscription-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></dd></div>
+            <div class="subscription-detail-row"><dt>Access type</dt><dd><anvil-component type="Label" name="access_type_label" prop:role="subscription-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></dd></div>
+            <div class="subscription-detail-row"><dt>Access expires</dt><dd><anvil-component type="Label" name="access_until_label" prop:role="subscription-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></dd></div>
+          </dl>
+        </section>
+        <section class="subscription-plan-card" aria-label="Billing information">
+          <h2>Billing</h2>
+          <dl class="subscription-details">
+            <div class="subscription-detail-row"><dt>Subscription</dt><dd><anvil-component type="Label" name="billing_status_label" prop:role="subscription-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></dd></div>
+            <div class="subscription-detail-row"><dt>Renewal</dt><dd><anvil-component type="Label" name="renewal_label" prop:role="subscription-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></dd></div>
+          </dl>
+          <div class="subscription-notice"><anvil-component type="Label" name="billing_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+          <div class="subscription-card-actions">
+            <anvil-component type="m3._Components.Button" name="billing_portal_button" prop:text="Manage billing · Coming soon" prop:appearance="outlined" prop:enabled="false"></anvil-component>
+            <p class="subscription-muted">Billing controls will be available when subscriptions open.</p>
+            <div role="status" aria-live="polite"><anvil-component type="Label" name="billing_action_status_label" prop:role="portfolio-help" prop:visible="false"></anvil-component></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <footer class="subscription-footer">Portfoliora · Understand your portfolio.</footer>
+</main>

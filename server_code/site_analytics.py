@@ -25,6 +25,7 @@ _PAGES = {
   "dashboard": "Portfolio workspace", "overview": "Overview",
   "allocation": "Portfolio structure", "performance": "Performance",
   "retrospective": "Retrospective", "methods": "Methods", "shared": "Shared performance",
+  "subscribe": "Plans", "subscription": "My subscription",
 }
 _RANGES = {"7d": 7, "30d": 30, "90d": 90, "1y": 365}
 _SESSION_KEY = "portfoliora_site_visit"
