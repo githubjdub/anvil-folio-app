@@ -2,15 +2,16 @@
   <header class="subscription-topbar">
     <div class="subscription-brand"><span class="share-brand-mark" aria-hidden="true">π</span><span>Portfoliora</span></div>
     <nav class="subscription-nav" aria-label="Account navigation">
-      <anvil-component type="m3._Components.Button" name="dashboard_button" prop:role="subscription-button" prop:text="Portfolio" prop:appearance="text" prop:icon="mi:arrow_back"></anvil-component>
-      <anvil-component type="m3._Components.Button" name="plans_button" prop:role="subscription-button" prop:text="View plans" prop:appearance="outlined"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="dashboard_button" prop:role="subscription-nav-button" prop:text="Portfolio" prop:appearance="text" prop:icon="mi:dashboard"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="plans_button" prop:role="subscription-nav-button" prop:text="Plans" prop:appearance="text"></anvil-component>
+      <span class="subscription-nav-current" aria-current="page">My subscription</span>
     </nav>
   </header>
   <div class="subscription-content">
     <section class="subscription-intro">
       <div class="eyebrow">Your account</div>
       <h1>My subscription</h1>
-      <p>Your plan, membership status, and billing information in one place.</p>
+      <p>Your username, plan, and billing information in one place.</p>
     </section>
     <section anvil:name="signed_out_region" class="subscription-plan-card subscription-signin" aria-label="Sign in to view your subscription">
       <h2>Make yourself at home.</h2>
@@ -18,6 +19,19 @@
       <anvil-component type="m3._Components.Button" name="signin_button" prop:role="subscription-primary" prop:text="Sign in / Create account" prop:appearance="filled" prop:icon="mi:person"></anvil-component>
     </section>
     <div anvil:name="account_region">
+      <section class="subscription-plan-card subscription-profile-card" aria-labelledby="profile-heading">
+        <h2 id="profile-heading">Your profile</h2>
+        <p class="subscription-plan-copy">Choose how your account is named. You will still sign in with your email address.</p>
+        <div class="subscription-username-editor">
+          <div class="subscription-username-field">
+            <anvil-component type="Label" name="username_field_label" prop:text="Username" prop:bold="true" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
+            <anvil-component type="TextBox" name="username_box" prop:placeholder="Your username" prop:role="subscription-username-input" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+          </div>
+          <anvil-component type="m3._Components.Button" name="save_username_button" prop:role="subscription-primary" prop:text="Save username" prop:appearance="filled"></anvil-component>
+        </div>
+        <p class="subscription-muted">3–24 characters. Start with a letter and use letters, numbers, or underscores. Usernames are unique and are not case-sensitive.</p>
+        <div role="status" aria-live="polite"><anvil-component type="Label" name="username_status_label" prop:role="portfolio-help" prop:visible="false" prop:spacing_above="small" prop:spacing_below="none"></anvil-component></div>
+      </section>
       <section class="subscription-plan-card subscription-current-plan" aria-label="Current membership">
         <div class="subscription-heading-row">
           <div><div class="subscription-plan-kicker">Current plan</div><anvil-component type="Label" name="plan_badge" prop:text="Free" prop:role="membership-badge-free" prop:spacing_above="small" prop:spacing_below="small"></anvil-component></div>

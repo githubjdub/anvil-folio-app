@@ -20,10 +20,10 @@ _memberships: Any = memberships
 def get_subscription_catalog():
   return {
     "checkout_available": False,
-    "premium_price_label": "Pricing coming soon",
+    "premium_price_label": "$19.99/month",
     "premium_note": (
-      "Premium subscriptions are coming soon. Pricing and included benefits "
-      "will be announced before checkout opens."
+      "USD, billed monthly. Subscriptions are coming soon; included benefits "
+      "will be confirmed before checkout opens."
     ),
     "billing_portal_available": False,
   }
@@ -54,11 +54,11 @@ def get_my_subscription():
     )
     renewal_label = "Renewal details unavailable"
   elif membership["source"] == "creator" and configured_premium:
-    access_type_label = "Creator-granted Premium"
+    access_type_label = "Premium membership"
     billing_status_label = "No recurring subscription"
     billing_detail = (
-      "This Premium access was granted by the creator. The grant does not "
-      "create a charge or a recurring subscription."
+      "No recurring subscription is set up for this Premium membership. "
+      "No automatic renewal is scheduled."
     )
     renewal_label = "No automatic renewal"
   else:
@@ -69,6 +69,7 @@ def get_my_subscription():
 
   return {
     "email": user["email"],
+    "username": user["username"],
     "member_since": user["signed_up"],
     "membership": membership,
     "status_label": status_label,

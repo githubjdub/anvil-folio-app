@@ -2,6 +2,7 @@ import anvil.server
 import anvil.users
 from ._anvil_designer import SubscribeTemplate
 from anvil import *
+from ..account_profile import ensure_username
 
 
 class Subscribe(SubscribeTemplate):
@@ -48,6 +49,8 @@ class Subscribe(SubscribeTemplate):
         if user is None:
           return
         self.return_to_account = True
+      if not ensure_username():
+        return
       if get_open_form() is self:
         set_url_hash({})
     finally:
@@ -66,6 +69,8 @@ class Subscribe(SubscribeTemplate):
         if user is None:
           return
         self.return_to_account = True
+      if not ensure_username():
+        return
       if get_open_form() is not self:
         return
       result = anvil.server.call("start_subscription_checkout")

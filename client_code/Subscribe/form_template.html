@@ -2,15 +2,16 @@
   <header class="subscription-topbar">
     <div class="subscription-brand"><span class="share-brand-mark" aria-hidden="true">π</span><span>Portfoliora</span></div>
     <nav class="subscription-nav" aria-label="Account navigation">
-      <anvil-component type="m3._Components.Button" name="dashboard_button" prop:role="subscription-button" prop:text="Portfolio" prop:appearance="text" prop:icon="mi:arrow_back"></anvil-component>
-      <anvil-component type="m3._Components.Button" name="subscription_button" prop:role="subscription-button" prop:text="My subscription" prop:appearance="outlined" prop:icon="mi:person"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="dashboard_button" prop:role="subscription-nav-button" prop:text="Portfolio" prop:appearance="text" prop:icon="mi:dashboard"></anvil-component>
+      <span class="subscription-nav-current" aria-current="page">Plans</span>
+      <anvil-component type="m3._Components.Button" name="subscription_button" prop:role="subscription-nav-button" prop:text="My subscription" prop:appearance="text" prop:icon="mi:person"></anvil-component>
     </nav>
   </header>
   <div class="subscription-content">
     <section class="subscription-intro">
       <div class="eyebrow">Membership plans</div>
       <h1>A clearer picture of your portfolio.</h1>
-      <p>Build your comparison with Free today. Find the latest information about Premium here as it takes shape.</p>
+      <p>Build your comparison with Free today. Premium is coming soon at $19.99 per month.</p>
     </section>
     <div class="subscription-plans">
       <section class="subscription-plan-card" aria-labelledby="free-plan-heading">
@@ -32,7 +33,7 @@
       <section class="subscription-plan-card subscription-plan-premium" aria-labelledby="premium-plan-heading">
         <div class="subscription-card-heading"><div class="subscription-plan-kicker">Coming soon</div><span class="feature-beta-badge">In development</span></div>
         <h2 id="premium-plan-heading">Premium</h2>
-        <anvil-component type="Label" name="premium_price_label" prop:text="Pricing coming soon" prop:role="subscription-price" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+        <anvil-component type="Label" name="premium_price_label" prop:text="$19.99/month" prop:role="subscription-price" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
         <anvil-component type="Label" name="premium_note_label" prop:role="subscription-plan-copy" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
         <div class="subscription-notice">
           <strong>Premium is on the way.</strong>
@@ -47,7 +48,7 @@
     <div role="status" aria-live="polite"><anvil-component type="Label" name="action_status_label" prop:role="portfolio-help" prop:visible="false"></anvil-component></div>
     <section class="subscription-notice subscription-bottom-note" aria-label="Existing memberships">
       <h2>Already a member?</h2>
-      <p>Open My subscription to see your current plan, membership status, and access dates. Premium access granted by the creator is shown there too.</p>
+      <p>Open My subscription to manage your username and see your current plan, membership status, and access dates.</p>
     </section>
   </div>
   <footer class="subscription-footer">Portfoliora · Understand your portfolio.</footer>

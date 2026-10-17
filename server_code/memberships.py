@@ -35,7 +35,7 @@ def membership_for(user):
     detail = "This account is disabled."
   elif is_premium:
     detail = ("Premium access through %s (UTC)." % expires_on.strftime("%b %d, %Y")
-              if expires_on is not None else "Premium access granted by the creator.")
+              if expires_on is not None else "Premium membership is active.")
   elif configured_tier == "premium" and expired:
     detail = "Premium access expired. Your account is now Free."
   else:

@@ -3,6 +3,7 @@ import anvil.users
 import anvil.tz
 from ._anvil_designer import MySubscriptionTemplate
 from anvil import *
+from ..account_profile import ensure_username
 
 
 class MySubscription(MySubscriptionTemplate):
@@ -16,6 +17,7 @@ class MySubscription(MySubscriptionTemplate):
     self.signed_out_region.visible = False
     self.refresh_status_label.visible = False
     self.billing_action_status_label.visible = False
+    self.username_status_label.visible = False
     setattr(self.billing_portal_button, "enabled", False)
     self.billing_portal_button.text = "Manage billing" if self._catalog["billing_portal_available"] else "Manage billing · Coming soon"
     self._refresh_details()
@@ -28,6 +30,8 @@ class MySubscription(MySubscriptionTemplate):
     setattr(self.dashboard_button, "enabled", not busy)
     setattr(self.plans_button, "enabled", not busy)
     setattr(self.account_plans_button, "enabled", not busy)
+    setattr(self.save_username_button, "enabled", not busy)
+    self.username_box.enabled = not busy
     setattr(self.billing_portal_button, "enabled", not busy and self._billing_eligible and self._catalog["billing_portal_available"])
 
   def _refresh_details(self):
@@ -43,6 +47,7 @@ class MySubscription(MySubscriptionTemplate):
     if current_user is None or current_user.get_id() != account_id:
       self.signed_out_region.visible = True
       return
+    self.username_box.text = details["username"] or ""
     membership = details["membership"]
     self._billing_eligible = membership["source"] == "subscription"
     self.email_label.text = details["email"]
@@ -93,6 +98,8 @@ class MySubscription(MySubscriptionTemplate):
         if user is None:
           return
         self.return_to_account = True
+      if not ensure_username():
+        return
       if get_open_form() is self:
         self._refresh_details()
     finally:
@@ -111,6 +118,34 @@ class MySubscription(MySubscriptionTemplate):
     finally:
       self._set_busy(False)
 
+  @handle("save_username_button", "click")
+  def save_username_click(self, **event_args):
+    if self._busy:
+      return
+    user = anvil.users.get_user()
+    if user is None:
+      self._refresh_details()
+      return
+    account_id = user.get_id()
+    self._set_busy(True)
+    self.username_status_label.visible = False
+    try:
+      result = anvil.server.call("set_my_username", self.username_box.text)
+      current_user = anvil.users.get_user()
+      if get_open_form() is not self or current_user is None or current_user.get_id() != account_id:
+        return
+      if result["ok"]:
+        self._refresh_details()
+        current_user = anvil.users.get_user()
+        if get_open_form() is not self or not self.account_region.visible or current_user is None or current_user.get_id() != account_id:
+          return
+        self.username_status_label.text = "Username saved."
+      else:
+        self.username_status_label.text = result["message"]
+      self.username_status_label.visible = True
+    finally:
+      self._set_busy(False)
+
   @handle("billing_portal_button", "click")
   def billing_portal_click(self, **event_args):
     if self._busy or not self._catalog["billing_portal_available"] or not self._billing_eligible:
@@ -124,7 +159,11 @@ class MySubscription(MySubscriptionTemplate):
         if user is None:
           return
         self.return_to_account = True
+        if not ensure_username():
+          return
         self._refresh_details()
+      elif not ensure_username():
+        return
       if get_open_form() is not self or not self._billing_eligible:
         return
       result = anvil.server.call("open_subscription_billing_portal")
