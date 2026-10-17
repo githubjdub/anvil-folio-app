@@ -2,8 +2,8 @@
   <header class="subscription-topbar">
     <div class="subscription-brand"><span class="share-brand-mark" aria-hidden="true">π</span><span>Portfoliora</span></div>
     <nav class="subscription-nav" aria-label="Account navigation">
-      <anvil-component type="m3._Components.Button" name="dashboard_button" prop:text="Portfolio" prop:appearance="text" prop:icon="mi:arrow_back"></anvil-component>
-      <anvil-component type="m3._Components.Button" name="subscription_button" prop:text="My subscription" prop:appearance="outlined" prop:icon="mi:person"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="dashboard_button" prop:role="subscription-button" prop:text="Portfolio" prop:appearance="text" prop:icon="mi:arrow_back"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="subscription_button" prop:role="subscription-button" prop:text="My subscription" prop:appearance="outlined" prop:icon="mi:person"></anvil-component>
     </nav>
   </header>
   <div class="subscription-content">
@@ -25,7 +25,7 @@
           <li>Explore allocation, risk, and performance charts</li>
         </ul>
         <div class="subscription-card-actions">
-          <anvil-component type="m3._Components.Button" name="free_button" prop:text="Sign in / Create free account" prop:appearance="filled" prop:icon="mi:arrow_forward"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="free_button" prop:role="subscription-primary" prop:text="Sign in / Create free account" prop:appearance="filled" prop:icon="mi:arrow_forward"></anvil-component>
           <p class="subscription-muted">An account lets you save your work and return to it on any device.</p>
         </div>
       </section>
@@ -35,11 +35,11 @@
         <anvil-component type="Label" name="premium_price_label" prop:text="Pricing coming soon" prop:role="subscription-price" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
         <anvil-component type="Label" name="premium_note_label" prop:role="subscription-plan-copy" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
         <div class="subscription-notice">
-          <strong>Built with the community.</strong>
+          <strong>Premium is on the way.</strong>
           <p>Plan details will appear here before subscriptions open. Already have Premium access? Check your membership on the My subscription page.</p>
         </div>
         <div class="subscription-card-actions">
-          <anvil-component type="m3._Components.Button" name="premium_button" prop:text="Subscriptions coming soon" prop:appearance="outlined" prop:enabled="false"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="premium_button" prop:role="subscription-button" prop:text="Subscriptions coming soon" prop:appearance="outlined" prop:enabled="false"></anvil-component>
           <p class="subscription-muted">Checkout will open when Premium is ready.</p>
         </div>
       </section>

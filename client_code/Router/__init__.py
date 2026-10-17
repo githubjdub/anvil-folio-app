@@ -15,7 +15,6 @@ class Router(RouterTemplate):
     self._routed = False
     self._route_generation = 0
     self._editor_form = None
-    self._editor_account_id = None
     self._hash_listener = anvil.js.report_exceptions(self.hash_changed)
 
   @handle("", "show")
@@ -47,7 +46,6 @@ class Router(RouterTemplate):
     active = get_open_form()
     if isinstance(active, Form1):
       self._editor_form = active
-      self._editor_account_id = active.account_id
     if page == "shared":
       if isinstance(active, PublicPerformance) and active.share_token == token:
         return
@@ -72,13 +70,19 @@ class Router(RouterTemplate):
       account_id = user.get_id() if user is not None else None
       # Keep drafts for the same account, including a guest who just signed in.
       # A different signed-in account must never inherit the cached workspace.
-      reusable = (self._editor_form is not None
-                  and self._editor_account_id in (None, account_id))
-      editor = self._editor_form if reusable else Form1()
-      if reusable:
+      editor = self._editor_form
+      if editor is None or editor.account_id not in (None, account_id):
+        editor = Form1()
+      else:
         editor.resume_account()
+      # Resuming or constructing a Form can yield while account state changes.
+      user = anvil.users.get_user()
+      current_account_id = user.get_id() if user is not None else None
       if generation == self._route_generation and self._route_key() == route:
+        if editor.account_id not in (None, current_account_id):
+          self._editor_form = None
+          self._open_route()
+          return
         self._editor_form = editor
-        self._editor_account_id = editor.account_id
         open_form(editor)
         record_page("dashboard")

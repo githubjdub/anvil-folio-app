@@ -2,8 +2,8 @@
   <header class="subscription-topbar">
     <div class="subscription-brand"><span class="share-brand-mark" aria-hidden="true">π</span><span>Portfoliora</span></div>
     <nav class="subscription-nav" aria-label="Account navigation">
-      <anvil-component type="m3._Components.Button" name="dashboard_button" prop:text="Portfolio" prop:appearance="text" prop:icon="mi:arrow_back"></anvil-component>
-      <anvil-component type="m3._Components.Button" name="plans_button" prop:text="View plans" prop:appearance="outlined"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="dashboard_button" prop:role="subscription-button" prop:text="Portfolio" prop:appearance="text" prop:icon="mi:arrow_back"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="plans_button" prop:role="subscription-button" prop:text="View plans" prop:appearance="outlined"></anvil-component>
     </nav>
   </header>
   <div class="subscription-content">
@@ -15,16 +15,16 @@
     <section anvil:name="signed_out_region" class="subscription-plan-card subscription-signin" aria-label="Sign in to view your subscription">
       <h2>Make yourself at home.</h2>
       <p>Sign in to view your membership, or create a free account to start saving your portfolios.</p>
-      <anvil-component type="m3._Components.Button" name="signin_button" prop:text="Sign in / Create account" prop:appearance="filled" prop:icon="mi:person"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="signin_button" prop:role="subscription-primary" prop:text="Sign in / Create account" prop:appearance="filled" prop:icon="mi:person"></anvil-component>
     </section>
     <div anvil:name="account_region">
       <section class="subscription-plan-card subscription-current-plan" aria-label="Current membership">
         <div class="subscription-heading-row">
           <div><div class="subscription-plan-kicker">Current plan</div><anvil-component type="Label" name="plan_badge" prop:text="Free" prop:role="membership-badge-free" prop:spacing_above="small" prop:spacing_below="small"></anvil-component></div>
-          <anvil-component type="m3._Components.Button" name="refresh_button" prop:text="Refresh details" prop:appearance="text" prop:icon="mi:refresh"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="refresh_button" prop:role="subscription-button" prop:text="Refresh details" prop:appearance="text" prop:icon="mi:refresh"></anvil-component>
         </div>
         <anvil-component type="Label" name="membership_detail_label" prop:role="subscription-plan-copy" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-        <div class="subscription-actions"><anvil-component type="m3._Components.Button" name="account_plans_button" prop:text="Explore plans" prop:appearance="outlined" prop:icon="mi:arrow_forward"></anvil-component></div>
+        <div class="subscription-actions"><anvil-component type="m3._Components.Button" name="account_plans_button" prop:role="subscription-button" prop:text="Explore plans" prop:appearance="outlined" prop:icon="mi:arrow_forward"></anvil-component></div>
         <div role="status" aria-live="polite"><anvil-component type="Label" name="refresh_status_label" prop:role="portfolio-help" prop:visible="false"></anvil-component></div>
       </section>
       <div class="subscription-account-grid">
@@ -46,7 +46,7 @@
           </dl>
           <div class="subscription-notice"><anvil-component type="Label" name="billing_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
           <div class="subscription-card-actions">
-            <anvil-component type="m3._Components.Button" name="billing_portal_button" prop:text="Manage billing · Coming soon" prop:appearance="outlined" prop:enabled="false"></anvil-component>
+            <anvil-component type="m3._Components.Button" name="billing_portal_button" prop:role="subscription-button" prop:text="Manage billing · Coming soon" prop:appearance="outlined" prop:enabled="false"></anvil-component>
             <p class="subscription-muted">Billing controls will be available when subscriptions open.</p>
             <div role="status" aria-live="polite"><anvil-component type="Label" name="billing_action_status_label" prop:role="portfolio-help" prop:visible="false"></anvil-component></div>
           </div>

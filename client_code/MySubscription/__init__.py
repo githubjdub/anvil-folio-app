@@ -1,5 +1,6 @@
 import anvil.server
 import anvil.users
+import anvil.tz
 from ._anvil_designer import MySubscriptionTemplate
 from anvil import *
 
@@ -15,19 +16,19 @@ class MySubscription(MySubscriptionTemplate):
     self.signed_out_region.visible = False
     self.refresh_status_label.visible = False
     self.billing_action_status_label.visible = False
-    self.billing_portal_button.enabled = False
+    setattr(self.billing_portal_button, "enabled", False)
     self.billing_portal_button.text = "Manage billing" if self._catalog["billing_portal_available"] else "Manage billing · Coming soon"
     self._refresh_details()
     self._set_busy(False)
 
   def _set_busy(self, busy):
     self._busy = busy
-    self.signin_button.enabled = not busy
-    self.refresh_button.enabled = not busy
-    self.dashboard_button.enabled = not busy
-    self.plans_button.enabled = not busy
-    self.account_plans_button.enabled = not busy
-    self.billing_portal_button.enabled = not busy and self._billing_eligible and self._catalog["billing_portal_available"]
+    setattr(self.signin_button, "enabled", not busy)
+    setattr(self.refresh_button, "enabled", not busy)
+    setattr(self.dashboard_button, "enabled", not busy)
+    setattr(self.plans_button, "enabled", not busy)
+    setattr(self.account_plans_button, "enabled", not busy)
+    setattr(self.billing_portal_button, "enabled", not busy and self._billing_eligible and self._catalog["billing_portal_available"])
 
   def _refresh_details(self):
     user = anvil.users.get_user()
@@ -36,7 +37,12 @@ class MySubscription(MySubscriptionTemplate):
     self._billing_eligible = False
     if user is None:
       return
+    account_id = user.get_id()
     details = anvil.server.call("get_my_subscription")
+    current_user = anvil.users.get_user()
+    if current_user is None or current_user.get_id() != account_id:
+      self.signed_out_region.visible = True
+      return
     membership = details["membership"]
     self._billing_eligible = membership["source"] == "subscription"
     self.email_label.text = details["email"]
@@ -49,9 +55,11 @@ class MySubscription(MySubscriptionTemplate):
     self.access_type_label.text = details["access_type_label"]
     expires_at = membership["expires_at"]
     if expires_at is not None:
-      self.access_until_label.text = expires_at.strftime("%b %d, %Y at %H:%M UTC")
+      self.access_until_label.text = expires_at.astimezone(anvil.tz.tzutc()).strftime("%b %d, %Y at %H:%M UTC")
     elif membership["is_premium"]:
       self.access_until_label.text = "No expiry set"
+    elif membership["configured_tier"] == "premium":
+      self.access_until_label.text = "No active Premium expiry"
     else:
       self.access_until_label.text = "Free membership has no expiry"
     self.billing_status_label.text = details["billing_status_label"]
@@ -85,7 +93,8 @@ class MySubscription(MySubscriptionTemplate):
         if user is None:
           return
         self.return_to_account = True
-      self._refresh_details()
+      if get_open_form() is self:
+        self._refresh_details()
     finally:
       self._set_busy(False)
 

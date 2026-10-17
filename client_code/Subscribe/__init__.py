@@ -21,10 +21,10 @@ class Subscribe(SubscribeTemplate):
 
   def _set_busy(self, busy):
     self._busy = busy
-    self.free_button.enabled = not busy
-    self.dashboard_button.enabled = not busy
-    self.subscription_button.enabled = not busy
-    self.premium_button.enabled = not busy and self._catalog["checkout_available"]
+    setattr(self.free_button, "enabled", not busy)
+    setattr(self.dashboard_button, "enabled", not busy)
+    setattr(self.subscription_button, "enabled", not busy)
+    setattr(self.premium_button, "enabled", not busy and self._catalog["checkout_available"])
 
   @handle("dashboard_button", "click")
   def dashboard_click(self, **event_args):

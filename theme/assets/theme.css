@@ -1099,3 +1099,71 @@ input.anvil-role-creator-search:focus { border-color: var(--mint-strong); outlin
 
 .hedge-fund-source-links { display: flex; flex-wrap: wrap; gap: 12px; }
 .anvil-role-hedge-fund-metric-title { color: #6f828e; font-size: 11px; font-weight: 650; }
+
+/* Plans and account membership pages. */
+.subscription-page { min-height: 100vh; color: var(--ink); background: var(--canvas); }
+.subscription-topbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; padding: 22px max(24px, calc((100vw - 1120px) / 2)); border-bottom: 1px solid var(--line); background: var(--paper); }
+.subscription-brand { display: flex; align-items: center; gap: 12px; font-size: 23px; font-weight: 800; letter-spacing: -.04em; }
+.subscription-nav, .subscription-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.subscription-content { max-width: 1120px; margin: 0 auto; padding: 58px 24px 40px; box-sizing: border-box; }
+.subscription-intro { max-width: 760px; margin-bottom: 36px; }
+.subscription-intro h1 { font-size: clamp(32px, 4.5vw, 48px); line-height: 1.15; letter-spacing: -.045em; margin: 0 0 18px; }
+.subscription-intro > p { color: var(--muted); font-size: 17px; line-height: 1.75; margin: 0; }
+.subscription-plans, .subscription-account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px; }
+.subscription-plan-card { min-width: 0; padding: 32px; border: 1px solid var(--line); border-radius: 18px; background: var(--paper); box-shadow: var(--shadow); }
+.subscription-plans > .subscription-plan-card { display: flex; flex-direction: column; align-items: stretch; }
+.subscription-plan-premium { border-color: #9bcdb1; background: linear-gradient(145deg, #f3fbf6, var(--paper) 65%); }
+.subscription-plan-card h2 { font-size: 24px; line-height: 1.35; letter-spacing: -.025em; margin: 0 0 20px; }
+.subscription-plan-kicker { color: var(--muted); font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 14px; }
+.subscription-card-heading, .subscription-heading-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.subscription-card-heading .subscription-plan-kicker { margin: 0; }
+.subscription-price, .anvil-role-subscription-price { font-size: 33px; line-height: 1.3; font-weight: 750; letter-spacing: -.04em; margin: 0 0 18px; color: var(--navy); overflow-wrap: anywhere; }
+.subscription-price > span { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+.subscription-plan-copy, .anvil-role-subscription-plan-copy, .subscription-signin > p { font-size: 15px; line-height: 1.75; color: var(--muted); margin: 0 0 20px; }
+.subscription-feature-list { padding-left: 22px; margin: 4px 0 26px; font-size: 15px; line-height: 1.7; }
+.subscription-feature-list li { padding-left: 4px; margin-bottom: 12px; }
+.subscription-feature-list li::marker { color: var(--mint-strong); }
+.subscription-card-actions { margin-top: auto; padding-top: 20px; }
+.subscription-muted { color: var(--muted); font-size: 13px; line-height: 1.65; margin: 12px 0 0; }
+.subscription-notice { margin: 6px 0 18px; padding: 20px; background: var(--canvas); border: 1px solid var(--line); border-radius: 12px; }
+.subscription-notice > strong { color: var(--navy); font-size: 15px; }
+.subscription-notice > p { color: var(--muted); font-size: 14px; line-height: 1.75; margin: 8px 0 0; }
+.subscription-notice .anvil-role-portfolio-help { font-size: 14px; line-height: 1.75; }
+.subscription-bottom-note { margin: 28px 0 0; background: transparent; }
+.subscription-bottom-note h2 { font-size: 18px; margin: 0 0 8px; }
+.subscription-current-plan { margin-bottom: 26px; }
+.subscription-current-plan .subscription-heading-row { align-items: flex-start; }
+.subscription-actions { margin-top: 20px; }
+.subscription-details { margin: 0 0 22px; }
+.subscription-detail-row { padding: 17px 0; border-bottom: 1px solid var(--line); }
+.subscription-detail-row:first-child { padding-top: 0; }
+.subscription-detail-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.subscription-detail-row dt { color: var(--muted); font-size: 12px; line-height: 1.6; margin-bottom: 6px; }
+.subscription-detail-row dd { margin: 0; }
+.anvil-role-subscription-value { color: var(--ink); font-size: 15px; line-height: 1.7; font-weight: 650; overflow-wrap: anywhere; }
+.subscription-signin { max-width: 620px; }
+.subscription-footer { text-align: center; padding: 8px 24px 32px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+button.anvil-role-subscription-button, button.anvil-role-subscription-primary,
+.anvil-role-subscription-button > button, .anvil-role-subscription-primary > button { box-sizing: border-box; min-height: 44px; height: auto; margin: 0; padding: 11px 18px; border: 1px solid #bad1c4; border-radius: 10px; color: #277b50; background: var(--paper); font-size: 14px; line-height: 1.5; white-space: normal; }
+button.anvil-role-subscription-primary, .anvil-role-subscription-primary > button { color: white; border-color: #277b50; background: #277b50; }
+button.anvil-role-subscription-button:hover, .anvil-role-subscription-button > button:hover { background: #eef7f2; }
+button.anvil-role-subscription-primary:hover, .anvil-role-subscription-primary > button:hover { background: #206740; }
+button.anvil-role-subscription-button:disabled, button.anvil-role-subscription-primary:disabled,
+.anvil-role-subscription-button > button:disabled, .anvil-role-subscription-primary > button:disabled { opacity: .65; cursor: default; }
+button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscription-primary:focus-visible,
+.anvil-role-subscription-button > button:focus-visible, .anvil-role-subscription-primary > button:focus-visible { outline: 3px solid var(--mint-strong); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .subscription-topbar { padding: 18px 20px; }
+  .subscription-content { padding: 36px 20px 28px; }
+  .subscription-plans, .subscription-account-grid { grid-template-columns: 1fr; gap: 20px; }
+  .subscription-plan-card { padding: 26px; }
+}
+@media (max-width: 460px) {
+  .subscription-topbar { align-items: flex-start; }
+  .subscription-nav { width: 100%; }
+  .subscription-content { padding: 30px 14px 24px; }
+  .subscription-plan-card { padding: 22px 18px; border-radius: 14px; }
+  .subscription-intro > p { font-size: 15px; }
+  .subscription-price, .anvil-role-subscription-price { font-size: 29px; }
+  .subscription-notice { padding: 16px; }
+}
