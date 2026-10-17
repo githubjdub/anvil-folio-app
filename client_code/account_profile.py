@@ -4,9 +4,23 @@ import anvil.server
 import anvil.users
 from anvil import alert
 from .Components.UsernameSetup import UsernameSetup
+from .Components.SignIn import SignIn
 
 
 _checking_profile = False
+
+
+def sign_in():
+  user = anvil.users.get_user()
+  if user is not None:
+    return user
+  action = alert(SignIn(), title="Welcome to Portfoliora", buttons=[], dismissible=False,
+                 role="username-setup-dialog")
+  if action == "signup":
+    return anvil.users.signup_with_form(allow_cancel=True)
+  if action == "standard":
+    return anvil.users.login_with_form(allow_cancel=True)
+  return anvil.users.get_user() if action == "signed_in" else None
 
 
 def username_prompt_open():

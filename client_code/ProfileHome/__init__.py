@@ -1,0 +1,105 @@
+import anvil.server
+import anvil.users
+import anvil.tz
+from ._anvil_designer import ProfileHomeTemplate
+from anvil import *
+from ..account_profile import sign_in, ensure_username
+
+
+class ProfileHome(ProfileHomeTemplate):
+  def __init__(self, **properties):
+    super().__init__(**properties)
+    self._busy = False
+    self._can_edit_name = False
+    self.account_id = None
+    self.status_label.visible = False
+    self._refresh()
+
+  def _refresh(self):
+    user = anvil.users.get_user()
+    self.profile_region.visible = user is not None
+    self.signed_out_region.visible = user is None
+    self.signout_button.visible = user is not None
+    if user is None:
+      self.account_id = None
+      return
+    account_id = user.get_id()
+    profile = anvil.server.call('get_my_profile')
+    usage = anvil.server.call('get_portfolio_usage')
+    portfolios = anvil.server.call('list_portfolios')
+    current = anvil.users.get_user()
+    if current is None or current.get_id() != account_id:
+      self._refresh()
+      return
+    self.account_id = account_id
+    self.greeting_label.text = 'Welcome back, %s.' % profile['username']
+    self.display_name_label.text = profile['display_name']
+    self.username_label.text = '@' + profile['username']
+    self.email_label.text = profile['email']
+    self.display_name_box.text = profile['display_name']
+    self._can_edit_name = profile['can_change_display_name']
+    self.plan_label.text = usage['plan']
+    self.usage_label.text = '%s of %s portfolios saved' % (usage['count'], usage['limit'])
+    self.usage_note.text = ('Your existing portfolios remain available. Your plan is currently at its saving limit.'
+                            if not usage['can_create'] else 'Room for your next investment idea.')
+    self.portfolios_panel.items = portfolios
+    self.empty_label.visible = not portfolios
+    self.member_since_label.text = 'Member since ' + profile['member_since'].strftime('%B %Y') if profile['member_since'] else 'Your personal investing workspace'
+    change = profile['next_display_name_change_at']
+    self.change_note.text = ('Next display-name change: %s UTC.' % change.astimezone(anvil.tz.tzutc()).strftime('%b %d, %Y at %H:%M')
+                            if not self._can_edit_name else 'You can change your display name now. After that, once every 7 days.')
+    self._set_busy(self._busy)
+
+  def _set_busy(self, busy):
+    self._busy = busy
+    for button in (self.save_name_button, self.portfolio_button, self.subscription_button, self.signout_button, self.signin_button):
+      button.enabled = not busy
+    self.save_name_button.enabled = not busy and self._can_edit_name
+    self.display_name_box.enabled = not busy and self._can_edit_name
+
+  @handle('save_name_button', 'click')
+  def save_name(self, **event_args):
+    if self._busy or not self._can_edit_name:
+      return
+    account_id = self.account_id
+    self._set_busy(True)
+    try:
+      result = anvil.server.call('set_my_display_name', self.display_name_box.text)
+      user = anvil.users.get_user()
+      if user is None or user.get_id() != account_id or get_open_form() is not self:
+        return
+      if result['ok'] or result.get('next_display_name_change_at'):
+        self._refresh()
+      user = anvil.users.get_user()
+      if user is None or user.get_id() != account_id or get_open_form() is not self:
+        return
+      self.status_label.text = result['message']
+      self.status_label.visible = True
+    finally:
+      self._set_busy(False)
+
+  @handle('portfolio_button', 'click')
+  def portfolio_click(self, **event_args):
+    if not self._busy:
+      set_url_hash({'page': 'portfolio'})
+
+  @handle('portfolios_panel', 'x-open-portfolio')
+  def open_portfolio(self, portfolio_id, **event_args):
+    if not self._busy:
+      set_url_hash({'page': 'portfolio', 'portfolio': portfolio_id})
+
+  @handle('subscription_button', 'click')
+  def subscription_click(self, **event_args):
+    if not self._busy:
+      set_url_hash({'page': 'subscription'})
+
+  @handle('signout_button', 'click')
+  def signout_click(self, **event_args):
+    if not self._busy:
+      anvil.users.logout(invalidate_client_objects=True)
+      set_url_hash({'page': 'portfolio'})
+
+  @handle('signin_button', 'click')
+  def signin_click(self, **event_args):
+    if not self._busy and sign_in() is not None and ensure_username():
+      self._refresh()

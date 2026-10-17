@@ -6,6 +6,7 @@ from ..Form1 import Form1
 from ..PublicPerformance import PublicPerformance
 from ..Subscribe import Subscribe
 from ..MySubscription import MySubscription
+from ..ProfileHome import ProfileHome
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, username_prompt_open
 
@@ -36,9 +37,11 @@ class Router(RouterTemplate):
     if isinstance(route, dict):
       if route.get("share") is not None:
         return "shared", route["share"]
-      if route.get("page") in ("subscribe", "subscription"):
+      if route.get("page") in ("subscribe", "subscription", "profile"):
         return route["page"], None
-    return "dashboard", None
+      if route.get("page") == "portfolio":
+        return "dashboard", route.get("portfolio")
+    return ("profile", None) if anvil.users.get_user() is not None else ("dashboard", None)
 
   def _open_route(self):
     self._route_generation += 1
@@ -65,9 +68,15 @@ class Router(RouterTemplate):
       if generation == self._route_generation and self._route_key() == route:
         open_form(reader)
         record_page("shared")
-    elif page in ("subscribe", "subscription"):
-      form_type = Subscribe if page == "subscribe" else MySubscription
+    elif page in ("subscribe", "subscription", "profile"):
+      form_type = {"subscribe": Subscribe, "subscription": MySubscription, "profile": ProfileHome}[page]
       if isinstance(active, form_type):
+        if isinstance(active, ProfileHome):
+          active._refresh()
+        elif isinstance(active, MySubscription):
+          active._refresh_details()
+        elif isinstance(active, Subscribe):
+          active.plan_comparison.refresh_plan()
         return
       destination = form_type()
       if generation == self._route_generation and self._route_key() == route:
@@ -83,6 +92,10 @@ class Router(RouterTemplate):
         editor = Form1()
       else:
         editor.resume_account()
+      if token is not None and generation == self._route_generation and self._route_key() == route:
+        if not editor.open_profile_portfolio(token):
+          set_url_hash({"page": "profile"})
+          return
       # Resuming or constructing a Form can yield while account state changes.
       user = anvil.users.get_user()
       current_account_id = user.get_id() if user is not None else None

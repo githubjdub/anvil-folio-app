@@ -1,3 +1,4 @@
+import anvil.secrets
 """Parse browser-read brokerage text into reviewable drafts; never persist it."""
 
 from datetime import date, datetime

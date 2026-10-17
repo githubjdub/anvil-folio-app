@@ -2,7 +2,7 @@ import anvil.server
 import anvil.users
 from ._anvil_designer import PublicPerformanceTemplate
 from anvil import *
-from ..account_profile import ensure_username
+from ..account_profile import ensure_username, sign_in
 
 
 class PublicPerformance(PublicPerformanceTemplate):
@@ -24,16 +24,16 @@ class PublicPerformance(PublicPerformanceTemplate):
   @handle("build_comparison_button", "click")
   def build_comparison_button_click(self, **event_args):
     self.return_to_account = False
-    set_url_hash("")
+    set_url_hash({"page": "portfolio"})
 
   @handle("join_button", "click")
   def join_button_click(self, **event_args):
     if anvil.users.get_user() is None:
-      user = anvil.users.login_with_form(allow_cancel=True)
+      user = sign_in()
       if user is None:
         return
     if not ensure_username():
       return
     self.return_to_account = True
     if get_open_form() is self:
-      set_url_hash("")
+      set_url_hash({"page": "profile"})

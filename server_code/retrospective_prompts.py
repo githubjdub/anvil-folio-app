@@ -1,3 +1,4 @@
+import anvil.secrets
 """Bounded, deterministic prose-to-rules preview for the daily backtester.
 
 This module recognises a deliberately small strategy vocabulary. It never runs

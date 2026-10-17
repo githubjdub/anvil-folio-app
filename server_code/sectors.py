@@ -1,3 +1,4 @@
+import anvil.secrets
 """Current Finviz classifications for the market value of open positions."""
 
 from collections import OrderedDict

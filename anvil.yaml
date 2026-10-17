@@ -176,6 +176,17 @@ db_schema:
       type: bool
     server: full
     title: Site Visits
+  stripe_events:
+    client: none
+    columns:
+    - admin_ui: {}
+      name: event_id
+      type: string
+    - admin_ui: {}
+      name: processed_at
+      type: datetime
+    server: full
+    title: Stripe Events
   users:
     client: none
     columns:
@@ -185,6 +196,21 @@ db_schema:
     - admin_ui: {}
       name: username
       type: string
+    - admin_ui: {}
+      name: display_name
+      type: string
+    - admin_ui: {}
+      client_hidden: true
+      name: display_name_updated_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: stripe_customer_id
+      type: string
+    - admin_ui: {}
+      client_hidden: true
+      name: stripe_state
+      type: simpleObject
     - admin_ui: {}
       client_hidden: true
       name: username_key
@@ -261,4 +287,7 @@ services:
 - client_config: {allow_remember_me: true, allow_signup: true, confirm_email: false, enable_automatically: true, remember_me_days: 30, require_secure_passwords: true, use_email: true}
   server_config: {user_table: users}
   source: /runtime/services/anvil/users.yml
+- client_config: {}
+  server_config: {}
+  source: /runtime/services/anvil/secrets.yml
 startup_form: Router

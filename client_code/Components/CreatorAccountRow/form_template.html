@@ -8,9 +8,9 @@
   <section anvil:name="membership_editor" class="creator-membership-editor" aria-label="Manage account membership">
     <div class="creator-membership-fields">
       <div><label>Access level</label><anvil-component type="DropDown" name="membership_tier_dropdown" prop:role="creator-select" prop:tooltip="Account access level" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-      <div><label>Premium through (optional)</label><anvil-component type="DatePicker" name="membership_expiry_picker" prop:role="date-field" prop:tooltip="Last day of Premium access in UTC; leave blank for no expiry" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+      <div><label>Plus through (optional)</label><anvil-component type="DatePicker" name="membership_expiry_picker" prop:role="date-field" prop:tooltip="Last day of Plus access in UTC; leave blank for no expiry" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
     </div>
-    <p class="creator-membership-note">Premium lasts through the selected UTC date. Leave the date blank for no expiry. Setting Free removes manual Premium access.</p>
+    <p class="creator-membership-note">Plus lasts through the selected UTC date. Leave the date blank for no expiry. Setting Free removes manual Plus access.</p>
     <p class="creator-membership-note">This changes manual access only. It does not charge the user or start or cancel a subscription.</p>
     <div class="creator-membership-actions"><anvil-component type="Button" name="membership_save_button" prop:text="Save membership" prop:role="creator-action" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Button" name="membership_cancel_button" prop:text="Cancel" prop:role="creator-tool" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
   </section>

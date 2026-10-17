@@ -11,7 +11,7 @@ from ..chart_trades import build_trade_markers
 from ..portfolio_periods import quarterly_returns, allocation_snapshots
 from ..HoldingRow import HoldingRow
 from ..site_tracking import record_page
-from ..account_profile import ensure_username
+from ..account_profile import ensure_username, sign_in
 
 
 SECTOR_COLORS = {
@@ -680,6 +680,29 @@ class Form1(Form1Template):
     if not self._busy:
       set_url_hash({"page": "subscribe"})
 
+  @handle("profile_button", "click")
+  def profile_click(self, **event_args):
+    if not self._busy:
+      set_url_hash({"page": "profile"})
+
+  def open_profile_portfolio(self, portfolio_id):
+    if self._busy:
+      return False
+    if self._current_portfolio is not None and self._current_portfolio.get_id() == portfolio_id:
+      return True
+    if not self._confirm_discard():
+      return False
+    self._set_busy(True)
+    try:
+      result = anvil.server.call("load_portfolio", portfolio_id)
+      if not result["ok"]:
+        self._set_portfolio_status(result["message"], is_error=True)
+        return False
+      self._apply_portfolio(result["portfolio"])
+      return True
+    finally:
+      self._set_busy(False)
+
   @handle("subscription_button", "click")
   def subscription_click(self, **event_args):
     if not self._busy:
@@ -754,7 +777,7 @@ class Form1(Form1Template):
   def _ensure_signed_in(self):
     new_login = False
     if anvil.users.get_user() is None:
-      user = anvil.users.login_with_form(allow_cancel=True)
+      user = sign_in()
       if user is None:
         self._set_portfolio_status("Sign-in canceled. Your unsaved portfolio is still here.")
         return False
@@ -822,6 +845,7 @@ class Form1(Form1Template):
       if self._user is None:
         if self._ensure_signed_in():
           self._restore_last_portfolio()
+          set_url_hash({"page": "profile"})
       else:
         anvil.users.logout(invalidate_client_objects=True)
         self._user = None

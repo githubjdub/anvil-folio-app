@@ -1,3 +1,4 @@
+import anvil.secrets
 """Public, bounded 13F library and comparisons on matching daily samples.
 
 User portfolio paths are transient inputs and are never saved in the shared

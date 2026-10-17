@@ -1,98 +1,81 @@
-"""Subscription page data; payment collection is not configured yet.
-
-Membership access is distinct from a paid subscription. These endpoints expose
-only the signed-in account's display details and deliberately leave checkout and
-billing management unavailable until a verified payment integration is added.
-"""
-
+import anvil.secrets
+"""Free/Plus plans and authenticated Stripe actions."""
 from datetime import datetime, timezone
 from typing import Any
-
 import anvil.server
-
-from . import memberships
-
-# Generated cross-module stubs omit private helpers; reuse the existing guard.
+from anvil.tables import app_tables
+from . import memberships, stripe_billing
 _memberships: Any = memberships
+_billing: Any = stripe_billing
 
 
 @anvil.server.callable
 def get_subscription_catalog():
-  return {
-    "checkout_available": False,
-    "premium_price_label": "$19.99/month",
-    "premium_note": (
-      "USD, billed monthly. Subscriptions are coming soon; included benefits "
-      "will be confirmed before checkout opens."
-    ),
-    "billing_portal_available": False,
-  }
+  ready = _billing.configuration() is not None
+  return {'checkout_available': ready, 'billing_portal_available': ready,
+          'premium_price_label': '$19.99/month', 'plus_price_label': '$19.99/month',
+          'premium_note': 'USD, billed monthly. Save up to 3 portfolios.',
+          'free_portfolio_limit': 1, 'plus_portfolio_limit': 3}
 
 
 @anvil.server.callable(require_user=True)
 def get_my_subscription():
   user = _memberships._signed_in_user()
-  membership = _memberships.membership_for(user)
-  configured_premium = membership["configured_tier"] == "premium"
-  expired = (membership["expires_at"] is not None
-             and membership["expires_at"] <= datetime.now(timezone.utc))
-  if membership["is_premium"]:
-    status_label = "Active Premium"
-  elif configured_premium and expired:
-    status_label = "Expired Premium"
-  elif configured_premium:
-    status_label = "Inactive Premium"
-  else:
-    status_label = "Free"
-
-  if membership["source"] == "subscription":
-    access_type_label = "Subscription access"
-    billing_status_label = "Billing details unavailable"
-    billing_detail = (
-      "Your account has subscription access. Payment, renewal, and cancellation "
-      "details are not available here yet."
-    )
-    renewal_label = "Renewal details unavailable"
-  elif membership["source"] == "creator" and configured_premium:
-    access_type_label = "Premium membership"
-    billing_status_label = "No recurring subscription"
-    billing_detail = (
-      "No recurring subscription is set up for this Premium membership. "
-      "No automatic renewal is scheduled."
-    )
-    renewal_label = "No automatic renewal"
-  else:
-    access_type_label = "Free membership" if not configured_premium else "Inactive membership"
-    billing_status_label = "No recurring subscription"
-    billing_detail = "No recurring subscription is set up for this account."
-    renewal_label = "No automatic renewal"
-
+  membership = memberships.membership_for(user)
+  state = user['stripe_state'] or {}
+  status = state.get('status')
+  end = datetime.fromtimestamp(state['period_end'], timezone.utc) if state.get('period_end') else None
+  recurring = status in ('active', 'trialing', 'past_due', 'unpaid', 'paused', 'incomplete')
+  canceling = state.get('cancel_at_period_end', False)
   return {
-    "email": user["email"],
-    "username": user["username"],
-    "member_since": user["signed_up"],
-    "membership": membership,
-    "status_label": status_label,
-    "access_type_label": access_type_label,
-    "billing_status_label": billing_status_label,
-    "billing_detail": billing_detail,
-    "renewal_label": renewal_label,
+    'email': user['email'], 'username': user['username'], 'member_since': user['signed_up'],
+    'membership': membership, 'portfolio_count': len(app_tables.portfolios.search(owner=user)),
+    'status_label': 'Active Plus' if membership['is_premium'] else 'Free',
+    'access_type_label': 'Plus membership' if membership['is_premium'] else 'Free membership',
+    'billing_status_label': (status or 'No recurring subscription').replace('_', ' ').capitalize(),
+    'billing_detail': ('Your subscription is scheduled to end after the current billing period.' if canceling else
+                       'Manage payment methods, invoices, and cancellation securely in Stripe.' if recurring else
+                       'No recurring subscription is active on this account.'),
+    'renewal_label': ('Ends ' if canceling else 'Renews ') + end.strftime('%b %d, %Y (UTC)') if end and recurring else 'No scheduled renewal',
+    'can_manage_billing': bool(user['stripe_customer_id']),
   }
 
 
 @anvil.server.callable(require_user=True)
 def start_subscription_checkout():
-  _memberships._signed_in_user()
-  return {
-    "ok": False,
-    "message": "Subscriptions are coming soon. Checkout is not available yet.",
-  }
+  user = _memberships._signed_in_user()
+  config = _billing.configuration()
+  if config is None:
+    return {'ok': False, 'message': 'Payments are being set up. Please check back soon.'}
+  if not user['username']:
+    return {'ok': False, 'message': 'Choose your username before subscribing.'}
+  if memberships.membership_for(user)['is_premium']:
+    return {'ok': False, 'message': 'You already have Plus access. View your current membership below.'}
+  try:
+    return _billing.checkout(user, config)
+  except _billing.BillingSetupError as error:
+    return {'ok': False, 'message': str(error)}
 
 
 @anvil.server.callable(require_user=True)
 def open_subscription_billing_portal():
-  _memberships._signed_in_user()
-  return {
-    "ok": False,
-    "message": "Subscription billing management is not available in the app yet.",
-  }
+  user = _memberships._signed_in_user()
+  config = _billing.configuration()
+  if config is None:
+    return {'ok': False, 'message': 'Billing management is being set up. Please check back soon.'}
+  try:
+    return _billing.portal(user, config)
+  except _billing.BillingSetupError as error:
+    return {'ok': False, 'message': str(error)}
+
+
+@anvil.server.callable(require_user=True)
+def refresh_my_billing():
+  user = _memberships._signed_in_user()
+  config = _billing.configuration()
+  if config and user['stripe_customer_id']:
+    try:
+      _billing.reconcile_customer(user['stripe_customer_id'], config)
+    except _billing.BillingSetupError as error:
+      return {'ok': False, 'message': str(error)}
+  return {'ok': True}

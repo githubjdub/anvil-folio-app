@@ -1,3 +1,4 @@
+import anvil.secrets
 """Server-owned membership access; all existing accounts default to Free.
 
 This module does not collect payments. A future billing integration must verify
@@ -36,15 +37,16 @@ def membership_for(user):
     detail = "This account is disabled."
   elif is_premium:
     detail = ("Premium access through %s (UTC)." % expires_on.strftime("%b %d, %Y")
-              if expires_on is not None else "Premium membership is active.")
+              if expires_on is not None else "Plus membership is active.")
   elif configured_tier == "premium" and expired:
-    detail = "Premium access expired. Your account is now Free."
+    detail = "Plus access expired. Your account is now Free."
   else:
     detail = "Free membership."
   return {"tier": "premium" if is_premium else "free",
-          "label": "Premium" if is_premium else "Free", "is_premium": is_premium,
+          "label": "Plus" if is_premium else "Free", "is_premium": is_premium,
           "source": source, "expires_at": expires_at, "configured_tier": configured_tier,
-          "expires_on": expires_on, "detail": detail}
+          "expires_on": expires_on, "detail": detail.replace("Premium", "Plus"),
+          "portfolio_limit": 3 if is_premium else 1}
 
 
 def _signed_in_user():

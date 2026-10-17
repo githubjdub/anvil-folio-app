@@ -1,3 +1,4 @@
+import anvil.secrets
 """Validated prompt previews and daily historical strategy simulations."""
 
 from concurrent.futures import ThreadPoolExecutor

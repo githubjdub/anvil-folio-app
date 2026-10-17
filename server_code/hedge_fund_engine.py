@@ -1,3 +1,4 @@
+import anvil.secrets
 """Hypothetical long-only paths reconstructed from consecutive 13F snapshots.
 
 Quarterly net changes are executed with hindsight at each quarter's daily low

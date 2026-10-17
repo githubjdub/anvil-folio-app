@@ -1,3 +1,4 @@
+import anvil.secrets
 """Revocable, unlisted percentage-only performance snapshots.
 
 Only the finished public document is stored. Editable transactions, account

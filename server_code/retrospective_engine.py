@@ -1,3 +1,4 @@
+import anvil.secrets
 """Deterministic daily strategy simulation without future-price signals.
 
 Inputs use nominal, as-traded prices, cash dividends per contemporaneous share,

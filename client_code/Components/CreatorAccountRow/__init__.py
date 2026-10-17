@@ -7,7 +7,7 @@ class CreatorAccountRow(CreatorAccountRowTemplate):
     self._editable = False
     self._editing_membership = False
     super().__init__(**properties)
-    self.membership_tier_dropdown.items = [("Free", "free"), ("Premium", "premium")]
+    self.membership_tier_dropdown.items = [("Free", "free"), ("Plus", "premium")]
     self._editable = True
     self.browse_button.visible = not self.item.get("selected", False)
     self._set_editing_membership(False)

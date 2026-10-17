@@ -1,3 +1,4 @@
+import anvil.secrets
 """Coarse browser-visit counts, aggregated only for the platform creator.
 
 There are no user links, IP addresses, stored session identifiers or precise
@@ -25,7 +26,7 @@ _PAGES = {
   "dashboard": "Portfolio workspace", "overview": "Overview",
   "allocation": "Portfolio structure", "performance": "Performance",
   "retrospective": "Retrospective", "methods": "Methods", "shared": "Shared performance",
-  "subscribe": "Plans", "subscription": "My subscription",
+  "subscribe": "Plans", "subscription": "My subscription", "profile": "Profile",
 }
 _RANGES = {"7d": 7, "30d": 30, "90d": 90, "1y": 365}
 _SESSION_KEY = "portfoliora_site_visit"

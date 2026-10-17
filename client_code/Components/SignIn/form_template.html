@@ -1,0 +1,15 @@
+<section class="username-setup">
+  <p class="username-setup-intro">Your portfolios, ready when you are.</p>
+  <anvil-component type="Label" name="identifier_label" prop:text="Username or email" prop:bold="true"></anvil-component>
+  <anvil-component type="TextBox" name="identifier_box" prop:placeholder="Username or email" prop:role="subscription-username-input" prop:tooltip="Username or email"></anvil-component>
+  <anvil-component type="Label" name="password_label" prop:text="Password" prop:bold="true"></anvil-component>
+  <anvil-component type="TextBox" name="password_box" prop:hide_text="true" prop:role="subscription-username-input" prop:tooltip="Password"></anvil-component>
+  <anvil-component type="CheckBox" name="remember_box" prop:text="Remember me" prop:checked="true"></anvil-component>
+  <div role="status" aria-live="polite"><anvil-component type="Label" name="status_label" prop:role="username-error" prop:visible="false"></anvil-component></div>
+  <div class="subscription-actions">
+    <anvil-component type="Button" name="login_button" prop:text="Sign in" prop:role="subscription-primary"></anvil-component>
+    <anvil-component type="Button" name="signup_button" prop:text="Create account" prop:role="subscription-button"></anvil-component>
+    <anvil-component type="Button" name="cancel_button" prop:text="Cancel" prop:role="subscription-button"></anvil-component>
+  </div>
+  <anvil-component type="Button" name="recovery_button" prop:text="Email sign-in &amp; account recovery" prop:role="subscription-button"></anvil-component>
+</section>

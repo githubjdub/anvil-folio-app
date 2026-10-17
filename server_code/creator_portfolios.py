@@ -1,3 +1,4 @@
+import anvil.secrets
 """Creator access to saved documents; imports never modify the source."""
 
 from datetime import date, datetime, timezone
@@ -5,7 +6,7 @@ import math
 
 import anvil.server
 import anvil.users
-from anvil.tables import app_tables, RowDeleted
+from anvil.tables import app_tables, RowDeleted, in_transaction
 
 from portfolios import _validate_inputs
 from portfolio_analytics import _normalise_ticker, _EXCHANGES
@@ -391,8 +392,12 @@ def list_creator_portfolios(search_text="", page=0, include_own=False, account_i
 
 
 @anvil.server.callable(require_user=True)
+@in_transaction
 def import_creator_portfolio(portfolio_id):
   user = _require_creator()
+  membership = membership_for(user)
+  if len(app_tables.portfolios.search(owner=user)) >= membership['portfolio_limit']:
+    return {"ok": False, "message": "Your %s plan's saved portfolio limit has been reached." % membership['label']}
   if not isinstance(portfolio_id, str) or not 1 <= len(portfolio_id) <= 200:
     return {"ok": False, "message": "Choose a saved portfolio to import."}
   try:

@@ -1,3 +1,4 @@
+import anvil.secrets
 """Private, account-owned portfolio documents. Prices are refreshed on analysis."""
 
 from datetime import date, datetime
@@ -5,12 +6,13 @@ import math
 
 import anvil.server
 import anvil.users
-from anvil.tables import app_tables, RowDeleted
+from anvil.tables import app_tables, RowDeleted, in_transaction
+from .memberships import membership_for
 
 
 def _current_user():
   user = anvil.users.get_user()
-  if user is None:
+  if user is None or user["enabled"] is not True:
     raise anvil.users.AuthenticationFailed("Sign in to access your portfolios.")
   return user
 
@@ -141,6 +143,7 @@ def load_portfolio(portfolio_id):
 
 
 @anvil.server.callable(require_user=True)
+@in_transaction
 def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate):
   user = _current_user()
   portfolio = None
@@ -157,7 +160,20 @@ def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate)
   now = datetime.now()
   values.update(updated_at=now, last_used_at=now)
   if portfolio is None:
+    membership = membership_for(user)
+    if len(app_tables.portfolios.search(owner=user)) >= membership["portfolio_limit"]:
+      return {"ok": False, "message": "%s includes up to %s saved portfolio%s. Edit an existing portfolio or manage your plan in My subscription." %
+              (membership["label"], membership["portfolio_limit"], "s" if membership["portfolio_limit"] != 1 else ""), "limit_reached": True}
     portfolio = app_tables.portfolios.add_row(owner=user, **values)
   else:
     portfolio.update(**values)
   return {"ok": True, "portfolio": portfolio}
+
+
+@anvil.server.callable(require_user=True)
+def get_portfolio_usage():
+  user = _current_user()
+  membership = membership_for(user)
+  count = len(app_tables.portfolios.search(owner=user))
+  return {"count": count, "limit": membership["portfolio_limit"], "plan": membership["label"],
+          "can_create": count < membership["portfolio_limit"]}

@@ -1,3 +1,4 @@
+import anvil.secrets
 """Daily portfolio returns, selectable benchmarks, and cached selection paths."""
 
 from concurrent.futures import ThreadPoolExecutor

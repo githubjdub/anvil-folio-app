@@ -1,3 +1,4 @@
+import anvil.secrets
 """Scheduled US equity sessions, including extended hours and exchange holidays."""
 
 from datetime import date, datetime, time, timedelta, timezone
