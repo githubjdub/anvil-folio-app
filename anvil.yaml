@@ -281,6 +281,10 @@ scheduled_tasks:
   time_spec:
     at: {minute: 20}
     every: hour
+secrets:
+  sandbox pay:
+    type: secret
+    value: {XFGR4JZ2NTD4HP24: ''}
 services:
 - client_config: {}
   server_config: {}

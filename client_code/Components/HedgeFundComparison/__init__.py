@@ -9,6 +9,7 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
 
   def __init__(self, **properties):
     super().__init__(**properties)
+    self._chart_mode = None
     self._points = []
     self._risk_free_rate = 0
     self._creator_access = False
@@ -314,6 +315,7 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
     if self._result is None:
       return
     result = self._result
+    self._chart_mode = chart_theme.MODE
     points = result["series"]
     dates = [point["date"] for point in points]
     traces = []
@@ -590,6 +592,14 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
       self.update_timer.interval = 5
     self.redraw()
 
+  def apply_appearance(self):
+    if self._result is not None and self._chart_mode != chart_theme.MODE:
+      self._render_chart()
+      return True
+    return False
+
   def redraw(self):
+    if self.apply_appearance():
+      return
     if self._opened and self._result is not None:
       self.comparison_plot.redraw()
