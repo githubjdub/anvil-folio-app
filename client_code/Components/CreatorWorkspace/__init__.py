@@ -74,6 +74,11 @@ class CreatorWorkspace(CreatorWorkspaceTemplate):
     self.visible = enabled
     self._update_controls()
 
+  def apply_appearance(self):
+    if self._access_enabled and self._active_tab == "analytics":
+      return self.site_analytics.apply_appearance()
+    return False
+
   def open_library(self):
     if self._can_edit():
       self._select_tab(self._active_tab)

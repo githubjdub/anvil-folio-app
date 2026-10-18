@@ -23,6 +23,11 @@ class ShareComposer(ShareComposerTemplate):
     self.native_share_button.visible = bool(getattr(anvil.js.window.navigator, "share", None))
     self._set_busy(False)
 
+  def apply_appearance(self):
+    if self.preview_region.visible:
+      return self.snapshot_card.apply_appearance()
+    return False
+
   def _missing_context(self):
     raise ValueError("Sync your portfolio before sharing performance.")
 

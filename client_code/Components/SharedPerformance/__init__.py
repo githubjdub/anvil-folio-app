@@ -21,13 +21,15 @@ def _volatility(value):
 class SharedPerformance(SharedPerformanceTemplate):
   def __init__(self, **properties):
     super().__init__(**properties)
+    self._chart_mode = None
+    self._chart_sizes = {}
     self.performance_plot.config = {"responsive": True}
     self.set_snapshot(self.item)
 
   @handle("", "show")
   def form_show(self, **event_args):
-    if self.item:
-      self.performance_plot.redraw()
+    if self.item and not self.apply_appearance():
+      self._chart_sizes["performance_plot"] = chart_theme.redraw(self.performance_plot, self._chart_sizes.get("performance_plot"))
 
   def set_snapshot(self, snapshot):
     self.item = snapshot
@@ -69,6 +71,21 @@ class SharedPerformance(SharedPerformanceTemplate):
       value = metrics.get(field)
       panel.classes["is-negative"] = value is not None and value < 0
 
+    self._render_chart()
+
+  def apply_appearance(self):
+    if self.item and self._chart_mode != chart_theme.MODE:
+      self._render_chart()
+      return True
+    return False
+
+  def _render_chart(self):
+    snapshot = self.item
+    if not snapshot:
+      return
+    self._chart_mode = chart_theme.MODE
+    self._chart_sizes.clear()
+    benchmark = snapshot["benchmark"]
     series = snapshot.get("series", [])
     self.performance_plot.layout = chart_theme.layout({
       "paper_bgcolor": chart_theme.PANEL, "plot_bgcolor": chart_theme.PANEL,
@@ -96,4 +113,4 @@ class SharedPerformance(SharedPerformanceTemplate):
        "hovertemplate": "%{y:.2%}<extra>Benchmark</extra>"},
     ]
 
-    self.performance_plot.redraw()
+    self._chart_sizes["performance_plot"] = chart_theme.redraw(self.performance_plot, self._chart_sizes.get("performance_plot"))

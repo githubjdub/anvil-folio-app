@@ -65,6 +65,9 @@ class Form1(Form1Template):
     self.chart_trade_region.visible = False
     self._market_status_loading = False
     self._readout_page = "overview"
+    self._dirty_readout_pages = {"overview", "allocation", "performance"}
+    self._plot_sizes = {}
+    self._appearance_mode = chart_theme.MODE
     self._image_import_rows = []
     self.image_import_region.visible = False
     self.image_import_review_region.visible = False
@@ -158,33 +161,85 @@ class Form1(Form1Template):
       button.role = "readout-tab-active" if active else "readout-tab"
       setattr(button, "enabled", not self._busy)
     self._update_readout_context()
-    if redraw and self._readout_page == "retrospective":
-      self.retrospective_form.redraw()
-    if redraw and has_analysis:
-      # Plotly needs the shown panel's width after leaving a hidden page.
-      if self._readout_page == "allocation" and self.sector_plot.visible:
-        self.sector_plot.redraw()
-      if self._readout_page == "allocation" and self.allocation_history_plot.visible:
-        self.allocation_history_plot.redraw()
+    if redraw:
+      self._render_active_readout()
+      self._resize_readout_charts()
+      if self._readout_page == "retrospective":
+        self.retrospective_form.redraw()
       elif self._readout_page == "performance":
-        self.performance_plot.redraw()
-        self.quarterly_plot.redraw()
-        self.drawdown_plot.redraw()
-    if redraw and self._readout_page == "performance":
-      self.hedge_fund_comparison.redraw()
+        self.hedge_fund_comparison.redraw()
+
+  def _render_active_readout(self):
+    self._ensure_readout_rendered(self._readout_page)
+
+  def _ensure_readout_rendered(self, page):
+    if self._history is None or page not in self._dirty_readout_pages:
+      return
+    if page == "overview":
+      self._render_overview()
+    elif page == "allocation":
+      self._render_sectors()
+      self._render_security_rows()
+    elif page == "performance":
+      self._render_comparison()
+    self._dirty_readout_pages.discard(page)
+    # Setting Plot data/layout already renders it. Remember its current size
+    # so returning to the same tab does not immediately rebuild it again.
+    for name, plot in self._page_charts(page):
+      size = self._plot_size(plot)
+      if size is not None:
+        self._plot_sizes[name] = size
+
+  def _page_charts(self, page):
+    if page == "performance":
+      return [("performance", self.performance_plot), ("quarterly", self.quarterly_plot),
+              ("drawdown", self.drawdown_plot)]
+    if page == "allocation":
+      return [("sector", self.sector_plot), ("allocation_history", self.allocation_history_plot)]
+    return []
+
+  def _plot_size(self, plot):
+    if not plot.visible:
+      return None
+    bounds = anvil.js.get_dom_node(plot).getBoundingClientRect()
+    if bounds.width <= 0 or bounds.height <= 0:
+      return None
+    return (round(bounds.width), round(bounds.height))
+
+  def _resize_readout_charts(self):
+    if self._history is None:
+      return
+    for name, plot in self._page_charts(self._readout_page):
+      size = self._plot_size(plot)
+      if size is not None and self._plot_sizes.get(name) != size:
+        plot.redraw()
+        self._plot_sizes[name] = size
+
+  def apply_appearance(self):
+    if self._appearance_mode == chart_theme.MODE:
+      return
+    self._appearance_mode = chart_theme.MODE
+    self._dirty_readout_pages.update(("overview", "allocation", "performance"))
+    self._render_active_readout()
+    if self._readout_page == "retrospective":
+      self.retrospective_form.apply_appearance()
+    elif self._readout_page == "performance":
+      self.hedge_fund_comparison.apply_appearance()
+    if self._creator_open:
+      self.creator_workspace.apply_appearance()
+    if self.share_composer.visible:
+      self.share_composer.apply_appearance()
 
   def _select_readout_page(self, page):
-    if page not in ("overview", "allocation", "performance", "retrospective", "methods"):
+    if (self._busy or page == self._readout_page or
+        page not in ("overview", "allocation", "performance", "retrospective", "methods")):
       return
-    if not self._busy:
-      changed = page != self._readout_page
-      if page != "performance":
-        self._set_charts_expanded(False)
-      self._readout_page = page
-      self._apply_readout_page(redraw=True)
-      self.dom_nodes["readout_scroller"].scrollTop = 0
-      if changed:
-        record_page(page)
+    if page != "performance":
+      self._set_charts_expanded(False)
+    self._readout_page = page
+    self._apply_readout_page(redraw=True)
+    self.dom_nodes["readout_scroller"].scrollTop = 0
+    record_page(page)
 
   def _set_creator_open(self, opened):
     self._creator_open = bool(opened and self._creator_enabled)
@@ -658,6 +713,7 @@ class Form1(Form1Template):
     self._refresh_portfolios()
 
   def resume_account(self):
+    self.apply_appearance()
     if self._busy:
       return
     was_guest = self.account_id is None
@@ -995,6 +1051,8 @@ class Form1(Form1Template):
       self._analyzed_transactions = []
       self._allocation_snapshots = []
       self._allocation_snapshot = None
+      self._dirty_readout_pages.update(("overview", "allocation", "performance"))
+      self._plot_sizes.clear()
       self.allocation_quarter_dropdown.selected_value = "latest"
       self._clear_chart_trades()
       self.hedge_fund_comparison.reset_context()
@@ -1003,6 +1061,8 @@ class Form1(Form1Template):
   def _sharing_context(self):
     if self._history is None or not self._selected_symbols:
       raise ValueError("Sync your portfolio and select at least one security before sharing performance.")
+    # Sharing can start from Overview before Performance has been opened.
+    self._ensure_readout_rendered("performance")
     traces = self.performance_plot.data
     dates = traces[0].get("x", []) if traces else []
     if not dates:
@@ -1290,10 +1350,7 @@ class Form1(Form1Template):
     self.performance_plot.height = "480px" if expanded else "380px"
     self.drawdown_plot.height = "360px" if expanded else "300px"
     self.quarterly_plot.height = "390px" if expanded else "330px"
-    if self._history is not None:
-      self.performance_plot.redraw()
-      self.drawdown_plot.redraw()
-      self.quarterly_plot.redraw()
+    self._resize_readout_charts()
     if expanded:
       node.scrollTop = 0
       node.focus({"preventScroll": True})
@@ -1627,7 +1684,7 @@ class Form1(Form1Template):
       "marker": {"colors": colors, "line": {"color": chart_theme.PANEL, "width": 3}},
       "text": ["%.1f%%" % (group["weight"] * 100) if group["weight"] >= 0.04 else "" for group in groups],
       "textinfo": "text", "textposition": "inside",
-      "insidetextfont": {"color": chart_theme.BACKGROUND, "size": 13},
+      "insidetextfont": {"color": chart_theme.PIE_TEXT, "size": 13},
       "hovertemplate": "%{label}: %{percent}<br>$%{value:,.2f}<br>%{customdata}<extra></extra>",
     }] if slices else []
     self.sector_plot.layout = chart_theme.layout({
@@ -1745,6 +1802,11 @@ class Form1(Form1Template):
   def _render_readout(self):
     if self._history is None:
       return
+    self._dirty_readout_pages.update(("overview", "allocation", "performance"))
+    self._render_active_readout()
+    self._update_readout_context()
+
+  def _render_overview(self):
     metrics = self._history["metrics"]
     for label, key in [(self.invested_label, "buy_cost"), (self.value_label, "market_value"),
                        (self.dividends_label, "dividends"), (self.sale_proceeds_label, "sale_proceeds"),
@@ -1762,10 +1824,6 @@ class Form1(Form1Template):
       self._history["metadata"]["end_date"], metrics["holding_count"],
       " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
     )
-    self._render_comparison()
-    self._render_sectors()
-    self._render_security_rows()
-    self._update_readout_context()
 
   @handle("security_panel", "x-security-selection-changed")
   def security_selection_change(self, symbol, included, **event_args):

@@ -25,6 +25,8 @@ class Retrospective(RetrospectiveTemplate):
     self._rules_ready = False
     self._last_seed = ""
     self._result = None
+    self._chart_mode = None
+    self._chart_sizes = {}
     self.set_event_handler("x-set-editable", self.set_editable)
     self.example_dropdown.items = [(title, prompt) for title, prompt in EXAMPLES]
     self.example_dropdown.selected_value = EXAMPLES[0][1]
@@ -290,6 +292,14 @@ class Retrospective(RetrospectiveTemplate):
       "status": row["reason"], "value": self._money(row["value"]), "subtitle": "Simulated trade value",
     } for row in result["trades"]]
     self.no_trades_label.visible = not bool(result["trades"])
+    self._render_chart()
+
+  def _render_chart(self):
+    result = self._result
+    if result is None:
+      return
+    self._chart_mode = chart_theme.MODE
+    self._chart_sizes.clear()
     series = result["series"]
     dates = [point["date"] for point in series]
     returns = {point["date"]: point["return"] for point in series}
@@ -317,11 +327,19 @@ class Retrospective(RetrospectiveTemplate):
                                "legend": {"orientation": "h", "x": 0, "y": -0.25}})
     self.result_plot.config = {"displayModeBar": True, "displaylogo": False, "responsive": True, "scrollZoom": False,
                                "modeBarButtonsToRemove": ["select2d", "lasso2d"]}
-    self.result_plot.redraw()
+    self._chart_sizes["result_plot"] = chart_theme.redraw(self.result_plot, self._chart_sizes.get("result_plot"))
+
+  def apply_appearance(self):
+    if self._result is not None and self._chart_mode != chart_theme.MODE:
+      self._render_chart()
+      return True
+    return False
 
   def redraw(self):
+    if self.apply_appearance():
+      return
     if self._result is not None:
-      self.result_plot.redraw()
+      self._chart_sizes["result_plot"] = chart_theme.redraw(self.result_plot, self._chart_sizes.get("result_plot"))
 
   def _signal_label(self, trade):
     return trade["signal_date"] if trade["signal_close"] is not None else "Preset before test"

@@ -8,6 +8,8 @@ from ... import chart_theme
 class CreatorSiteAnalytics(CreatorSiteAnalyticsTemplate):
   def __init__(self, **properties):
     super().__init__(**properties)
+    self._chart_mode = None
+    self._chart_sizes = {}
     self._access_enabled = False
     self._email = ""
     self._generation = 0
@@ -231,6 +233,8 @@ class CreatorSiteAnalytics(CreatorSiteAnalyticsTemplate):
     result = self._result
     if result is None:
       return
+    self._chart_mode = chart_theme.MODE
+    self._chart_sizes.clear()
     points = self._recorded_series()
     mode = self.metric_dropdown.selected_value
     names = {"interest": "Interest index", "visits": "Visits", "pageviews": "Pageviews"}
@@ -292,12 +296,20 @@ class CreatorSiteAnalytics(CreatorSiteAnalyticsTemplate):
       self.country_plot.config = {"displayModeBar": False, "displaylogo": False, "responsive": True, "scrollZoom": False}
     self.redraw()
 
+  def apply_appearance(self):
+    if self._result is not None and self._chart_mode != chart_theme.MODE:
+      self._render_charts()
+      return True
+    return False
+
   def redraw(self):
+    if self.apply_appearance():
+      return
     if self._result is not None:
       if self.interest_plot.visible:
-        self.interest_plot.redraw()
+        self._chart_sizes["interest_plot"] = chart_theme.redraw(self.interest_plot, self._chart_sizes.get("interest_plot"))
       if self.country_plot.visible:
-        self.country_plot.redraw()
+        self._chart_sizes["country_plot"] = chart_theme.redraw(self.country_plot, self._chart_sizes.get("country_plot"))
 
   @handle("", "show")
   def shown(self, **event_args):
