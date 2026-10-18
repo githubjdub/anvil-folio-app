@@ -21,6 +21,10 @@ class PublicPerformance(PublicPerformanceTemplate):
     else:
       self.unavailable_region.visible = True
 
+  def apply_appearance(self):
+    if self.performance_card.visible:
+      self.performance_card.apply_appearance()
+
   @handle("build_comparison_button", "click")
   def build_comparison_button_click(self, **event_args):
     self.return_to_account = False

@@ -129,6 +129,11 @@ class Form1(Form1Template):
       self.market_status_timer.interval = 60
 
   def _update_readout_context(self):
+    if self._history is not None:
+      self.period_label.text = "%s · %d selected open holdings%s" % (
+        self._history["metadata"]["end_date"], self._history["metrics"]["holding_count"],
+        " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
+      )
     name = {"overview": "Overview", "allocation": "Portfolio structure",
             "performance": "Performance", "retrospective": "Retrospective", "methods": "Methods"}[self._readout_page]
     if self._readout_page == "retrospective":
@@ -189,6 +194,10 @@ class Form1(Form1Template):
       size = self._plot_size(plot)
       if size is not None:
         self._plot_sizes[name] = size
+      else:
+        # Offscreen renders (for example, preparing a shared chart) need a
+        # fresh size when this tab becomes visible again.
+        self._plot_sizes.pop(name, None)
 
   def _page_charts(self, page):
     if page == "performance":
@@ -1808,6 +1817,8 @@ class Form1(Form1Template):
     self._update_readout_context()
 
   def _render_overview(self):
+    if self._history is None:
+      return
     metrics = self._history["metrics"]
     for label, key in [(self.invested_label, "buy_cost"), (self.value_label, "market_value"),
                        (self.dividends_label, "dividends"), (self.sale_proceeds_label, "sale_proceeds"),
@@ -1821,10 +1832,6 @@ class Form1(Form1Template):
       value = metrics[key]
       label.foreground = (chart_theme.TEXT if value is None or value == 0 else
                           chart_theme.POSITIVE if value > 0 else chart_theme.NEGATIVE)
-    self.period_label.text = "%s · %d selected open holdings%s" % (
-      self._history["metadata"]["end_date"], metrics["holding_count"],
-      " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
-    )
 
   @handle("security_panel", "x-security-selection-changed")
   def security_selection_change(self, symbol, included, **event_args):
