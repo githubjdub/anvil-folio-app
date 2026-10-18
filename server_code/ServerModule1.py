@@ -17,3 +17,8 @@ import anvil.server
 #   print("Hello, " + name + "!")
 #   return 42
 #
+import anvil.secrets
+import stripe
+
+# Initialize Stripe with your saved secret key
+stripe.api_key = anvil.secrets.get_secret("sandbox_pay")
