@@ -1,6 +1,7 @@
 import anvil.server
 from ._anvil_designer import HedgeFundComparisonTemplate
 from anvil import *
+from ... import chart_theme
 
 
 class HedgeFundComparison(HedgeFundComparisonTemplate):
@@ -103,7 +104,7 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
     self.results_region.visible = False
     self.trades_region.visible = False
     self.comparison_plot.data = []
-    self.comparison_plot.layout = {}
+    self.comparison_plot.layout = chart_theme.layout({})
     self.comparison_plot.height = "390px"
     self._expanded = False
     self.enlarge_button.text = "Enlarge chart"
@@ -316,19 +317,19 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
     points = result["series"]
     dates = [point["date"] for point in points]
     traces = []
-    for key, name, color in (("portfolio_index", "Your portfolio", "#1d9d70"),
-                             ("fund_index", result["fund"]["name"] + " · 13F model", "#8b65c0"),
-                             ("benchmark_index", result.get("benchmark_label") or "S&P 500 · SPY", "#3f7ba8")):
+    for key, name, color in (("portfolio_index", "Your portfolio", chart_theme.POSITIVE),
+                             ("fund_index", result["fund"]["name"] + " · 13F model", chart_theme.COMPARISON),
+                             ("benchmark_index", result.get("benchmark_label") or "S&P 500 · SPY", chart_theme.BENCHMARK)):
       traces.append({"type": "scatter", "mode": "lines", "name": name, "x": dates,
                      "y": [point[key] / 100 - 1 for point in points], "line": {"color": color, "width": 2.4},
                      "hovertemplate": "%{x}<br>%{y:+.2%}<extra>" + name + "</extra>"})
     self.comparison_plot.data = traces
-    self.comparison_plot.layout = {"paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
-                                   "font": {"family": "Inter, sans-serif", "size": 12, "color": "#6d7881"},
+    self.comparison_plot.layout = chart_theme.layout({"paper_bgcolor": chart_theme.PANEL, "plot_bgcolor": chart_theme.PANEL,
+                                   "font": {"family": "Inter, sans-serif", "size": 12, "color": chart_theme.MUTED},
                                    "margin": {"l": 60, "r": 18, "t": 25, "b": 95}, "hovermode": "x unified",
                                    "xaxis": {"type": "date", "showgrid": False},
-                                   "yaxis": {"title": "Total return", "tickformat": ".0%", "gridcolor": "#edf0f1", "zerolinecolor": "#cdd6dc"},
-                                   "legend": {"orientation": "h", "x": 0, "y": -0.23}}
+                                   "yaxis": {"title": "Total return", "tickformat": ".0%", "gridcolor": chart_theme.GRID, "zerolinecolor": chart_theme.ZERO_LINE},
+                                   "legend": {"orientation": "h", "x": 0, "y": -0.23}})
     self.comparison_plot.config = {"displayModeBar": True, "displaylogo": False, "responsive": True,
                                    "scrollZoom": False, "modeBarButtonsToRemove": ["select2d", "lasso2d"]}
     self.redraw()

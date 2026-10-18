@@ -4,6 +4,7 @@ import math
 import anvil.server
 from ._anvil_designer import RetrospectiveTemplate
 from anvil import *
+from ... import chart_theme
 
 
 EXAMPLES = [
@@ -293,27 +294,27 @@ class Retrospective(RetrospectiveTemplate):
     dates = [point["date"] for point in series]
     returns = {point["date"]: point["return"] for point in series}
     traces = [{"type": "scatter", "mode": "lines", "name": "Your strategy", "x": dates,
-               "y": [point["return"] for point in series], "line": {"color": "#2c9b67", "width": 2.5},
+               "y": [point["return"] for point in series], "line": {"color": chart_theme.POSITIVE, "width": 2.5},
                "hovertemplate": "%{x}<br>%{y:.2%}<extra>Strategy</extra>"},
               {"type": "scatter", "mode": "lines", "name": "Buy and hold the same stocks", "x": dates,
-               "y": [point["buy_hold_return"] for point in series], "line": {"color": "#bd603f", "width": 2},
+               "y": [point["buy_hold_return"] for point in series], "line": {"color": chart_theme.AMBER, "width": 2},
                "hovertemplate": "%{x}<br>%{y:.2%}<extra>Buy and hold</extra>"}]
     traces.append({"type": "scatter", "mode": "lines", "name": "SPY · buy and hold", "x": dates,
-                   "y": [point["benchmark_return"] for point in series], "line": {"color": "#466b9f", "width": 1.8},
+                   "y": [point["benchmark_return"] for point in series], "line": {"color": chart_theme.BENCHMARK, "width": 1.8},
                    "hovertemplate": "%{x}<br>%{y:.2%}<extra>SPY</extra>"})
-    for action, symbol, color in [("Buy", "arrow-up", "#14834b"), ("Sell", "arrow-down", "#c64845")]:
+    for action, symbol, color in [("Buy", "arrow-up", chart_theme.POSITIVE), ("Sell", "arrow-down", chart_theme.NEGATIVE)]:
       trades = [row for row in result["trades"] if row["action"] == action]
       traces.append({"type": "scatter", "mode": "markers", "name": action, "x": [row["execution_date"] for row in trades],
                      "y": [returns[row["execution_date"]] for row in trades], "marker": {"symbol": symbol, "color": color, "size": 13},
                      "customdata": [[row["ticker"], row["shares"], row["price"], self._signal_label(row)] for row in trades],
                      "hovertemplate": "%{customdata[0]}<br>%{customdata[1]:.4f} shares @ $%{customdata[2]:.2f}<br>Signal: %{customdata[3]}<br>Execution: %{x}<extra>" + action + "</extra>"})
     self.result_plot.data = traces
-    self.result_plot.layout = {"margin": {"l": 48, "r": 18, "t": 35, "b": 85},
-                               "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
-                               "font": {"family": "Inter, sans-serif", "size": 11, "color": "#6d7881"},
+    self.result_plot.layout = chart_theme.layout({"margin": {"l": 48, "r": 18, "t": 35, "b": 85},
+                               "paper_bgcolor": chart_theme.PANEL, "plot_bgcolor": chart_theme.PANEL,
+                               "font": {"family": "Inter, sans-serif", "size": 11, "color": chart_theme.MUTED},
                                "hovermode": "closest", "xaxis": {"type": "date"},
-                               "yaxis": {"tickformat": ".0%", "gridcolor": "#edf0f1"},
-                               "legend": {"orientation": "h", "x": 0, "y": -0.25}}
+                               "yaxis": {"tickformat": ".0%", "gridcolor": chart_theme.GRID},
+                               "legend": {"orientation": "h", "x": 0, "y": -0.25}})
     self.result_plot.config = {"displayModeBar": True, "displaylogo": False, "responsive": True, "scrollZoom": False,
                                "modeBarButtonsToRemove": ["select2d", "lasso2d"]}
     self.result_plot.redraw()

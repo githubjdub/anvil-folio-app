@@ -2,6 +2,7 @@ from datetime import date, timedelta
 import anvil.server
 from ._anvil_designer import CreatorSiteAnalyticsTemplate
 from anvil import *
+from ... import chart_theme
 
 
 class CreatorSiteAnalytics(CreatorSiteAnalyticsTemplate):
@@ -35,11 +36,11 @@ class CreatorSiteAnalytics(CreatorSiteAnalyticsTemplate):
     self.end_picker.date = date.today()
     self.custom_dates_region.visible = False
     self.interest_plot.data = []
-    self.interest_plot.layout = {}
+    self.interest_plot.layout = chart_theme.layout({})
     self.interest_plot.visible = False
     self.interest_plot.height = "370px"
     self.country_plot.data = []
-    self.country_plot.layout = {}
+    self.country_plot.layout = chart_theme.layout({})
     self.country_plot.visible = False
     self.country_plot.height = "330px"
     self.country_rows.items = []
@@ -250,19 +251,19 @@ class CreatorSiteAnalytics(CreatorSiteAnalyticsTemplate):
         "type": "scatter", "mode": "lines+markers", "name": names[mode],
         "x": [max(str(point["date"])[:10], first_date) for point in points],
         "y": [point["interest"] if mode == "interest" else point[mode] for point in points],
-        "line": {"color": "#3279cc", "width": 3}, "marker": {"size": 5},
+        "line": {"color": chart_theme.BENCHMARK, "width": 3}, "marker": {"size": 5},
         "customdata": labels,
         "hovertemplate": "%{customdata[0]}<br>Visits: %{customdata[1]:,}<br>Pageviews: %{customdata[2]:,}<br>Interest: %{customdata[3]:.0f}<br>%{customdata[4]}<extra></extra>",
       }]
-      yaxis = {"title": names[mode], "gridcolor": "#edf0f1", "rangemode": "tozero", "fixedrange": False}
+      yaxis = {"title": names[mode], "gridcolor": chart_theme.GRID, "rangemode": "tozero", "fixedrange": False}
       if mode == "interest":
         yaxis["range"] = [0, 105]
-      self.interest_plot.layout = {
-        "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
-        "font": {"family": "Inter, sans-serif", "size": 12, "color": "#6d7881"},
+      self.interest_plot.layout = chart_theme.layout({
+        "paper_bgcolor": chart_theme.PANEL, "plot_bgcolor": chart_theme.PANEL,
+        "font": {"family": "Inter, sans-serif", "size": 12, "color": chart_theme.MUTED},
         "margin": {"l": 58, "r": 18, "t": 20, "b": 60}, "hovermode": "x unified", "showlegend": False,
         "xaxis": {"type": "date", "showgrid": False, "fixedrange": False}, "yaxis": yaxis,
-      }
+      })
       self.interest_plot.config = {"displayModeBar": True, "displaylogo": False, "responsive": True,
                                    "scrollZoom": False, "modeBarButtonsToRemove": ["select2d", "lasso2d"]}
     mapped = [item for item in result["countries"] if item.get("iso3") is not None]
@@ -274,19 +275,20 @@ class CreatorSiteAnalytics(CreatorSiteAnalyticsTemplate):
         "type": "choropleth", "locations": [item["iso3"] for item in mapped], "locationmode": "ISO-3",
         "z": [item["interest"] for item in mapped], "zmin": 0, "zmax": 100,
         "text": [item["country_name"] for item in mapped],
-        "colorscale": [[0, "#edf3fb"], [0.5, "#8ab5e8"], [1, "#3279cc"]],
-        "colorbar": {"title": "Relative index", "thickness": 10, "len": 0.7},
-        "marker": {"line": {"color": "#ffffff", "width": 0.7}},
+        "colorscale": [[0, chart_theme.GRID], [0.5, chart_theme.ZERO_LINE], [1, chart_theme.BENCHMARK]],
+        "colorbar": {"title": "Relative index", "thickness": 10, "len": 0.7, "outlinewidth": 0,
+                     "tickfont": {"color": chart_theme.MUTED}},
+        "marker": {"line": {"color": chart_theme.PANEL, "width": 0.7}},
         "customdata": [[item["visits"], item["pageviews"], item["percent"]] for item in mapped],
         "hovertemplate": "%{text}<br>Visits: %{customdata[0]:,}<br>Pageviews: %{customdata[1]:,}<br>Share: %{customdata[2]:.1f}%<br>Relative index: %{z:.0f}<extra></extra>",
       }]
-      self.country_plot.layout = {
-        "paper_bgcolor": "rgba(0,0,0,0)", "font": {"family": "Inter, sans-serif", "size": 11, "color": "#6d7881"},
+      self.country_plot.layout = chart_theme.layout({
+        "paper_bgcolor": chart_theme.PANEL, "font": {"family": "Inter, sans-serif", "size": 11, "color": chart_theme.MUTED},
         "margin": {"l": 0, "r": 0, "t": 15, "b": 0},
         "geo": {"scope": "world", "projection": {"type": "natural earth"}, "showframe": False,
-                "showcoastlines": False, "showcountries": True, "countrycolor": "#dfe5e8",
-                "showland": True, "landcolor": "#f5f7f8", "bgcolor": "rgba(0,0,0,0)"},
-      }
+                "showcoastlines": False, "showcountries": True, "countrycolor": chart_theme.GRID,
+                "showland": True, "landcolor": chart_theme.BACKGROUND, "bgcolor": chart_theme.PANEL},
+      })
       self.country_plot.config = {"displayModeBar": False, "displaylogo": False, "responsive": True, "scrollZoom": False}
     self.redraw()
 

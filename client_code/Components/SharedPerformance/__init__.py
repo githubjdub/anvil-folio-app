@@ -1,5 +1,6 @@
 from ._anvil_designer import SharedPerformanceTemplate
 from anvil import *
+from ... import chart_theme
 
 
 def _percentage(value, difference=False):
@@ -69,15 +70,15 @@ class SharedPerformance(SharedPerformanceTemplate):
       panel.classes["is-negative"] = value is not None and value < 0
 
     series = snapshot.get("series", [])
-    self.performance_plot.layout = {
-      "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
-      "font": {"family": "Arial, sans-serif", "size": 13, "color": "#53616b"},
+    self.performance_plot.layout = chart_theme.layout({
+      "paper_bgcolor": chart_theme.PANEL, "plot_bgcolor": chart_theme.PANEL,
+      "font": {"family": "Arial, sans-serif", "size": 13, "color": chart_theme.MUTED},
       "margin": {"l": 58, "r": 16, "t": 22, "b": 85},
       "xaxis": {"type": "date", "showgrid": False, "fixedrange": True},
-      "yaxis": {"tickformat": ".0%", "gridcolor": "#e9edef", "zerolinecolor": "#cedbd3", "fixedrange": True},
+      "yaxis": {"tickformat": ".0%", "gridcolor": chart_theme.GRID, "zerolinecolor": chart_theme.ZERO_LINE, "fixedrange": True},
       "legend": {"orientation": "h", "x": 0, "y": -0.22},
       "hovermode": "x unified", "autosize": True,
-    }
+    })
     benchmark_chart_name = {
       "sp500": "S&P 500", "nasdaq": "Nasdaq Composite", "spy": "SPY",
       "qqq": "QQQ", "dia": "DIA", "iwm": "IWM", "vti": "VTI",
@@ -86,12 +87,12 @@ class SharedPerformance(SharedPerformanceTemplate):
       {"type": "scatter", "mode": "lines", "name": "Portfolio",
        "x": [point["date"] for point in series],
        "y": [point.get("portfolio_return") for point in series],
-       "line": {"color": "#249e68", "width": 3},
+       "line": {"color": chart_theme.POSITIVE, "width": 3},
        "hovertemplate": "%{y:.2%}<extra>Portfolio</extra>"},
       {"type": "scatter", "mode": "lines", "name": benchmark_chart_name,
        "x": [point["date"] for point in series],
        "y": [point.get("benchmark_return") for point in series],
-       "line": {"color": "#466b9f", "width": 2},
+       "line": {"color": chart_theme.BENCHMARK, "width": 2},
        "hovertemplate": "%{y:.2%}<extra>Benchmark</extra>"},
     ]
 

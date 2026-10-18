@@ -1,6 +1,7 @@
 """Prepare clickable trade markers without altering portfolio return series."""
 
 import math
+from . import chart_theme
 
 
 _US_EXCHANGES = ("NASDAQ", "NYSE", "NYSEARCA", "AMEX", "BATS", "NYSEAMERICAN")
@@ -150,14 +151,14 @@ def _trace(action, groups, point_indices, values_by_date):
     "text": [str(len(group["transactions"])) if len(group["transactions"]) > 1 else ""
              for group in chosen],
     "textposition": "bottom center" if action == "Buy" else "top center",
-    "textfont": {"size": 11, "color": "#14834b" if action == "Buy" else "#c64845"},
+    "textfont": {"size": 11, "color": chart_theme.POSITIVE if action == "Buy" else chart_theme.NEGATIVE},
     "marker": {
       "symbol": "arrow-up" if action == "Buy" else "arrow-down", "size": 15,
-      "color": "#14834b" if action == "Buy" else "#c64845",
-      "line": {"color": "#ffffff", "width": 1},
+      "color": chart_theme.POSITIVE if action == "Buy" else chart_theme.NEGATIVE,
+      "line": {"color": chart_theme.PANEL, "width": 1},
     },
     "cliponaxis": False,
-    "hoverlabel": {"bgcolor": "#ffffff", "font": {"color": "#24302b"}},
+    "hoverlabel": chart_theme.hover_label(),
   }
 
 

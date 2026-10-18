@@ -6,6 +6,7 @@ import anvil.users
 import anvil.js
 from ._anvil_designer import Form1Template
 from anvil import *
+from .. import chart_theme
 from ..analysis_selection import analyze_selection
 from ..chart_trades import build_trade_markers
 from ..portfolio_periods import quarterly_returns, allocation_snapshots
@@ -14,14 +15,7 @@ from ..site_tracking import record_page
 from ..account_profile import ensure_username, sign_in
 
 
-SECTOR_COLORS = {
-  "Technology": "#2c9b67", "Financial": "#466b9f",
-  "Healthcare": "#8463ac", "Consumer Cyclical": "#df8054",
-  "Consumer Defensive": "#b09437", "Communication Services": "#2e9da4",
-  "Industrials": "#607386", "Energy": "#b55269",
-  "Basic Materials": "#7d9446", "Real Estate": "#ad729c",
-  "Utilities": "#64a1be", "Funds / ETFs": "#1d3344", "Unclassified": "#a0a6ad",
-}
+SECTOR_COLORS = chart_theme.SECTOR_COLORS
 
 BENCHMARK_CHOICES = [
   ("S&P 500 index", "sp500"), ("Nasdaq Composite index", "nasdaq"),
@@ -1164,24 +1158,24 @@ class Form1(Form1Template):
     return volatility, sharpe
 
   def _chart_layout(self):
-    return {
+    return chart_theme.layout({
       "margin": {"l": 48, "r": 18, "t": 38, "b": 80},
-      "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
-      "font": {"family": "Inter, sans-serif", "size": 13, "color": "#53616b"},
+      "paper_bgcolor": chart_theme.PANEL, "plot_bgcolor": chart_theme.PANEL,
+      "font": {"family": "Inter, sans-serif", "size": 13, "color": chart_theme.MUTED},
       "hovermode": "closest" if self.show_trades_checkbox.checked else "x unified",
       "legend": {"orientation": "h", "x": 0, "y": -0.25},
       "xaxis": {"type": "date", "showgrid": False, "fixedrange": False},
-      "yaxis": {"tickformat": ".0%", "gridcolor": "#edf0f1", "zerolinecolor": "#c6d2cb", "fixedrange": False},
-    }
+      "yaxis": {"tickformat": ".0%", "gridcolor": chart_theme.GRID, "zerolinecolor": chart_theme.ZERO_LINE, "fixedrange": False},
+    })
 
   def _set_chart(self, plot, dates, portfolio, benchmark, benchmark_name, markers):
     plot.data = [
       {"type": "scatter", "mode": "lines", "name": "Your portfolio", "x": dates,
-       "y": portfolio, "line": {"color": "#2c9b67", "width": 2.5},
+       "y": portfolio, "line": {"color": chart_theme.POSITIVE, "width": 2.5},
        "hovertemplate": "%{y:.2%}<extra>Your portfolio</extra>"},
       {"type": "scatter", "mode": "lines", "name": next((label.split(" · ")[0] for label, key in BENCHMARK_CHOICES
                       if key == self.benchmark_dropdown.selected_value), "Benchmark"), "x": dates,
-       "y": benchmark, "line": {"color": "#bd603f", "width": 2},
+       "y": benchmark, "line": {"color": chart_theme.BENCHMARK, "width": 2},
        "hovertemplate": "%{y:.2%}<extra>" + benchmark_name + "</extra>"},
     ] + markers
     plot.layout = self._chart_layout()
@@ -1559,21 +1553,21 @@ class Form1(Form1Template):
     self.quarterly_plot.data = [
       {"type": "bar", "name": "Your portfolio", "x": labels,
        "y": [row["portfolio_return"] for row in rows], "customdata": data,
-       "marker": {"color": ["#b55269" if (row["portfolio_return"] or 0) < 0 else "#2c9b67" for row in rows]},
+       "marker": {"color": [chart_theme.NEGATIVE if (row["portfolio_return"] or 0) < 0 else chart_theme.POSITIVE for row in rows]},
        "hovertemplate": "%{x}<br>%{y:.2%}<br>%{customdata[0]} – %{customdata[1]}<br>%{customdata[2]} daily intervals<extra>Your portfolio</extra>"},
       {"type": "bar", "name": short_benchmark_name, "x": labels,
        "y": [row["benchmark_return"] for row in rows], "customdata": data,
-       "marker": {"color": "#bd603f"},
+       "marker": {"color": chart_theme.BENCHMARK},
        "hovertemplate": "%{x}<br>%{y:.2%}<br>%{customdata[0]} – %{customdata[1]}<extra>" + benchmark_name + "</extra>"},
     ]
-    self.quarterly_plot.layout = {
+    self.quarterly_plot.layout = chart_theme.layout({
       "barmode": "group", "bargap": 0.3, "margin": {"l": 48, "r": 12, "t": 40, "b": 55},
-      "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
-      "font": {"family": "Inter, sans-serif", "size": 13, "color": "#53616b"},
+      "paper_bgcolor": chart_theme.PANEL, "plot_bgcolor": chart_theme.PANEL,
+      "font": {"family": "Inter, sans-serif", "size": 13, "color": chart_theme.MUTED},
       "legend": {"orientation": "h", "y": 1.15},
       "xaxis": {"type": "category", "showgrid": False},
-      "yaxis": {"tickformat": ".0%", "gridcolor": "#edf0f1", "zerolinecolor": "#a0a6ad"},
-    }
+      "yaxis": {"tickformat": ".0%", "gridcolor": chart_theme.GRID, "zerolinecolor": chart_theme.ZERO_LINE},
+    })
     self.quarterly_plot.config = {"displayModeBar": False, "responsive": True}
 
   def _render_sectors(self):
@@ -1604,7 +1598,7 @@ class Form1(Form1Template):
     groups: list = [dict(holding, sector=holding["symbol"], tickers=[holding["company_name"], holding["sector"]],
                    weight=holding["market_value"] / total if total else 0)
               for holding in holdings] if security_view else slices
-    colors = [self._security_colors.get(group["symbol"], "#a0a6ad") if security_view else SECTOR_COLORS.get(group["sector"], "#a0a6ad") for group in groups]
+    colors = [self._security_colors.get(group["symbol"], chart_theme.MUTED) if security_view else SECTOR_COLORS.get(group["sector"], chart_theme.MUTED) for group in groups]
     provisional = (self._allocation_snapshot or {}).get("provisional", bool(self._history["metadata"].get("provisional_date")))
     self.sector_period_label.text = "%s · %s in open positions%s" % (
       dated, self._format_currency(total), " · provisional prices" if provisional else ""
@@ -1630,17 +1624,18 @@ class Form1(Form1Template):
       "labels": [group["sector"] for group in groups],
       "values": [group["market_value"] for group in groups],
       "customdata": [" · ".join(group["tickers"]) for group in groups],
-      "marker": {"colors": colors, "line": {"color": "#ffffff", "width": 3}},
+      "marker": {"colors": colors, "line": {"color": chart_theme.PANEL, "width": 3}},
       "text": ["%.1f%%" % (group["weight"] * 100) if group["weight"] >= 0.04 else "" for group in groups],
       "textinfo": "text", "textposition": "inside",
+      "insidetextfont": {"color": chart_theme.BACKGROUND, "size": 13},
       "hovertemplate": "%{label}: %{percent}<br>$%{value:,.2f}<br>%{customdata}<extra></extra>",
     }] if slices else []
-    self.sector_plot.layout = {
+    self.sector_plot.layout = chart_theme.layout({
       "margin": {"l": 8, "r": 8, "t": 15, "b": 15}, "showlegend": False,
-      "paper_bgcolor": "rgba(0,0,0,0)", "font": {"family": "Inter, sans-serif", "size": 14},
-      "annotations": [{"text": str(len(holdings)), "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.54, "showarrow": False, "font": {"size": 30, "color": "#19232d"}},
-                      {"text": "open holdings", "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.43, "showarrow": False, "font": {"size": 13, "color": "#53616b"}}],
-    }
+      "paper_bgcolor": chart_theme.PANEL, "font": {"family": "Inter, sans-serif", "size": 14, "color": chart_theme.TEXT},
+      "annotations": [{"text": str(len(holdings)), "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.54, "showarrow": False, "font": {"size": 30, "color": chart_theme.TEXT}},
+                      {"text": "open holdings", "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.43, "showarrow": False, "font": {"size": 13, "color": chart_theme.MUTED}}],
+    })
     self.sector_plot.config = {"displayModeBar": False, "responsive": True}
     unknown = [row["symbol"] for row in holdings if row["sector"] == "Unclassified"]
     self.sector_status_label.text = (
@@ -1660,18 +1655,18 @@ class Form1(Form1Template):
       {"type": "bar", "name": sector, "x": [snapshot["label"] for snapshot in snapshots],
        "y": [next((group["weight"] for group in snapshot["slices"] if group["sector"] == sector), 0) if snapshot["total_value"] else None for snapshot in snapshots],
        "customdata": [snapshot["date"] for snapshot in snapshots],
-       "marker": {"color": SECTOR_COLORS.get(sector, "#a0a6ad")},
+       "marker": {"color": SECTOR_COLORS.get(sector, chart_theme.MUTED)},
        "hovertemplate": "%{x}<br>%{customdata}<br>%{y:.1%}<extra>" + sector + "</extra>"}
       for sector in sectors
     ]
-    self.allocation_history_plot.layout = {
+    self.allocation_history_plot.layout = chart_theme.layout({
       "barmode": "stack", "bargap": 0.35, "margin": {"l": 42, "r": 12, "t": 15, "b": 110},
-      "paper_bgcolor": "rgba(0,0,0,0)", "plot_bgcolor": "rgba(0,0,0,0)",
-      "font": {"family": "Inter, sans-serif", "size": 13, "color": "#53616b"},
+      "paper_bgcolor": chart_theme.PANEL, "plot_bgcolor": chart_theme.PANEL,
+      "font": {"family": "Inter, sans-serif", "size": 13, "color": chart_theme.MUTED},
       "legend": {"orientation": "h", "y": -0.25},
       "xaxis": {"type": "category", "showgrid": False},
-      "yaxis": {"tickformat": ".0%", "range": [0, 1], "gridcolor": "#edf0f1"},
-    }
+      "yaxis": {"tickformat": ".0%", "range": [0, 1], "gridcolor": chart_theme.GRID},
+    })
     self.allocation_history_plot.config = {"displayModeBar": False, "responsive": True}
 
   @handle("allocation_view_dropdown", "change")
@@ -1721,7 +1716,7 @@ class Form1(Form1Template):
       count = security["transaction_count"]
       rows.append(dict(security,
         included=included, snapshot_value=value,
-        color=self._security_colors.get(security["symbol"], "#a0a6ad") if self.allocation_view_dropdown.selected_value == "security" else SECTOR_COLORS.get(security["sector"], "#a0a6ad"),
+        color=self._security_colors.get(security["symbol"], chart_theme.MUTED) if self.allocation_view_dropdown.selected_value == "security" else SECTOR_COLORS.get(security["sector"], chart_theme.MUTED),
         detail_text="%s · %s · %d trade%s total" % (security["sector"], position, count, "" if count == 1 else "s"),
         value_text=self._format_currency(value),
         profit=profit,
@@ -1757,6 +1752,12 @@ class Form1(Form1Template):
       label.text = self._format_currency(metrics[key])
     self.return_label.text = "—" if metrics["simple_return"] is None else self._format_percent(metrics["simple_return"])
     self.annualized_label.text = "—" if metrics["annualized_return"] is None else self._format_percent(metrics["annualized_return"])
+    for label, key in ((self.return_label, "simple_return"),
+                       (self.annualized_label, "annualized_return"),
+                       (self.profit_label, "profit")):
+      value = metrics[key]
+      label.foreground = (chart_theme.TEXT if value is None or value == 0 else
+                          chart_theme.POSITIVE if value > 0 else chart_theme.NEGATIVE)
     self.period_label.text = "%s · %d selected open holdings%s" % (
       self._history["metadata"]["end_date"], metrics["holding_count"],
       " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
