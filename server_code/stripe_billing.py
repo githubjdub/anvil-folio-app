@@ -61,8 +61,13 @@ def configuration():
       return None
     if not values[name]:
       return None
-  url = urlsplit(values['STRIPE_APP_URL'])
-  if url.scheme != 'https' or not url.hostname or url.username or url.password or url.query or url.fragment:
+  try:
+    url = urlsplit(values['STRIPE_APP_URL'])
+    if (url.scheme != 'https' or not url.hostname or url.username or url.password
+        or url.query or url.fragment or url.port == 0):
+      return None
+  except ValueError:
+    # A malformed configured URL should disable billing, not the plans page.
     return None
   values['STRIPE_APP_URL'] = values['STRIPE_APP_URL'].rstrip('/')
   return values
@@ -249,8 +254,10 @@ def stripe_webhook(**params):
   body = anvil.server.request.body
   if len(body) > 2_000_000:
     return anvil.server.HttpResponse(413, 'Payload too large.')
+  signature = next((value for name, value in anvil.server.request.headers.items()
+                    if name.lower() == 'stripe-signature'), '')
   try:
-    event = _verified_event(body, anvil.server.request.get_header('Stripe-Signature') or '', config['STRIPE_WEBHOOK_SECRET'])
+    event = _verified_event(body, signature, config['STRIPE_WEBHOOK_SECRET'])
   except (ValueError, UnicodeError):
     return anvil.server.HttpResponse(400, 'Invalid webhook.')
   if event.get('type') in _EVENTS:

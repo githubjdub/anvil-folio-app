@@ -295,10 +295,21 @@ scheduled_tasks:
     at: {minute: 20}
     every: hour
 secrets:
-  sandbox pay:
+  STRIPE_APP_URL:
     type: secret
     value:
-      XFGR4JZ2NTD4HP24: {? '' : YVQ1zj06eSoowCfCjUiVqgjaYediZYVevieRPyvDBr/BDwhU/oAj5Uhe/m43KmEY4ZzMxSSrtP9C8XYzLLCTLRP6OxdsfGlkWL3dimUdBYuJgvimOYRm/aXD/Zq0bz9+Sfde97iIBY9G2SeXMg7NcyEzjYnn/X+dgx7K7LLaHqHCRyhOeIVr/dfIdBveCHdaq836l5ZImNXGM0xWicFD2NZW+PFMNe5b88zxfg9+wUv8ZMLsxgGhUUpJwKX0/DxA1wwc1oaO5nVgJynakfD3hIzMcZgIQ6DdrBWa0W7PuvAtMzHyt8aubXs7O5Fwk+Lp5No1XyGZAg==}
+      XFGR4JZ2NTD4HP24: {? '' : tBhC5h4W9e+ZSJFOZE34+Y57HQsYLqeXCS60Xuwj9uEL3uXAtwInud7lkVcTZHLSWQZUaq/t4opt1bXFe+VMqKg0tZn0EyW77wBX4meI39mO2jfA3H2b6Vb6CCnOFg/LGnPktUFc7lyJA/tI7V1c85ZpOuljriXxANlGqoQnJYCr1Rk7194lWoCKZIhneLo37F5BGo9pqM6cIZAISR53/FmwOGE/E6b2W9ty7IErje39kCKH7bRdlw==}
+  STRIPE_PLUS_PRICE_ID:
+    type: secret
+    value:
+      XFGR4JZ2NTD4HP24: {all: ZuILq9HDREsepaQ39LOBSUtYlArE6NXkdLx8F43dAhkXuh6SoRVMyXb8r5/ihA9QoD4UxJQUDU6Z2TVv+8kCGLdjP/NTdE4eYxc4L3L2D7KxlgPGFFbViBlrbGh5See7gcEvelX/MNa2GT3b9Ty5JOmdUuQEAO50opfWrrVYwk76YXPev94I6anJSs+CWN1fCwozTKwXgGA+Kyh63GuLfJWozR6uVL5ojmBG}
+  STRIPE_SECRET_KEY:
+    type: secret
+    value:
+      XFGR4JZ2NTD4HP24: {all: CU9tccHUXe5zwhpvpPPV6DGuPid6s17047Fx2keL2yX0dEJW/D3uN9dojcwLdHTdcB5ZABm8IFN6jwuAzvGC1ghs54869sDMNRM1aBjrei80qF7Sm8vCHOG/ZC0Df0wRyOgy3yayTXljPpQYJdQXyOFTqunWjSl2b1uYXFYRmFRLwgZj2O3eEgbiKqgNrrkP85b6UlNsBiIrijDArX362DnSIbd6bZ0uBVh+3ticZoBk0XOtt6UechkftJ4u2Cp4vkK4Xg6N8HoYHi7wv2xPe1DmsuHX9NfjGz5rpuR1WVgyEE/Rk9GPHk0HKsH6Fn9HO0QZdG/QF5itSxmjP39/cMhzohzXQBdh2uyDtNfu}
+  STRIPE_WEBHOOK_SECRET:
+    type: secret
+    value: {XFGR4JZ2NTD4HP24: ''}
 services:
 - client_config: {}
   server_config: {}

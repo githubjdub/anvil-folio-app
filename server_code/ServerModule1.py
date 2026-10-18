@@ -1,24 +1,15 @@
-import anvil.secrets
-import anvil.users
-import anvil.tables as tables
-import anvil.tables.query as q
-from anvil.tables import app_tables
+"""Billing configuration lives in stripe_billing.
+
+The app uses Stripe's HTTP API, so it does not need the separate Stripe SDK.
+Credentials are read only when billing is requested; importing server modules
+must not depend on a payment secret or prevent the portfolio from opening.
+"""
 import anvil.server
 
-# This is a server module. It runs on the Anvil server,
-# rather than in the user's browser.
-#
-# To allow anvil.server.call() to call functions here, we mark
-# them with @anvil.server.callable.
-# Here is an example - you can replace it with your own:
-#
-# @anvil.server.callable
-# def say_hello(name):
-#   print("Hello, " + name + "!")
-#   return 42
-#
-import anvil.secrets
-import stripe
+@anvil.server.http_endpoint("/stripe-webhook")
+def stripe_webhook():
+  # Anvil will handle the incoming payload here
+  payload = anvil.server.request.body.get_bytes()
 
-# Initialize Stripe with your saved secret key
-stripe.api_key = anvil.secrets.get_secret("sandbox_pay")
+  # Return a 200 response to tell Stripe you received it
+  return anvil.server.HttpResponse(status=200)
