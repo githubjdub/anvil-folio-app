@@ -235,7 +235,7 @@ class Form1(Form1Template):
         page not in ("overview", "allocation", "performance", "retrospective", "methods")):
       return
     if page != "performance":
-      self._set_charts_expanded(False)
+      self._set_charts_expanded(False, resize=False)
     self._readout_page = page
     self._apply_readout_page(redraw=True)
     self.dom_nodes["readout_scroller"].scrollTop = 0
@@ -1044,7 +1044,7 @@ class Form1(Form1Template):
 
   def _show_results(self, visible):
     if not visible:
-      self._set_charts_expanded(False)
+      self._set_charts_expanded(False, resize=False)
       self._history = None
       self._analysis_source = None
       self._selected_symbols = set()
@@ -1334,7 +1334,7 @@ class Form1(Form1Template):
   def close_chart_trades_click(self, **event_args):
     self.chart_trade_region.visible = False
 
-  def _set_charts_expanded(self, expanded):
+  def _set_charts_expanded(self, expanded, resize=True):
     if expanded == self._charts_expanded:
       return
     self._charts_expanded = expanded
@@ -1350,7 +1350,8 @@ class Form1(Form1Template):
     self.performance_plot.height = "480px" if expanded else "380px"
     self.drawdown_plot.height = "360px" if expanded else "300px"
     self.quarterly_plot.height = "390px" if expanded else "330px"
-    self._resize_readout_charts()
+    if resize:
+      self._resize_readout_charts()
     if expanded:
       node.scrollTop = 0
       node.focus({"preventScroll": True})

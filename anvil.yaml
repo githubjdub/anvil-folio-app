@@ -269,7 +269,20 @@ dependencies:
   version: {version_tag: v1.2.6}
 metadata: {logo_img: 'asset:portfoliora-mark.svg'}
 name: M3 App 1
-native_deps: null
+native_deps:
+  head_html: |
+    <script>
+    // Restore the local display choice before the first Form paints.
+    (function () {
+      var mode = "dark";
+      try {
+        mode = localStorage.getItem("portfoliora.appearance") === "light" ? "light" : "dark";
+      } catch (error) {
+        if (error.name !== "SecurityError" && error.name !== "QuotaExceededError") throw error;
+      }
+      document.documentElement.setAttribute("data-appearance", mode);
+    })();
+    </script>
 package_name: M3_App_1
 runtime_options:
   client_version: '3'
@@ -284,7 +297,8 @@ scheduled_tasks:
 secrets:
   sandbox pay:
     type: secret
-    value: {XFGR4JZ2NTD4HP24: ''}
+    value:
+      XFGR4JZ2NTD4HP24: {? '' : YVQ1zj06eSoowCfCjUiVqgjaYediZYVevieRPyvDBr/BDwhU/oAj5Uhe/m43KmEY4ZzMxSSrtP9C8XYzLLCTLRP6OxdsfGlkWL3dimUdBYuJgvimOYRm/aXD/Zq0bz9+Sfde97iIBY9G2SeXMg7NcyEzjYnn/X+dgx7K7LLaHqHCRyhOeIVr/dfIdBveCHdaq836l5ZImNXGM0xWicFD2NZW+PFMNe5b88zxfg9+wUv8ZMLsxgGhUUpJwKX0/DxA1wwc1oaO5nVgJynakfD3hIzMcZgIQ6DdrBWa0W7PuvAtMzHyt8aubXs7O5Fwk+Lp5No1XyGZAg==}
 services:
 - client_config: {}
   server_config: {}

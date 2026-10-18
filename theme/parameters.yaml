@@ -50,4 +50,54 @@ color_scheme:
   - {color: 'rgba(138,153,173,0.12)', name: On Surface Variant Overlay 2}
   - {color: 'rgba(18,26,40,0.08)', name: Inverse On Surface Overlay 1}
   - {color: 'rgba(18,26,40,0.12)', name: Inverse On Surface Overlay 2}
+  - {color: '#137A4D', name: Light Primary}
+  - {color: '#E5F4EB', name: Light Primary Container}
+  - {color: '#FFFFFF', name: Light On Primary}
+  - {color: '#0F5135', name: Light On Primary Container}
+  - {color: '#315F9D', name: Light Secondary}
+  - {color: '#E7EFFB', name: Light Secondary Container}
+  - {color: '#FFFFFF', name: Light On Secondary}
+  - {color: '#1F426F', name: Light On Secondary Container}
+  - {color: '#7952A7', name: Light Tertiary}
+  - {color: '#F0EAF7', name: Light Tertiary Container}
+  - {color: '#FFFFFF', name: Light On Tertiary}
+  - {color: '#553273', name: Light On Tertiary Container}
+  - {color: '#F4F6F8', name: Light Background}
+  - {color: '#192B3D', name: Light On Background}
+  - {color: '#FFFFFF', name: Light Surface}
+  - {color: '#192B3D', name: Light On Surface}
+  - {color: '#E7ECF1', name: Light Surface Variant}
+  - {color: '#5D6C7D', name: Light On Surface Variant}
+  - {color: '#F1F4F7', name: Light Surface Container}
+  - {color: '#F8FAFC', name: Light Surface Container Low}
+  - {color: '#EDF1F5', name: Light Surface Container High}
+  - {color: '#E5EBF1', name: Light Surface Container Highest}
+  - {color: '#78899B', name: Light Outline}
+  - {color: '#DDE3EA', name: Light Outline Variant}
+  - {color: '#B63851', name: Light Error}
+  - {color: '#FFFFFF', name: Light On Error}
+  - {color: '#FFF0F2', name: Light Error Container}
+  - {color: '#842639', name: Light On Error Container}
+  - {color: '#192B3D', name: Light Inverse Surface}
+  - {color: '#F8FAFC', name: Light Inverse On Surface}
+  - {color: '#74DCA7', name: Light Inverse Primary}
+  - {color: '#718096', name: Light On Disabled}
+  - {color: '#E9EDF2', name: Light Disabled Container}
+  - {color: '#DFE6EE', name: Light Disabled Container 2}
+  - {color: '#86531B', name: Light Warning}
+  - {color: '#FFF3DF', name: Light Warning Container}
+  - {color: 'rgba(19,122,77,0.08)', name: Light Primary Overlay 1}
+  - {color: 'rgba(19,122,77,0.12)', name: Light Primary Overlay 2}
+  - {color: 'rgba(19,122,77,0.18)', name: Light Primary Overlay 3}
+  - {color: 'rgba(182,56,81,0.08)', name: Light Error Overlay 1}
+  - {color: 'rgba(182,56,81,0.12)', name: Light Error Overlay 2}
+  - {color: 'rgba(255,255,255,0.08)', name: Light Light Overlay 1}
+  - {color: 'rgba(255,255,255,0.12)', name: Light Light Overlay 2}
+  - {color: 'rgba(25,43,61,0.04)', name: Light Dark Overlay 1}
+  - {color: 'rgba(25,43,61,0.08)', name: Light Dark Overlay 2}
+  - {color: 'rgba(25,43,61,0.12)', name: Light Dark Overlay 3}
+  - {color: 'rgba(93,108,125,0.08)', name: Light On Surface Variant Overlay 1}
+  - {color: 'rgba(93,108,125,0.12)', name: Light On Surface Variant Overlay 2}
+  - {color: 'rgba(248,250,252,0.08)', name: Light Inverse On Surface Overlay 1}
+  - {color: 'rgba(248,250,252,0.12)', name: Light Inverse On Surface Overlay 2}
 roles: []
