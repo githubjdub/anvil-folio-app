@@ -238,7 +238,8 @@ def _verified_event(body, signature, secret):
   if not timestamp.isdigit() or abs(time.time() - int(timestamp)) > 300:
     raise ValueError('Invalid webhook timestamp.')
   expected = hmac.new(secret.encode(), timestamp.encode() + b'.' + body, hashlib.sha256).hexdigest()
-  if not any(hmac.compare_digest(expected, value) for key, value in parts if key == 'v1'):
+  if not any(hmac.compare_digest(expected, value) for key, value in parts
+             if key == 'v1' and value.isascii()):
     raise ValueError('Invalid webhook signature.')
   event = json.loads(body)
   if not isinstance(event, dict) or not isinstance(event.get('id'), str):
