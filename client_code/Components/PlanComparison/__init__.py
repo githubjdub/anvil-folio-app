@@ -46,11 +46,12 @@ class PlanComparison(PlanComparisonTemplate):
   def free_click(self, **event_args):
     if self._busy:
       return
+    new_login = anvil.users.get_user() is None
     self._set_busy(True)
     origin = get_open_form()
     try:
       if sign_in() is not None and ensure_username() and get_open_form() is origin:
-        set_url_hash({'page': 'portfolio'})
+        set_url_hash({'page': 'profile' if new_login else 'portfolio'})
     finally:
       self._set_busy(False)
 

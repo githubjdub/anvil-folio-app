@@ -26,6 +26,7 @@
 }
 
 /* Light appearance uses the same components and spacing as the dark palette. */
+:root:not([data-appearance]),
 :root[data-appearance="light"] {
   color-scheme: light;
   --display-scheme: light;
@@ -171,7 +172,7 @@ button.anvil-role-share-tool { min-height: 36px; margin: 0; padding: 6px 10px; f
 .hero-note strong { color: var(--ink); font-size: 12px; }
 .hero-note-icon { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 9px; background: var(--mint); color: var(--mint-strong); font-size: 18px; }
 .portfolio-welcome { margin-bottom: 32px; }
-.portfolio-welcome h1 { margin: 0 0 12px; font-size: clamp(32px, 4vw, 48px); line-height: 1.1; letter-spacing: -.05em; }
+.anvil-role-portfolio-welcome-heading { margin: 0 0 12px; font-size: clamp(32px, 4vw, 48px); line-height: 1.1; font-weight: 750; letter-spacing: -.05em; color: var(--ink); overflow-wrap: anywhere; }
 
 .workspace-grid { display: grid; grid-template-columns: minmax(360px, .7fr) minmax(0, 1.3fr); gap: 48px; align-items: start; }
 .section-intro { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
@@ -1382,3 +1383,80 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
   .account-header-actions .subscription-nav { width: 100%; }
   .share-header-actions { gap: 8px; }
 }
+
+/* Separate, readable methodology page. */
+.disclosures-content { max-width: 960px; }
+.disclosures-content h1 { color: var(--ink); font-size: clamp(28px, 4vw, 40px); line-height: 1.2; margin: 14px 0 20px; }
+.disclosures-content h2 { color: var(--ink); font-size: 23px; margin: 40px 0 18px; }
+.disclosures-intro { color: var(--muted); font-size: 16px; line-height: 1.8; max-width: 70ch; }
+.disclosures-content .method-note { padding: 24px; margin: 0 0 20px; }
+.disclosures-content .method-note h3 { color: var(--ink); font-size: 18px; margin: 0 0 12px; }
+.disclosures-content .method-note p { font-size: 14px; line-height: 1.85; margin: 12px 0 0; }
+.disclosures-page a, .disclosures-link { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.disclosures-page a:hover, .disclosures-link:hover { color: var(--ink); }
+.disclosures-page a:focus-visible, .disclosures-link:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: 4px; }
+.disclosures-page .subscription-nav a { padding: 10px 14px; font-size: 14px; }
+.readout-disclosures { text-align: right; padding: 4px 0 8px; font-size: 12px; }
+@media (max-width: 600px) { .disclosures-content .method-note { padding: 20px 16px; } }
+
+/* Retirement projections: roomy groups and charts in both display modes. */
+.retirement-workspace { min-width: 0; color: var(--ink); }
+.retirement-intro { color: var(--ink); font-size: 16px; line-height: 1.65; max-width: 760px; margin: 8px 0; }
+.retirement-input-sections { display: grid; gap: 22px; margin: 28px 0 24px; }
+.retirement-input-group, .retirement-assumptions { border: 1px solid var(--line); border-radius: 16px; padding: 22px; background: var(--surface-soft); }
+.retirement-input-group h4, .retirement-result-heading h4 { margin: 0 0 18px; font-size: 17px; letter-spacing: -.02em; }
+.retirement-input-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 22px; }
+.retirement-input-grid > * { min-width: 0; }
+.retirement-portfolio-action { margin-top: 12px; }
+.retirement-assumptions summary, .retirement-model-note summary { cursor: pointer; color: var(--ink); font-size: 15px; font-weight: 650; line-height: 1.5; }
+.retirement-assumptions[open] > summary { margin-bottom: 22px; }
+.retirement-input-group .fine-print, .retirement-assumptions .fine-print { margin: 16px 0 0; line-height: 1.65; }
+.retirement-run-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.retirement-status { min-height: 30px; margin: 10px 0 18px; }
+.retirement-status.is-error { padding: 10px 14px; border-radius: 10px; background: var(--negative-surface); }
+.retirement-status.is-error .anvil-role-portfolio-help { color: var(--negative); }
+.retirement-results { border-top: 1px solid var(--line); padding-top: 28px; margin-top: 12px; }
+.retirement-result-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.retirement-result-heading h4 { margin-bottom: 3px; }
+.retirement-result-heading p { margin: 0; }
+.retirement-simulation-tag { color: var(--muted); font-size: 12px; border: 1px solid var(--line); border-radius: 100px; padding: 7px 12px; white-space: nowrap; }
+.retirement-success { display: grid; grid-template-columns: minmax(150px, .65fr) 1.35fr; gap: 24px; align-items: center; border: 1px solid var(--line); border-radius: 16px; padding: 24px; background: var(--surface-soft); }
+.anvil-role-retirement-success-value { color: var(--mint-strong); font-size: 44px; font-weight: 650; line-height: 1.15; letter-spacing: -.04em; margin-top: 7px; font-variant-numeric: tabular-nums; }
+.retirement-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin: 26px 0; }
+.retirement-metrics > div { min-width: 0; }
+.retirement-metrics .anvil-role-comparison-value { font-size: 25px; }
+.retirement-chart { min-width: 0; margin: 8px -6px 16px; }
+.retirement-model-note { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 24px; }
+.retirement-model-note p { color: var(--muted); font-size: 13px; line-height: 1.75; margin: 14px 0; }
+.retirement-model-note a { color: var(--blue); font-size: 13px; text-underline-offset: 3px; }
+@media (max-width: 800px) {
+  .retirement-metrics { grid-template-columns: 1fr; gap: 16px; }
+  .retirement-metrics > div { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .retirement-metrics > div:last-child { border-bottom: 0; }
+}
+@media (max-width: 620px) {
+  .retirement-input-grid, .retirement-success { grid-template-columns: 1fr; }
+  .retirement-input-group, .retirement-assumptions, .retirement-success { padding: 18px; }
+  .retirement-input-grid { gap: 20px; }
+  .retirement-success { gap: 12px; }
+  .retirement-run-row { align-items: stretch; flex-direction: column; gap: 8px; }
+  .retirement-chart { margin-left: -12px; margin-right: -12px; }
+}
+
+/* Calendar-year sections keep older transactions compact and easy to reopen. */
+.transaction-year-group { margin: 12px 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.transaction-year-header { padding: 0 0 8px; background: var(--surface-soft); }
+.anvil-role-transaction-year-toggle { width: 100%; }
+.anvil-role-transaction-year-toggle > button {
+  display: block; width: 100%; min-height: 34px; padding: 9px 12px 3px;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  color: var(--ink); font: inherit; font-size: 13px; font-weight: 750;
+  text-transform: none; letter-spacing: 0; text-align: left;
+}
+.anvil-role-transaction-year-toggle > button:hover { background: var(--surface-raised); color: var(--ink); }
+.anvil-role-transaction-year-toggle > button:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: -2px; }
+.anvil-role-transaction-year-toggle > button:disabled { opacity: .55; cursor: wait; }
+.anvil-role-transaction-year-summary { padding: 0 12px 0 33px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.anvil-role-transaction-year-rows { padding: 0 10px 8px; background: var(--paper); }
+.anvil-role-transaction-year-rows .transaction-card { margin-top: 8px; }
+.transaction-year-group.is-collapsed { margin-bottom: 8px; }

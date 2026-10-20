@@ -274,9 +274,9 @@ native_deps:
     <script>
     // Restore the local display choice before the first Form paints.
     (function () {
-      var mode = "dark";
+      var mode = "light";
       try {
-        mode = localStorage.getItem("portfoliora.appearance") === "light" ? "light" : "dark";
+        mode = localStorage.getItem("portfoliora.appearance") === "dark" ? "dark" : "light";
       } catch (error) {
         if (error.name !== "SecurityError" && error.name !== "QuotaExceededError") throw error;
       }

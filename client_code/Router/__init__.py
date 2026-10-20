@@ -7,6 +7,7 @@ from ..PublicPerformance import PublicPerformance
 from ..Subscribe import Subscribe
 from ..MySubscription import MySubscription
 from ..ProfileHome import ProfileHome
+from ..Disclosures import Disclosures
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, username_prompt_open
 from ..appearance import initialize
@@ -40,7 +41,7 @@ class Router(RouterTemplate):
     if isinstance(route, dict):
       if route.get("share") is not None:
         return "shared", route["share"]
-      if route.get("page") in ("subscribe", "subscription", "profile"):
+      if route.get("page") in ("subscribe", "subscription", "profile", "disclosures"):
         return route["page"], None
       if route.get("page") == "portfolio":
         return "dashboard", route.get("portfolio")
@@ -55,7 +56,8 @@ class Router(RouterTemplate):
     account_id = user.get_id() if user is not None else None
     if account_id is None:
       self._username_account_id = None
-    if account_id is not None and account_id != self._username_account_id and not username_prompt_open():
+    if (account_id is not None and account_id != self._username_account_id
+        and self._route_key()[0] != "disclosures" and not username_prompt_open()):
       ready = ensure_username()
       if generation != self._route_generation:
         return
@@ -80,8 +82,8 @@ class Router(RouterTemplate):
       if generation == self._route_generation and self._route_key() == route:
         open_form(reader)
         record_page("shared")
-    elif page in ("subscribe", "subscription", "profile"):
-      form_type = {"subscribe": Subscribe, "subscription": MySubscription, "profile": ProfileHome}[page]
+    elif page in ("subscribe", "subscription", "profile", "disclosures"):
+      form_type = {"subscribe": Subscribe, "subscription": MySubscription, "profile": ProfileHome, "disclosures": Disclosures}[page]
       if isinstance(active, form_type):
         if isinstance(active, ProfileHome):
           active._refresh()

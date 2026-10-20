@@ -1,0 +1,58 @@
+---
+custom_component: true
+---
+<section class="retirement-workspace">
+  <div class="detail-heading"><h3>Plan for your next chapter</h3><span>Retirement · Beta</span></div>
+  <p class="retirement-intro">Explore how your savings, spending, and retirement date could play out across 2,000 possible market paths.</p>
+  <p class="fine-print">All amounts are in today's US dollars. The starting values are examples; return and risk assumptions are yours to choose.</p>
+  <div class="retirement-input-sections">
+    <section class="retirement-input-group">
+      <h4>Your starting point</h4>
+      <div class="retirement-input-grid">
+        <anvil-component type="m3._Components.TextInput.TextBox" name="current_age_box" prop:label="Your current age" prop:text="35" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+        <anvil-component type="m3._Components.TextInput.TextBox" name="starting_balance_box" prop:label="Retirement savings · USD" prop:text="100000" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+        <anvil-component type="m3._Components.TextInput.TextBox" name="monthly_savings_box" prop:label="Monthly savings · USD" prop:text="1000" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+      </div>
+      <div class="retirement-portfolio-action"><anvil-component type="m3._Components.Button" name="use_portfolio_button" prop:text="Use selected portfolio value" prop:appearance="text" prop:role="chart-tool"></anvil-component></div>
+      <anvil-component type="Label" name="portfolio_context_label" prop:role="portfolio-help"></anvil-component>
+      <anvil-component type="Label" name="balance_source_label" prop:role="portfolio-help"></anvil-component>
+    </section>
+    <section class="retirement-input-group">
+      <h4>Your retirement goals</h4>
+      <div class="retirement-input-grid">
+        <anvil-component type="m3._Components.TextInput.TextBox" name="retirement_age_box" prop:label="Retire at age" prop:text="65" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+        <anvil-component type="m3._Components.TextInput.TextBox" name="end_age_box" prop:label="Plan through age" prop:text="95" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+        <anvil-component type="m3._Components.TextInput.TextBox" name="monthly_spending_box" prop:label="Monthly retirement spending · USD" prop:text="4000" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+        <anvil-component type="m3._Components.TextInput.TextBox" name="monthly_income_box" prop:label="Other monthly retirement income · USD" prop:text="1800" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+        <anvil-component type="m3._Components.TextInput.TextBox" name="bequest_goal_box" prop:label="Leave behind at plan end · USD" prop:text="0" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+      </div>
+      <p class="fine-print">Other income can include pension or Social Security estimates. It starts at your chosen retirement age and is assumed to keep pace with inflation. Set the final balance goal to 0 if you only want to fund spending.</p>
+    </section>
+    <details class="retirement-assumptions" open>
+      <summary>Growth &amp; risk assumptions</summary>
+      <div class="retirement-input-grid">
+        <anvil-component type="m3._Components.TextInput.TextBox" name="expected_return_box" prop:label="Expected annual return · %" prop:text="6" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+        <anvil-component type="m3._Components.TextInput.TextBox" name="volatility_box" prop:label="Annual volatility · %" prop:text="15" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+        <anvil-component type="m3._Components.TextInput.TextBox" name="inflation_box" prop:label="Annual inflation · %" prop:text="2.5" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+        <anvil-component type="m3._Components.TextInput.TextBox" name="annual_fee_box" prop:label="Annual fees · %" prop:text="0.25" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+      </div>
+      <p class="fine-print">Return means the expected one-year total return before inflation and fees, including reinvested dividends. Volatility describes annual return variability. These assumptions apply throughout the plan and are not estimated from your portfolio history.</p>
+    </details>
+  </div>
+  <div class="retirement-run-row"><anvil-component type="m3._Components.Button" name="run_button" prop:text="Run retirement projection" prop:appearance="filled" prop:role="analyze-action"></anvil-component><span class="fine-print">Scenarios are not saved when you reload.</span></div>
+  <div anvil:name="status_region" class="retirement-status" role="status" aria-live="polite"><anvil-component type="Label" name="status_label" prop:role="portfolio-help"></anvil-component></div>
+  <section anvil:name="results_region" class="retirement-results">
+    <div class="retirement-result-heading"><div><h4>Your projected range</h4><p class="fine-print">Purchasing power in today's dollars</p></div><span class="retirement-simulation-tag">2,000 simulated paths</span></div>
+    <div class="retirement-success"><div><span class="comparison-metric-label">Simulations meeting your goal</span><anvil-component type="Label" name="success_label" prop:role="retirement-success-value"></anvil-component></div><div><anvil-component type="Label" name="success_detail_label" prop:role="portfolio-help"></anvil-component><anvil-component type="Label" name="funded_label" prop:role="portfolio-help"></anvil-component></div></div>
+    <div class="retirement-metrics">
+      <div><anvil-component type="Label" name="retirement_age_label" prop:role="portfolio-help"></anvil-component><anvil-component type="Label" name="retirement_value_label" prop:role="comparison-value"></anvil-component></div>
+      <div><anvil-component type="Label" name="ending_age_label" prop:role="portfolio-help"></anvil-component><anvil-component type="Label" name="ending_value_label" prop:role="comparison-value"></anvil-component></div>
+      <div><span class="comparison-metric-label">Downside at plan end · 10th percentile</span><anvil-component type="Label" name="downside_value_label" prop:role="comparison-value"></anvil-component></div>
+    </div>
+    <div class="retirement-chart"><anvil-component type="Plot" name="projection_plot" prop:height="390px"></anvil-component></div>
+    <anvil-component type="Label" name="range_label" prop:role="portfolio-help"></anvil-component>
+    <anvil-component type="Label" name="gap_label" prop:role="portfolio-help"></anvil-component>
+    <p class="fine-print">The shaded bands show the middle 80% and middle 50% of balances at each age. Each point summarizes all simulated paths; a band is not a single path or a guaranteed outcome.</p>
+  </section>
+  <details class="retirement-model-note"><summary>How to read this projection</summary><p>Success means the plan covers every monthly retirement withdrawal through your chosen end age and meets any final balance goal. Income above spending is invested at the start of each retirement month.</p><p>The model samples independent monthly market returns using fixed assumptions. Savings are added at month end before retirement; retirement withdrawals come out at month start. Fees and inflation are applied monthly. Savings, spending, and other income retain constant purchasing power.</p><p>This is a hypothetical planning tool, not a forecast or investment recommendation. Taxes, debt, changing asset allocation, and unexpected expenses are not modeled. Extreme market outcomes can differ from these simulations. The same inputs use the same random sample so scenarios are easier to compare.</p><a href="#?page=disclosures">Read methods &amp; disclosures</a></details>
+</section>

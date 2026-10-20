@@ -126,14 +126,14 @@ class HoldingRow(HoldingRowTemplate):
 
   def set_collapsed(self, collapsed, **event_args):
     if self._editable:
+      if collapsed:
+        self.commit_inputs()
       self.item["_collapsed"] = collapsed
       self._show_expanded()
 
   @handle("toggle_button", "click")
   def toggle_button_click(self, **event_args):
-    if self._editable:
-      self.item["_collapsed"] = not self.item.get("_collapsed", False)
-      self._show_expanded()
+    self.set_collapsed(not self.item.get("_collapsed", False))
 
   @handle("ticker_box", "change")
   def ticker_box_change(self, **event_args):

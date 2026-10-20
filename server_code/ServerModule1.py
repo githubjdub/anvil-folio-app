@@ -12,11 +12,3 @@ from .stripe_billing import stripe_webhook as verified_stripe_webhook
 def stripe_webhook(**params):
   """Keep the earlier endpoint URL working through verified billing handling."""
   return verified_stripe_webhook(**params)
-
-@anvil.server.http_endpoint("/stripe-webhook")
-def stripe_webhook():
-  # Anvil will handle the incoming payload here
-  payload = anvil.server.request.body.get_bytes()
-
-  # Return a 200 response to tell Stripe you received it
-  return anvil.server.HttpResponse(status=200)

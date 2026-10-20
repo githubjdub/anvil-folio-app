@@ -11,6 +11,7 @@ from ..analysis_selection import analyze_selection
 from ..chart_trades import build_trade_markers
 from ..portfolio_periods import quarterly_returns, allocation_snapshots
 from ..HoldingRow import HoldingRow
+from ..transaction_groups import group_transactions_by_year
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, sign_in
 
@@ -33,6 +34,7 @@ class Form1(Form1Template):
     self._user = None
     self._username = ""
     self.account_id = None
+    self._restore_on_resume = False
     self.membership_region.visible = False
     self._creator_enabled = False
     self._creator_open = False
@@ -47,6 +49,7 @@ class Form1(Form1Template):
     self._portfolio_dirty = False
     self._busy = False
     self.transactions = []
+    self._collapsed_transaction_years = {}
     self._history = None
     self._analysis_source = None
     self._selected_symbols = set()
@@ -79,7 +82,7 @@ class Form1(Form1Template):
       ("Replace current transactions", "replace"),
     ]
     self.image_import_mode_dropdown.selected_value = "append"
-    self.transaction_view_dropdown.items = [("Entry order", "entry"), ("Group by security", "security")]
+    self.transaction_view_dropdown.items = [("Entry order", "entry"), ("Group by security", "security"), ("Group by year", "year")]
     self.transaction_view_dropdown.selected_value = "entry"
     self.regroup_button.visible = False
     self.timeframe_dropdown.items = [
@@ -129,17 +132,18 @@ class Form1(Form1Template):
       self.market_status_timer.interval = 60
 
   def _update_readout_context(self):
+    self._update_retirement_context()
     if self._history is not None:
       self.period_label.text = "%s · %d selected open holdings%s" % (
         self._history["metadata"]["end_date"], self._history["metrics"]["holding_count"],
         " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
       )
     name = {"overview": "Overview", "allocation": "Portfolio structure",
-            "performance": "Performance", "retrospective": "Retrospective", "methods": "Methods"}[self._readout_page]
+            "performance": "Performance", "retrospective": "Retrospective", "retirement": "Retirement"}[self._readout_page]
     if self._readout_page == "retrospective":
       self.readout_tab_context.text = "Retrospective · Test a hypothetical strategy against history"
-    elif self._readout_page == "methods":
-      self.readout_tab_context.text = "Methods · Calculations and data sources"
+    elif self._readout_page == "retirement":
+      self.readout_tab_context.text = "Retirement · Explore future savings and spending"
     elif self._analysis_source is not None:
       count = len(self._analysis_source["selection_data"]["securities"])
       self.readout_tab_context.text = "%s · %d of %d securities selected" % (
@@ -150,7 +154,7 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    portfolio_page = self._readout_page not in ("methods", "retrospective")
+    portfolio_page = self._readout_page not in ("retirement", "retrospective")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
     self.hedge_fund_panel.visible = self._readout_page == "performance"
@@ -158,7 +162,7 @@ class Form1(Form1Template):
       ("overview", self.overview_panel, self.overview_tab_button),
       ("allocation", self.allocation_panel, self.allocation_tab_button),
       ("performance", self.performance_panel, self.performance_tab_button),
-      ("methods", self.methods_panel, self.methods_tab_button),
+      ("retirement", self.retirement_panel, self.retirement_tab_button),
       ("retrospective", self.retrospective_panel, self.retrospective_tab_button),
     ):
       active = name == self._readout_page
@@ -173,6 +177,8 @@ class Form1(Form1Template):
         self.retrospective_form.redraw()
       elif self._readout_page == "performance":
         self.hedge_fund_comparison.redraw()
+      elif self._readout_page == "retirement":
+        self.retirement_form.redraw()
 
   def _render_active_readout(self):
     self._ensure_readout_rendered(self._readout_page)
@@ -234,6 +240,8 @@ class Form1(Form1Template):
       self.retrospective_form.apply_appearance()
     elif self._readout_page == "performance":
       self.hedge_fund_comparison.apply_appearance()
+    elif self._readout_page == "retirement":
+      self.retirement_form.apply_appearance()
     if self._creator_open:
       self.creator_workspace.apply_appearance()
     if self.share_composer.visible:
@@ -241,7 +249,7 @@ class Form1(Form1Template):
 
   def _select_readout_page(self, page):
     if (self._busy or page == self._readout_page or
-        page not in ("overview", "allocation", "performance", "retrospective", "methods")):
+        page not in ("overview", "allocation", "performance", "retrospective", "retirement")):
       return
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
@@ -321,9 +329,28 @@ class Form1(Form1Template):
   def performance_tab_click(self, **event_args):
     self._select_readout_page("performance")
 
-  @handle("methods_tab_button", "click")
-  def methods_tab_click(self, **event_args):
-    self._select_readout_page("methods")
+  @handle("retirement_tab_button", "click")
+  def retirement_tab_click(self, **event_args):
+    self._select_readout_page("retirement")
+
+  def _update_retirement_context(self):
+    value = None
+    as_of = None
+    if self._history is not None and self._selected_symbols:
+      value = self._history["metrics"]["market_value"]
+      as_of = self._history["metadata"]["end_date"]
+    self.retirement_form.set_portfolio_context(value, as_of)
+
+  @handle("retirement_form", "x-use-portfolio-balance")
+  def retirement_use_portfolio(self, **event_args):
+    if not self._busy and self._history is not None and self._selected_symbols:
+      self.retirement_form.set_starting_balance(
+        self._history["metrics"]["market_value"], self._history["metadata"]["end_date"]
+      )
+
+  @handle("retirement_form", "x-retirement-busy")
+  def retirement_busy_change(self, busy, **event_args):
+    self._set_busy(busy)
 
   def _set_retrospective_tickers(self, force=False):
     tickers = []
@@ -553,6 +580,10 @@ class Form1(Form1Template):
     except ValueError as error:
       self._set_image_import_status(str(error), is_error=True)
       return
+    if replacing:
+      self._collapsed_transaction_years.clear()
+    else:
+      self._commit_transaction_inputs()
     self.transactions = imported if replacing else self.transactions + imported
     self._refresh_transactions()
     self._mark_portfolio_dirty()
@@ -563,8 +594,13 @@ class Form1(Form1Template):
     self._set_status("Imported positions ready — sync history to calculate the updated readout.")
 
   def _refresh_transactions(self):
-    grouped = self.transaction_view_dropdown.selected_value == "security"
-    self.regroup_button.visible = grouped
+    view = self.transaction_view_dropdown.selected_value
+    grouped = view == "security"
+    by_year = view == "year"
+    self.regroup_button.visible = grouped or by_year
+    self.collapse_prior_years_button.visible = by_year
+    self.collapse_all_button.text = "Collapse years" if by_year else "Collapse all"
+    self.expand_all_button.text = "Expand years" if by_year else "Expand all"
     for index, row in enumerate(self.transactions):
       row["_transaction_index"] = index
       row["_security_group"] = ""
@@ -585,35 +621,79 @@ class Form1(Form1Template):
           sells, "" if sells == 1 else "s",
         )
         visible_rows.extend(group)
-    self.holdings_panel.items = visible_rows
+    # Callers commit editors before user-initiated rebuilds. Do not commit here:
+    # Sync and portfolio replacement already supplied the authoritative rows.
+    self.holdings_panel.raise_event_on_children("x-set-editable", editable=False)
+    self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=False)
+    self.holdings_panel.visible = not by_year
+    self.transaction_years_panel.visible = by_year
+    if by_year:
+      self.holdings_panel.items = []
+      self.transaction_years_panel.items = group_transactions_by_year(
+        self.transactions, self._collapsed_transaction_years, date.today().year
+      )
+    else:
+      self.transaction_years_panel.items = []
+      self.holdings_panel.items = visible_rows
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
+    self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.transaction_view_help.text = (
+      "Newest dates first. Click a year to fold it away. Use Regroup after changing dates."
+      if by_year else
       "Trades are grouped by ticker. Use Regroup after editing a ticker or action."
       if grouped else "Transactions appear in the order you entered them."
     )
     self._update_image_import_controls()
 
+  def _transaction_row_forms(self):
+    rows = [form for form in self.holdings_panel.get_components() if isinstance(form, HoldingRow)]
+    for group in self.transaction_years_panel.get_components():
+      rows.extend(group.transaction_rows())
+    return rows
+
+  def _commit_transaction_inputs(self):
+    for row in self._transaction_row_forms():
+      row.commit_inputs()
+
+  @handle("transaction_years_panel", "x-year-collapsed")
+  def transaction_year_collapsed(self, year, collapsed, **event_args):
+    self._collapsed_transaction_years[year] = collapsed
+
   @handle("transaction_view_dropdown", "change")
   @handle("regroup_button", "click")
   def transaction_view_change(self, **event_args):
     if not self._busy:
+      self._commit_transaction_inputs()
       self._refresh_transactions()
 
   @handle("collapse_all_button", "click")
   def collapse_all_button_click(self, **event_args):
     if not self._busy:
-      self.holdings_panel.raise_event_on_children("x-set-collapsed", collapsed=True)
+      self._commit_transaction_inputs()
+      panel = self.transaction_years_panel if self.transaction_view_dropdown.selected_value == "year" else self.holdings_panel
+      panel.raise_event_on_children("x-set-collapsed", collapsed=True)
 
   @handle("expand_all_button", "click")
   def expand_all_button_click(self, **event_args):
     if not self._busy:
-      self.holdings_panel.raise_event_on_children("x-set-collapsed", collapsed=False)
+      panel = self.transaction_years_panel if self.transaction_view_dropdown.selected_value == "year" else self.holdings_panel
+      panel.raise_event_on_children("x-set-collapsed", collapsed=False)
+
+  @handle("collapse_prior_years_button", "click")
+  def collapse_prior_years_click(self, **event_args):
+    if self._busy or self.transaction_view_dropdown.selected_value != "year":
+      return
+    self._commit_transaction_inputs()
+    self._refresh_transactions()
+    for group in self.transaction_years_panel.get_components():
+      year = group.item["year"]
+      group.set_collapsed(year is not None and year < date.today().year)
 
   def _show_entry_order_for_error(self, message):
     if message.startswith("Row ") or message.startswith("Add at least one transaction"):
       self._set_transactions_collapsed(False)
     # Validation row numbers refer to the original transaction order.
-    if message.startswith("Row ") and self.transaction_view_dropdown.selected_value == "security":
+    if message.startswith("Row ") and self.transaction_view_dropdown.selected_value != "entry":
       self.transaction_view_dropdown.selected_value = "entry"
       self._refresh_transactions()
 
@@ -637,9 +717,9 @@ class Form1(Form1Template):
       self.allocation_view_dropdown, self.allocation_quarter_dropdown,
       self.comparison_start_picker, self.comparison_end_picker,
       self.transaction_view_dropdown, self.regroup_button,
-      self.collapse_all_button, self.expand_all_button,
+      self.collapse_all_button, self.expand_all_button, self.collapse_prior_years_button,
       self.overview_tab_button, self.allocation_tab_button,
-      self.performance_tab_button, self.methods_tab_button,
+      self.performance_tab_button, self.retirement_tab_button,
       self.retrospective_tab_button, self.toggle_transactions_button,
       self.creator_tab_button, self.creator_setup_button,
       self.toggle_image_import_button, self.holdings_image_loader,
@@ -662,8 +742,10 @@ class Form1(Form1Template):
       "Save changes" if self._current_portfolio is not None else "Save portfolio"
     )
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
+    self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.retrospective_form.raise_event("x-set-editable", editable=not self._busy)
+    self.retirement_form.raise_event("x-set-editable", editable=not self._busy)
     self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
     self.hedge_fund_comparison.raise_event("x-set-editable", editable=not self._busy)
     self.benchmark_return_dropdown.enabled = not self._busy and len(self.benchmark_return_dropdown.items) > 1
@@ -729,8 +811,9 @@ class Form1(Form1Template):
     self._set_busy(True)
     try:
       self._refresh_account()
-      if was_guest and self._user is not None and not self._has_unsaved_work():
+      if (was_guest or self._restore_on_resume) and self._user is not None and not self._has_unsaved_work():
         self._restore_last_portfolio()
+      self._restore_on_resume = False
     finally:
       self._set_busy(False)
 
@@ -806,11 +889,13 @@ class Form1(Form1Template):
     signed_in = self._user is not None
     self.guest_hero.visible = not signed_in
     self.welcome_region.visible = signed_in
+    self.welcome_heading_label.text = (
+      "Welcome back, %s." % self._username if signed_in and self._username else "Welcome back."
+    )
     if not signed_in:
       self.welcome_detail_label.text = ""
     else:
-      greeting = "Welcome back, %s. " % self._username if self._username else ""
-      self.welcome_detail_label.text = greeting + (
+      self.welcome_detail_label.text = (
         'Continue with "%s" below.' % self._current_portfolio["name"]
         if self._current_portfolio is not None else
         "Continue your draft below, or open a saved portfolio. We'll remember the portfolio you open or save."
@@ -865,9 +950,12 @@ class Form1(Form1Template):
     )
 
   def _new_portfolio(self):
+    self._collapsed_transaction_years.clear()
+    self._restore_on_resume = False
     self._current_portfolio = None
     self._clear_image_import()
     self.retrospective_form.reset_workspace()
+    self.retirement_form.reset_workspace()
     self.portfolio_name_box.text = ""
     self.transactions = [self._new_transaction()]
     self._refresh_transactions()
@@ -903,7 +991,9 @@ class Form1(Form1Template):
     try:
       if self._user is None:
         if self._ensure_signed_in():
-          self._restore_last_portfolio()
+          # Show the welcome page first. Restore only when Portfolio is opened,
+          # leaving any guest draft intact while the user views their account.
+          self._restore_on_resume = True
           set_url_hash({"page": "profile"})
       else:
         anvil.users.logout(invalidate_client_objects=True)
@@ -923,6 +1013,7 @@ class Form1(Form1Template):
   @handle("as_of_date_picker", "change")
   @handle("risk_free_box", "change")
   @handle("holdings_panel", "x-holding-changed")
+  @handle("transaction_years_panel", "x-holding-changed")
   def portfolio_inputs_change(self, **event_args):
     # Binding/rebuilding editors is not a user edit. In particular, a date
     # change emitted while syncing must not discard the result being rendered.
@@ -999,8 +1090,10 @@ class Form1(Form1Template):
       self._set_busy(False)
 
   def _apply_portfolio(self, portfolio):
+    self._collapsed_transaction_years.clear()
     self._clear_image_import()
     self.retrospective_form.reset_workspace()
+    self.retirement_form.reset_workspace()
     self._current_portfolio = portfolio
     self.portfolio_name_box.text = portfolio["name"]
     # Reopening a portfolio starts a fresh analysis through today. Users can
@@ -1042,6 +1135,7 @@ class Form1(Form1Template):
     }
 
   def _load_sample_transactions(self):
+    self._collapsed_transaction_years.clear()
     self._clear_image_import()
     today = date.today()
     self.transactions = [
@@ -1138,9 +1232,7 @@ class Form1(Form1Template):
   def _read_transactions(self):
     # Read the editors before disabling or rebuilding them so Sync and Save
     # include the last active field even if its change event is still pending.
-    for row_form in self.holdings_panel.get_components():
-      if isinstance(row_form, HoldingRow):
-        row_form.commit_inputs()
+    self._commit_transaction_inputs()
     clean_transactions = []
     for row_number, row in enumerate(self.transactions, start=1):
       values = [
@@ -1321,9 +1413,10 @@ class Form1(Form1Template):
     self.chart_trade_region.visible = False
     for row in self.transactions:
       row["_chart_target"] = row is target
-    for form in self.holdings_panel.get_components():
-      if not isinstance(form, HoldingRow):
-        continue
+    for group in self.transaction_years_panel.get_components():
+      if any(row is target for row in group.item["transactions"]):
+        group.set_collapsed(False)
+    for form in self._transaction_row_forms():
       selected = form.item is target
       form.classes["is-chart-target"] = selected
       if selected:
@@ -1864,6 +1957,10 @@ class Form1(Form1Template):
 
   @handle("add_button", "click")
   def add_button_click(self, **event_args):
+    if self._busy:
+      return
+    self._commit_transaction_inputs()
+    self._collapsed_transaction_years[None] = False
     self.transactions.append(self._new_transaction())
     self._refresh_transactions()
     self._mark_portfolio_dirty()
@@ -1883,8 +1980,10 @@ class Form1(Form1Template):
     self._update_controls()
 
   @handle("holdings_panel", "x-remove-holding")
+  @handle("transaction_years_panel", "x-remove-holding")
   def holdings_panel_remove_holding(self, item, **event_args):
-    if item in self.transactions:
+    if not self._busy and any(row is item for row in self.transactions):
+      self._commit_transaction_inputs()
       self.transactions = [row for row in self.transactions if row is not item]
       self._refresh_transactions()
       self._mark_portfolio_dirty()

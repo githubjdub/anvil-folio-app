@@ -31,7 +31,7 @@
 
     <section anvil:name="welcome_region" class="portfolio-welcome" aria-label="Welcome back">
       <div class="eyebrow">Your investment workspace</div>
-      <h1>Welcome back.</h1>
+      <div role="heading" aria-level="1"><anvil-component type="Label" name="welcome_heading_label" prop:text="Welcome back." prop:bold="true" prop:role="portfolio-welcome-heading" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
       <anvil-component type="Label" name="welcome_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     </section>
 
@@ -134,11 +134,13 @@
           <div class="transaction-view-toolbar">
             <div class="transaction-view-choice"><div class="portfolio-field-caption">Transaction view</div><anvil-component type="DropDown" name="transaction_view_dropdown" prop:role="portfolio-picker"></anvil-component></div>
             <anvil-component type="m3._Components.Button" name="regroup_button" prop:text="Regroup" prop:appearance="text" prop:icon="mi:sort"></anvil-component>
+            <anvil-component type="m3._Components.Button" name="collapse_prior_years_button" prop:text="Collapse prior years" prop:appearance="text" prop:visible="false"></anvil-component>
             <anvil-component type="m3._Components.Button" name="collapse_all_button" prop:text="Collapse all" prop:appearance="text"></anvil-component>
             <anvil-component type="m3._Components.Button" name="expand_all_button" prop:text="Expand all" prop:appearance="text"></anvil-component>
           </div>
           <anvil-component type="Label" name="transaction_view_help" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
           <anvil-component type="RepeatingPanel" name="holdings_panel" prop:item_template="M3_App_1.HoldingRow" prop:role="holdings-list"></anvil-component>
+          <anvil-component type="RepeatingPanel" name="transaction_years_panel" prop:item_template="M3_App_1.Components.TransactionYearGroup" prop:role="transaction-year-list" prop:visible="false"></anvil-component>
           <div class="add-holding-row">
             <anvil-component type="m3._Components.Button" name="add_button" prop:text="Add transaction" prop:appearance="outlined" prop:icon="mi:add" prop:role="add-holding-action"></anvil-component>
           </div>
@@ -184,8 +186,9 @@
             <anvil-component type="m3._Components.Button" name="retrospective_tab_button" prop:text="Retrospective" prop:appearance="text" prop:role="readout-tab"></anvil-component>
             <span class="feature-beta-badge" title="Work in progress">Beta</span>
           </div>
-          <anvil-component type="m3._Components.Button" name="methods_tab_button" prop:text="Methods" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="retirement_tab_button" prop:text="Retirement" prop:appearance="text" prop:role="readout-tab"></anvil-component>
         </nav>
+        <div class="readout-disclosures"><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods ↗</a></div>
         <div class="readout-page-status" role="status" aria-live="polite"><anvil-component type="Label" name="readout_tab_context" prop:role="readout-tab-context" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
         <div anvil:dom-node="readout_scroller" class="readout-scroll-region" tabindex="0" role="region" aria-label="Readout content">
         <section anvil:name="empty_results" class="empty-results">
@@ -328,10 +331,8 @@
           </section>
         </section>
         <section anvil:name="hedge_fund_panel" class="readout-page detail-card hedge-fund-subsection" aria-label="Hedge fund comparisons"><anvil-component type="M3_App_1.Components.HedgeFundComparison" name="hedge_fund_comparison"></anvil-component></section>
-        <section anvil:name="methods_panel" class="readout-page" aria-label="Calculation methods and sources">
-          <section class="method-note"><div><h3>Performance &amp; dividends</h3><p>Total return in Overview is investment profit divided by total buy capital. The charts use time-weighted performance, adjusting for purchases as contributions and sales as withdrawals.</p><p>With no deposit ledger or execution times, buys are treated as beginning-of-session inflows and sells as end-of-session outflows. The first price mark establishes the comparison baseline; investment profit still includes your entered execution prices.</p><p>Dividends are credited on ex-dividend dates, before tax, without reinvestment. Weekend or holiday trades use the next available trading session. Today's regular-session quote is provisional. Annualized return is withheld while the endpoint is provisional.</p></div></section>
-          <section class="method-note"><div><h3>Volatility &amp; Sharpe ratios</h3><p>Volatility is the sample standard deviation of daily returns × √252. Sharpe is mean daily excess return divided by its standard deviation × √252, using your annual risk-free rate converted to a daily rate.</p><p>Both portfolio and benchmark risk need at least 20 completed daily returns; the unfinished session is excluded. Benchmark risk uses the selected price or total-return series over matching chart dates.</p><p>Sessions with no invested portfolio capital are excluded only from portfolio risk. Annualized portfolio return is not shown when history contains these gaps or a provisional endpoint.</p></div></section>
-          <section class="method-note"><div><h3>Data sources</h3><p>Yahoo Finance supplies daily history and timestamped regular-session quotes, plus dividends, splits, and benchmarks. Quotes may be delayed. Entered execution prices take precedence; otherwise the latest session price is used for a current-day trade. Historical trades use their daily close. Pre-market and after-hours prices are excluded. Analysis uses USD-listed US securities.</p></div></section>
+        <section anvil:name="retirement_panel" class="readout-page" aria-label="Retirement projections">
+          <anvil-component type="M3_App_1.Components.Retirement" name="retirement_form"></anvil-component>
         </section>
         <section anvil:name="retrospective_panel" class="readout-page" aria-label="Retrospective strategy analysis">
           <anvil-component type="M3_App_1.Components.Retrospective" name="retrospective_form"></anvil-component>
@@ -342,7 +343,7 @@
     </section>
   </main>
 
-  <footer class="portfolio-footer"><span>Portfoliora</span><span>Built for clearer decisions.</span><span>Daily history · Transaction aware</span></footer>
+  <footer class="portfolio-footer"><span>Portfoliora</span><span>Built for clearer decisions.</span><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods</a></footer>
   <p class="site-analytics-notice">Basic visit counts and approximate country statistics help us understand site usage. Browser privacy signals are respected.</p>
   <anvil-component type="Timer" name="market_status_timer" prop:interval="1"></anvil-component>
 </section>

@@ -24,7 +24,7 @@ def initialize():
     if not _storage_unavailable(error):
       raise
     saved = None
-  _mode = saved if saved in ("light", "dark") else "dark"
+  _mode = saved if saved in ("light", "dark") else "light"
   _apply()
   return _mode
 

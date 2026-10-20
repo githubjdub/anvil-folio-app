@@ -74,7 +74,7 @@ class MySubscription(MySubscriptionTemplate):
     self._set_busy(True)
     try:
       if sign_in() is not None and ensure_username() and get_open_form() is self:
-        self._refresh_details()
+        set_url_hash({'page': 'profile'})
     finally:
       self._set_busy(False)
 

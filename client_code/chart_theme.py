@@ -1,6 +1,6 @@
 """Shared Plotly palettes; runtime changes preserve imported sector dictionaries."""
 
-MODE = "dark"
+MODE = "light"
 _PALETTES = {
   "dark": {
     "BACKGROUND": "#0B0F19", "PANEL": "#121A28", "TEXT": "#E6EDF7",

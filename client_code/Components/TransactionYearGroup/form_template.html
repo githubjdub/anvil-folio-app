@@ -1,0 +1,7 @@
+<section class="transaction-year-group">
+  <header class="transaction-year-header">
+    <anvil-component type="Button" name="toggle_button" bind:text="self.item['title']" prop:icon="fa:chevron-down" prop:align="left" prop:role="transaction-year-toggle" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="summary_label" bind:text="self.item['summary']" prop:role="transaction-year-summary" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </header>
+  <anvil-component type="RepeatingPanel" name="rows_panel" prop:item_template="M3_App_1.HoldingRow" prop:role="transaction-year-rows" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+</section>
