@@ -1,6 +1,7 @@
 from ._anvil_designer import TransactionYearGroupTemplate
 from anvil import *
 from ... import transaction_groups
+from ...HoldingRow import HoldingRow
 
 
 class TransactionYearGroup(TransactionYearGroupTemplate):
@@ -22,7 +23,7 @@ class TransactionYearGroup(TransactionYearGroupTemplate):
 
   def transaction_rows(self):
     """Return only the editors currently mounted in this section."""
-    return list(self.rows_panel.get_components()) if self._mounted else []
+    return [row for row in self.rows_panel.get_components() if isinstance(row, HoldingRow)] if self._mounted else []
 
   def commit_inputs(self):
     if self._editable:

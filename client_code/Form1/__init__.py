@@ -11,6 +11,7 @@ from ..analysis_selection import analyze_selection
 from ..chart_trades import build_trade_markers
 from ..portfolio_periods import quarterly_returns, allocation_snapshots
 from ..HoldingRow import HoldingRow
+from ..Components.TransactionYearGroup import TransactionYearGroup
 from ..transaction_groups import group_transactions_by_year
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, sign_in
@@ -645,9 +646,13 @@ class Form1(Form1Template):
     )
     self._update_image_import_controls()
 
+  def _transaction_year_forms(self):
+    return [group for group in self.transaction_years_panel.get_components()
+            if isinstance(group, TransactionYearGroup)]
+
   def _transaction_row_forms(self):
     rows = [form for form in self.holdings_panel.get_components() if isinstance(form, HoldingRow)]
-    for group in self.transaction_years_panel.get_components():
+    for group in self._transaction_year_forms():
       rows.extend(group.transaction_rows())
     return rows
 
@@ -685,7 +690,7 @@ class Form1(Form1Template):
       return
     self._commit_transaction_inputs()
     self._refresh_transactions()
-    for group in self.transaction_years_panel.get_components():
+    for group in self._transaction_year_forms():
       year = group.item["year"]
       group.set_collapsed(year is not None and year < date.today().year)
 
@@ -1413,7 +1418,7 @@ class Form1(Form1Template):
     self.chart_trade_region.visible = False
     for row in self.transactions:
       row["_chart_target"] = row is target
-    for group in self.transaction_years_panel.get_components():
+    for group in self._transaction_year_forms():
       if any(row is target for row in group.item["transactions"]):
         group.set_collapsed(False)
     for form in self._transaction_row_forms():
