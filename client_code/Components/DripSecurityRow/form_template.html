@@ -1,0 +1,8 @@
+<article class="simulation-security-row">
+  <anvil-component type="Label" name="symbol_label" bind:text="self.item['symbol']" prop:role="security-value"></anvil-component>
+  <div class="simulation-security-grid">
+    <div><span class="comparison-metric-label">With reinvestment</span><anvil-component type="Label" name="drip_value_label" bind:text="self.item['drip_value']" prop:role="security-value"></anvil-component><anvil-component type="Label" name="drip_detail_label" bind:text="self.item['drip_detail']" prop:role="portfolio-help"></anvil-component></div>
+    <div><span class="comparison-metric-label">With dividend cash</span><anvil-component type="Label" name="cash_value_label" bind:text="self.item['cash_value']" prop:role="security-value"></anvil-component><anvil-component type="Label" name="cash_detail_label" bind:text="self.item['cash_detail']" prop:role="portfolio-help"></anvil-component></div>
+    <div anvil:name="difference_region" class="simulation-difference"><span class="comparison-metric-label">Difference</span><anvil-component type="Label" name="difference_label" bind:text="self.item['difference']" prop:role="security-value"></anvil-component></div>
+  </div>
+</article>

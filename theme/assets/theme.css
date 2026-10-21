@@ -1460,3 +1460,70 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
 .anvil-role-transaction-year-rows { padding: 0 10px 8px; background: var(--paper); }
 .anvil-role-transaction-year-rows .transaction-card { margin-top: 8px; }
 .transaction-year-group.is-collapsed { margin-bottom: 8px; }
+
+/* Historical dividend reinvestment comparisons. */
+.simulations-workspace { min-width: 0; color: var(--ink); }
+.simulation-intro { color: var(--ink); font-size: 16px; line-height: 1.7; max-width: 760px; margin: 8px 0 24px; }
+.simulation-launch-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface-soft); }
+.simulation-launch-card h4 { font-size: 20px; margin: 0 0 8px; letter-spacing: -.02em; }
+.simulation-launch-card p { color: var(--muted); line-height: 1.65; font-size: 14px; margin: 0 0 8px; }
+.simulation-launch-card > div { min-width: 0; }
+.simulation-launch-card > .anvil-role-analyze-action { flex-shrink: 0; }
+.simulations-workspace > .fine-print { margin: 14px 0; line-height: 1.7; }
+.simulation-status { min-height: 28px; margin: 14px 0; }
+.simulation-status.is-error { padding: 12px 16px; border-radius: 10px; background: var(--negative-surface); }
+.simulation-status.is-error .anvil-role-portfolio-help { color: var(--negative); }
+.simulation-date-review { border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.simulation-date-review summary, .simulation-audit summary, .simulation-model-note summary { cursor: pointer; font-size: 15px; font-weight: 650; color: var(--ink); line-height: 1.6; }
+.simulation-date-review[open] > summary, .simulation-audit[open] > summary { margin-bottom: 16px; }
+.simulation-date-review .fine-print, .simulation-audit .fine-print { margin: 8px 0 18px; line-height: 1.7; }
+.simulation-date-summary { padding: 8px 12px; border-radius: 8px; background: var(--surface-soft); margin-bottom: 14px; }
+.simulation-date-summary.has-missing-dates { border: 1px solid var(--line); }
+.simulation-date-summary.has-missing-dates .anvil-role-portfolio-help { color: var(--ink); font-weight: 600; }
+.simulation-date-row { display: grid; grid-template-columns: minmax(0, 1fr) 185px; align-items: start; gap: 22px; border-bottom: 1px solid var(--line); padding: 16px 0; }
+.simulation-date-row.is-missing { border-left: 3px solid var(--negative); padding-left: 12px; }
+.simulation-date-row.is-missing .simulation-payment-field .transaction-field-caption { color: var(--negative); }
+.simulation-date-copy { min-width: 0; }
+.simulation-date-copy .anvil-role-portfolio-help { line-height: 1.55; }
+.simulation-payment-field .transaction-field-caption { margin-bottom: 6px; }
+.simulation-page-navigation { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.simulation-run-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 20px 0 28px; }
+.simulation-results { padding-top: 26px; border-top: 1px solid var(--line); margin-top: 26px; }
+.simulation-result-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.simulation-result-heading h4, .simulation-security-results h4 { font-size: 20px; margin: 0; letter-spacing: -.02em; }
+.simulation-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.simulation-summary-card { min-width: 0; border: 1px solid var(--line); border-radius: 14px; padding: 20px; background: var(--surface-soft); }
+.simulation-summary-card .anvil-role-comparison-value { font-size: clamp(22px, 2.1vw, 30px); overflow-wrap: anywhere; }
+.simulation-summary-card .anvil-role-portfolio-help { line-height: 1.7; }
+.simulation-difference .anvil-role-comparison-value, .simulation-difference .anvil-role-security-value { color: var(--mint-strong); }
+.simulation-difference.is-negative .anvil-role-comparison-value, .simulation-difference.is-negative .anvil-role-security-value { color: var(--negative); }
+.simulation-results > .fine-print { line-height: 1.7; margin: 16px 0; }
+.simulation-chart { min-width: 0; margin: 24px -6px 12px; }
+.simulation-security-results { margin-top: 32px; }
+.simulation-security-results > .fine-print { margin: 8px 0 16px; }
+.simulation-security-row { border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px; margin-bottom: 14px; }
+.simulation-security-row > .anvil-role-security-value { font-size: 17px; margin-bottom: 14px; }
+.simulation-security-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.simulation-security-grid > div { min-width: 0; }
+.simulation-security-grid .anvil-role-security-value { overflow-wrap: anywhere; }
+.simulation-security-grid .anvil-role-portfolio-help { line-height: 1.6; }
+.simulation-audit, .simulation-model-note { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 26px; }
+.simulation-event-row { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(140px, 1fr); gap: 24px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.simulation-event-row > div { min-width: 0; }
+.simulation-event-row .anvil-role-portfolio-help { line-height: 1.65; overflow-wrap: anywhere; }
+.simulation-model-note p { color: var(--muted); font-size: 13px; line-height: 1.8; margin: 14px 0; }
+.simulation-model-note a { color: var(--blue); font-size: 13px; text-underline-offset: 3px; }
+@media (max-width: 1100px) {
+  .simulation-summary-grid { grid-template-columns: 1fr; gap: 12px; }
+  .simulation-summary-card { padding: 18px 20px; }
+}
+@media (max-width: 700px) {
+  .simulation-launch-card { align-items: stretch; flex-direction: column; padding: 20px; gap: 12px; }
+  .simulation-date-review { padding: 16px; }
+  .simulation-date-row, .simulation-event-row { grid-template-columns: 1fr; gap: 12px; }
+  .simulation-payment-field { max-width: 240px; }
+  .simulation-security-grid { grid-template-columns: 1fr; gap: 14px; }
+  .simulation-security-grid > div + div { padding-top: 12px; border-top: 1px solid var(--line); }
+  .simulation-run-row { align-items: stretch; flex-direction: column; gap: 8px; }
+  .simulation-chart { margin-left: -12px; margin-right: -12px; }
+}

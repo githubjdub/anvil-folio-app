@@ -134,15 +134,16 @@ class Form1(Form1Template):
 
   def _update_readout_context(self):
     self._update_retirement_context()
+    self._update_simulations_context()
     if self._history is not None:
       self.period_label.text = "%s · %d selected open holdings%s" % (
         self._history["metadata"]["end_date"], self._history["metrics"]["holding_count"],
         " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
       )
     name = {"overview": "Overview", "allocation": "Portfolio structure",
-            "performance": "Performance", "retrospective": "Retrospective", "retirement": "Retirement"}[self._readout_page]
-    if self._readout_page == "retrospective":
-      self.readout_tab_context.text = "Retrospective · Test a hypothetical strategy against history"
+            "performance": "Performance", "simulations": "Simulations", "retirement": "Retirement"}[self._readout_page]
+    if self._readout_page == "simulations":
+      self.readout_tab_context.text = "Simulations · Compare dividend reinvestment with holding cash"
     elif self._readout_page == "retirement":
       self.readout_tab_context.text = "Retirement · Explore future savings and spending"
     elif self._analysis_source is not None:
@@ -155,7 +156,7 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    portfolio_page = self._readout_page not in ("retirement", "retrospective")
+    portfolio_page = self._readout_page not in ("retirement", "simulations")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
     self.hedge_fund_panel.visible = self._readout_page == "performance"
@@ -164,7 +165,7 @@ class Form1(Form1Template):
       ("allocation", self.allocation_panel, self.allocation_tab_button),
       ("performance", self.performance_panel, self.performance_tab_button),
       ("retirement", self.retirement_panel, self.retirement_tab_button),
-      ("retrospective", self.retrospective_panel, self.retrospective_tab_button),
+      ("simulations", self.simulations_panel, self.simulations_tab_button),
     ):
       active = name == self._readout_page
       panel.visible = active
@@ -174,8 +175,8 @@ class Form1(Form1Template):
     if redraw:
       self._render_active_readout()
       self._resize_readout_charts()
-      if self._readout_page == "retrospective":
-        self.retrospective_form.redraw()
+      if self._readout_page == "simulations":
+        self.simulations_form.redraw()
       elif self._readout_page == "performance":
         self.hedge_fund_comparison.redraw()
       elif self._readout_page == "retirement":
@@ -237,8 +238,8 @@ class Form1(Form1Template):
     self._appearance_mode = chart_theme.MODE
     self._dirty_readout_pages.update(("overview", "allocation", "performance"))
     self._render_active_readout()
-    if self._readout_page == "retrospective":
-      self.retrospective_form.apply_appearance()
+    if self._readout_page == "simulations":
+      self.simulations_form.apply_appearance()
     elif self._readout_page == "performance":
       self.hedge_fund_comparison.apply_appearance()
     elif self._readout_page == "retirement":
@@ -250,7 +251,7 @@ class Form1(Form1Template):
 
   def _select_readout_page(self, page):
     if (self._busy or page == self._readout_page or
-        page not in ("overview", "allocation", "performance", "retrospective", "retirement")):
+        page not in ("overview", "allocation", "performance", "simulations", "retirement")):
       return
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
@@ -353,26 +354,24 @@ class Form1(Form1Template):
   def retirement_busy_change(self, busy, **event_args):
     self._set_busy(busy)
 
-  def _set_retrospective_tickers(self, force=False):
-    tickers = []
-    for row in self.transactions:
-      ticker = str(row.get("ticker") or "").strip().upper()
-      if ticker and ticker not in tickers:
-        tickers.append(ticker)
-    self.retrospective_form.set_universe(tickers, force=force)
+  def _update_simulations_context(self):
+    transactions = []
+    as_of = None
+    if self._history is not None and self._selected_symbols:
+      # Copy only the simulation inputs, never hand the child live editor rows.
+      transactions = [{key: row.get(key) for key in
+                       ("ticker", "trade_date", "action", "shares", "trade_price")}
+                      for row in self._analyzed_transactions
+                      if self._security_key(row) in self._selected_symbols]
+      as_of = self._history["metadata"]["end_date"]
+    self.simulations_form.set_portfolio_context(transactions, as_of)
 
-  @handle("retrospective_tab_button", "click")
-  def retrospective_tab_click(self, **event_args):
-    if not self._busy:
-      self._set_retrospective_tickers()
-      self._select_readout_page("retrospective")
+  @handle("simulations_tab_button", "click")
+  def simulations_tab_click(self, **event_args):
+    self._select_readout_page("simulations")
 
-  @handle("retrospective_form", "x-use-portfolio-tickers")
-  def retrospective_use_tickers(self, **event_args):
-    self._set_retrospective_tickers(force=True)
-
-  @handle("retrospective_form", "x-retrospective-busy")
-  def retrospective_busy_change(self, busy, **event_args):
+  @handle("simulations_form", "x-simulations-busy")
+  def simulations_busy_change(self, busy, **event_args):
     self._set_busy(busy)
 
   def _security_key(self, transaction):
@@ -725,7 +724,7 @@ class Form1(Form1Template):
       self.collapse_all_button, self.expand_all_button, self.collapse_prior_years_button,
       self.overview_tab_button, self.allocation_tab_button,
       self.performance_tab_button, self.retirement_tab_button,
-      self.retrospective_tab_button, self.toggle_transactions_button,
+      self.simulations_tab_button, self.toggle_transactions_button,
       self.creator_tab_button, self.creator_setup_button,
       self.toggle_image_import_button, self.holdings_image_loader,
       self.clear_image_import_button, self.image_import_date_picker,
@@ -749,7 +748,7 @@ class Form1(Form1Template):
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
-    self.retrospective_form.raise_event("x-set-editable", editable=not self._busy)
+    self.simulations_form.raise_event("x-set-editable", editable=not self._busy)
     self.retirement_form.raise_event("x-set-editable", editable=not self._busy)
     self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
     self.hedge_fund_comparison.raise_event("x-set-editable", editable=not self._busy)
@@ -959,7 +958,7 @@ class Form1(Form1Template):
     self._restore_on_resume = False
     self._current_portfolio = None
     self._clear_image_import()
-    self.retrospective_form.reset_workspace()
+    self.simulations_form.reset_workspace()
     self.retirement_form.reset_workspace()
     self.portfolio_name_box.text = ""
     self.transactions = [self._new_transaction()]
@@ -1097,7 +1096,7 @@ class Form1(Form1Template):
   def _apply_portfolio(self, portfolio):
     self._collapsed_transaction_years.clear()
     self._clear_image_import()
-    self.retrospective_form.reset_workspace()
+    self.simulations_form.reset_workspace()
     self.retirement_form.reset_workspace()
     self._current_portfolio = portfolio
     self.portfolio_name_box.text = portfolio["name"]
@@ -1118,7 +1117,7 @@ class Form1(Form1Template):
     self._show_results(False)
     self._set_transactions_collapsed(False)
     self.saved_portfolios_dropdown.selected_value = portfolio
-    self._set_retrospective_tickers(force=True)
+    self._update_simulations_context()
     self._set_status("Saved transactions loaded — sync to fetch daily market history.")
     self._update_controls()
 
