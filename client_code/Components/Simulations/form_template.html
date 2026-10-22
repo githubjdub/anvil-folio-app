@@ -14,7 +14,7 @@ custom_component: true
     <anvil-component type="Label" name="prepared_period_label" prop:role="portfolio-help"></anvil-component>
     <details class="simulation-date-review" open>
       <summary>Review dividend payment dates</summary>
-      <p class="fine-print">Eligibility is determined on the ex-dividend date. Reinvestment happens on the payment date, at that day's closing price, or the next available trading close. Fill any missing payment dates from the issuer or your broker.</p>
+      <p class="fine-print">Eligibility is determined on the ex-dividend date. Reinvestment happens on the payment date, at that day's closing price, or the next available trading close. Check Finviz first using the links below. Its dividend history lists ex-dates; look for an explicit payment date in a company dividend announcement. If none is available, confirm the payment date with the issuer or your broker.</p>
       <div anvil:name="date_summary_region" class="simulation-date-summary"><anvil-component type="Label" name="date_summary_label" prop:role="portfolio-help"></anvil-component></div>
       <anvil-component type="RepeatingPanel" name="dividend_dates_panel" prop:item_template="M3_App_1.Components.DividendDateRow"></anvil-component>
       <div anvil:name="date_navigation" class="simulation-page-navigation">

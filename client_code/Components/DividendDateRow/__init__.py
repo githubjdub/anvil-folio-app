@@ -21,6 +21,11 @@ class DividendDateRow(DividendDateRowTemplate):
     self.classes["is-missing"] = value is None
     self.refresh_data_bindings()
 
+  def finviz_url(self, dividends=False):
+    # Symbols come from the server's validated US-security inputs.
+    return "https://finviz.com/quote.ashx?t=%s%s" % (
+      self.item["symbol"], "&ty=dv" if dividends else "")
+
   def date_status(self):
     value = self.item.get("_payment_date")
     if value is None:

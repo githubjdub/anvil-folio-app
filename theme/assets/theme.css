@@ -1484,6 +1484,7 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
 .simulation-date-row.is-missing { border-left: 3px solid var(--negative); padding-left: 12px; }
 .simulation-date-row.is-missing .simulation-payment-field .transaction-field-caption { color: var(--negative); }
 .simulation-date-copy { min-width: 0; }
+.simulation-finviz-links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; }
 .simulation-date-copy .anvil-role-portfolio-help { line-height: 1.55; }
 .simulation-payment-field .transaction-field-caption { margin-bottom: 6px; }
 .simulation-page-navigation { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 12px; }
