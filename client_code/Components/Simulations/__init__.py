@@ -3,6 +3,7 @@ import anvil.server
 from anvil import *
 from ._anvil_designer import SimulationsTemplate
 from ... import chart_theme
+from ..DividendDateRow import DividendDateRow
 
 
 class Simulations(SimulationsTemplate):
@@ -80,17 +81,18 @@ class Simulations(SimulationsTemplate):
 
   def _update_controls(self):
     enabled = self._parent_editable and not self._busy
-    self.prepare_button.enabled = enabled and bool(self._transactions) and bool(self._as_of)
+    setattr(self.prepare_button, "enabled", enabled and bool(self._transactions) and bool(self._as_of))
     self.prepare_button.text = "Loading dividend dates…" if self._busy and self._prepared is None else ("Refresh dividend dates" if self._prepared is not None else "Reinvest DRIP")
-    self.compare_button.enabled = enabled and self._prepared is not None
+    setattr(self.compare_button, "enabled", enabled and self._prepared is not None)
     self.compare_button.text = "Comparing…" if self._busy and self._prepared is not None else "Compare DRIP vs cash"
-    self.date_previous_button.enabled = enabled and self._date_page > 0
-    self.date_next_button.enabled = enabled and (self._date_page + 1) * self.DATE_PAGE_SIZE < len(self._dates)
-    self.event_previous_button.enabled = enabled and self._event_page > 0
+    setattr(self.date_previous_button, "enabled", enabled and self._date_page > 0)
+    setattr(self.date_next_button, "enabled", enabled and (self._date_page + 1) * self.DATE_PAGE_SIZE < len(self._dates))
+    setattr(self.event_previous_button, "enabled", enabled and self._event_page > 0)
     total_events = len(self._result["events"]) if self._result else 0
-    self.event_next_button.enabled = enabled and (self._event_page + 1) * self.EVENT_PAGE_SIZE < total_events
+    setattr(self.event_next_button, "enabled", enabled and (self._event_page + 1) * self.EVENT_PAGE_SIZE < total_events)
     for row in self.dividend_dates_panel.get_components():
-      row.set_editable(enabled)
+      if isinstance(row, DividendDateRow):
+        row.set_editable(enabled)
 
   def _set_status(self, message, error=False):
     self.status_label.text = message
@@ -135,7 +137,8 @@ class Simulations(SimulationsTemplate):
   def _commit_dates(self):
     changed = False
     for row in self.dividend_dates_panel.get_components():
-      changed = row.commit_date() or changed
+      if isinstance(row, DividendDateRow):
+        changed = row.commit_date() or changed
     if changed:
       self.payment_date_change()
 
@@ -152,7 +155,7 @@ class Simulations(SimulationsTemplate):
     if total == 0:
       message = "No dividend events were found in this period. You can still compare the two scenarios."
     elif missing:
-      message = "%s dividends · %s payment dates need your input. Enter the dates from the issuer or your broker." % (total, missing)
+      message = "%s dividend records · %s unverified payment dates. Compare will flag any missing date needed for your holdings." % (total, missing)
     else:
       message = "%s dividends · All payment dates are filled. Check the dates before comparing." % total
     self.date_summary_label.text = message
@@ -188,13 +191,10 @@ class Simulations(SimulationsTemplate):
     if self._busy or not self._parent_editable or self._prepared is None:
       return
     self._commit_dates()
-    missing = [i for i, row in enumerate(self._dates) if row.get("_payment_date") is None]
-    if missing:
-      self._date_page = missing[0] // self.DATE_PAGE_SIZE
-      self._render_date_page()
-      self._set_status("Enter a payment date for each dividend before running. Missing dates are marked below.", error=True)
-      return
-    payment_dates = {row["id"]: row["_payment_date"].isoformat() for row in self._dates}
+    # A candidate dividend may never be earned after a position closes.
+    # The server determines which missing dates actually affect the simulation.
+    payment_dates = {row["id"]: row["_payment_date"].isoformat()
+                     for row in self._dates if row.get("_payment_date") is not None}
     self._generation += 1
     generation = self._generation
     self._invalidate_result()
@@ -207,6 +207,12 @@ class Simulations(SimulationsTemplate):
       if generation != self._generation:
         return
       if not result["ok"]:
+        event_id = result.get("payment_event_id")
+        for index, row in enumerate(self._dates):
+          if row["id"] == event_id:
+            self._date_page = index // self.DATE_PAGE_SIZE
+            self._render_date_page()
+            break
         self._set_status(result["message"], error=True)
         return
       self._result = result
@@ -228,6 +234,8 @@ class Simulations(SimulationsTemplate):
 
   def _render_result(self):
     result = self._result
+    if result is None:
+      return
     totals = result["totals"]
     metadata = result["metadata"]
     self.result_period_label.text = "%s to %s · USD" % (metadata["start_date"], metadata["end_date"])

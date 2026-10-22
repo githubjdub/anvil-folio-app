@@ -10,7 +10,7 @@ import urllib.request
 import anvil.server
 
 from .portfolio_analytics import AnalysisInputError, _fetch_history, _validate
-from .drip_engine import candidate_events, run_engine, simulation_window
+from .drip_engine import DividendDateError, candidate_events, run_engine, simulation_window
 
 
 def _nasdaq_rows(symbol, instrument_type):
@@ -121,5 +121,7 @@ def run_drip_simulation(transactions, as_of_date, payment_dates=None):
     result = run_engine(clean, histories, events, start, end, payment_dates, reference_dates)
     result["metadata"]["requested_end_date"] = as_of.isoformat()
     return result
+  except DividendDateError as exc:
+    return {"ok": False, "message": str(exc), "payment_event_id": exc.event_id}
   except AnalysisInputError as exc:
     return {"ok": False, "message": str(exc)}

@@ -4,12 +4,19 @@ Inputs are validated, as-traded prices/amounts from portfolio_analytics. This
 module performs no network calls or persistence. Logged trades have identical
 quantities in both paths; sale proceeds stay in cash in both paths.
 """
-from datetime import date
+from datetime import date, datetime
 import math
 
 from .portfolio_analytics import AnalysisInputError
 
 _EPSILON = 1e-9
+
+
+class DividendDateError(AnalysisInputError):
+  """A specific dividend needs a corrected or supplied payment date."""
+  def __init__(self, message, event_id):
+    super().__init__(message)
+    self.event_id = event_id
 
 
 def event_id(symbol, day):
@@ -97,12 +104,13 @@ fractional shares. The execution pass filters out events with no entitlement.
 
 def _payment_date(value, event):
   try:
-    parsed = value if isinstance(value, date) else date.fromisoformat(str(value))
+    parsed = (value.date() if isinstance(value, datetime) else value
+              if isinstance(value, date) else date.fromisoformat(str(value)))
   except (ValueError, TypeError):
-    raise AnalysisInputError("Enter a valid payment date for %s, ex-dividend %s." % (
-      event["symbol"], event["ex_date"]))
+    raise DividendDateError("Enter a valid payment date for %s, ex-dividend %s." % (
+      event["symbol"], event["ex_date"]), event["id"])
   if parsed < date.fromisoformat(event["ex_date"]):
-    raise AnalysisInputError("%s: payment dates before the ex-dividend date need special due-bill handling and are not supported in this simulation." % event["symbol"])
+    raise DividendDateError("%s: payment dates before the ex-dividend date need special due-bill handling and are not supported in this simulation." % event["symbol"], event["id"])
   return parsed
 
 
@@ -135,7 +143,11 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
   for event in events:
     value = payment_dates.get(event["id"]) or event.get("payment_date")
     if value:
-      payment = _payment_date(value, event)
+      try:
+        payment = _payment_date(value, event)
+      except DividendDateError:
+        # Validate again only if this candidate earns a dividend below.
+        continue
       if start <= payment <= end:
         days.add(payment)
   paid_on = {}
@@ -162,10 +174,10 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
       if max(drip_dividend, cash_dividend) <= _EPSILON:
         continue
       if event.get("unsupported"):
-        raise AnalysisInputError("%s has a distribution with payment before the ex-date. Special due-bill handling is not supported in this simulation." % symbol)
+        raise DividendDateError("%s has a distribution with payment before the ex-date. Special due-bill handling is not supported in this simulation." % symbol, event["id"])
       value = payment_dates.get(event["id"]) or event.get("payment_date")
       if not value:
-        raise AnalysisInputError("A payment date is needed for %s, ex-dividend %s. Review the dividend dates before running." % (symbol, event["ex_date"]))
+        raise DividendDateError("A payment date is needed for %s, ex-dividend %s. Enter it from your broker or the issuer, then compare again." % (symbol, event["ex_date"]), event["id"])
       payment = _payment_date(value, event)
       user_date = payment_dates.get(event["id"])
       source = ("Entered by you" if user_date and str(user_date) != str(event.get("payment_date"))
@@ -189,6 +201,8 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
       account = ledgers[symbol]
       price = trade["trade_price"] if trade["trade_price"] is not None else histories[symbol]["close"][day]
       amount = trade["shares"] * price
+      if not math.isfinite(amount):
+        raise AnalysisInputError("The transaction amounts are too large to simulate. Check the share counts and prices.")
       if trade["action"] == "Buy":
         account["buy_cost"] += amount
         account["drip_shares"] += trade["shares"]
@@ -230,6 +244,8 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
     series.append({"date": day.isoformat(), "drip_value": values["drip"], "cash_value": values["cash"]})
   totals = {key: sum(account[key] for account in ledgers.values()) for key in (
     "drip_cash", "cash_cash", "drip_receivable", "cash_receivable", "drip_dividends", "cash_dividends", "buy_cost", "sale_proceeds")}
+  if not all(math.isfinite(value) for value in totals.values()):
+    raise AnalysisInputError("The transaction amounts are too large to simulate. Check the share counts and prices.")
   totals.update(drip_value=series[-1]["drip_value"], cash_value=series[-1]["cash_value"])
   totals["difference"] = totals["drip_value"] - totals["cash_value"]
   totals["drip_profit"] = totals["drip_value"] - totals["buy_cost"]
