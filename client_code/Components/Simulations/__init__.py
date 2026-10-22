@@ -52,7 +52,7 @@ class Simulations(SimulationsTemplate):
     if documents and as_of:
       count = len(set(str(row["ticker"]).strip().upper().split(":", 1)[0].replace(".", "-") for row in documents))
       self.context_label.text = "%s selected securit%s · %s transactions · through %s" % (count, "y" if count == 1 else "ies", len(documents), as_of)
-      self._set_status("Ready to compare. Start with Reinvest DRIP to review dividend payment dates.")
+      self._set_status("Ready to compare. Reinvest DRIP finds payment dates and runs both scenarios automatically.")
     else:
       self.context_label.text = "Sync a portfolio first. Select at least one security in your analysis to compare."
       self._set_status("")
@@ -63,6 +63,7 @@ class Simulations(SimulationsTemplate):
     self._dates = []
     self._date_page = 0
     self.review_region.visible = False
+    self.dom_nodes["date_review"].removeAttribute("open")
     self.dividend_dates_panel.items = []
     self._invalidate_result()
 
@@ -82,9 +83,10 @@ class Simulations(SimulationsTemplate):
   def _update_controls(self):
     enabled = self._parent_editable and not self._busy
     setattr(self.prepare_button, "enabled", enabled and bool(self._transactions) and bool(self._as_of))
-    self.prepare_button.text = "Loading dividend dates…" if self._busy and self._prepared is None else ("Refresh dividend dates" if self._prepared is not None else "Reinvest DRIP")
+    self.prepare_button.text = "Looking up & comparing…" if self._busy and self._prepared is None else ("Refresh & compare" if self._prepared is not None else "Reinvest DRIP")
     setattr(self.compare_button, "enabled", enabled and self._prepared is not None)
-    self.compare_button.text = "Comparing…" if self._busy and self._prepared is not None else "Compare DRIP vs cash"
+    self.manual_compare_region.visible = self._prepared is not None and self._result is None
+    self.compare_button.text = "Comparing…" if self._busy and self._prepared is not None else "Update comparison"
     setattr(self.date_previous_button, "enabled", enabled and self._date_page > 0)
     setattr(self.date_next_button, "enabled", enabled and (self._date_page + 1) * self.DATE_PAGE_SIZE < len(self._dates))
     setattr(self.event_previous_button, "enabled", enabled and self._event_page > 0)
@@ -108,7 +110,7 @@ class Simulations(SimulationsTemplate):
     self._busy = True
     self._update_controls()
     self.raise_event("x-simulations-busy", busy=True)
-    self._set_status("Finding historical dividends and their payment dates…")
+    self._set_status("Looking up dividend payment dates automatically and comparing DRIP with cash…")
     try:
       result = anvil.server.call("prepare_drip_simulation", self._transactions, self._as_of)
       if generation != self._generation:
@@ -119,20 +121,26 @@ class Simulations(SimulationsTemplate):
       self._prepared = result
       metadata = result["metadata"]
       self.prepared_period_label.text = "Simulation period: %s to %s · completed closing prices" % (metadata["start_date"], metadata["end_date"])
-      self._dates = []
-      for event in result["events"]:
-        row = dict(event)
-        value = event.get("payment_date")
-        row["_payment_date"] = date(*[int(part) for part in value.split("-")]) if value else None
-        row["_original_payment_date"] = row["_payment_date"]
-        self._dates.append(row)
+      self._load_dates(result["events"])
       self.review_region.visible = True
       self._render_date_page()
-      self._set_status(result.get("message") or "Review the payment dates, then run your comparison.")
+      self._show_comparison(result["comparison"])
     finally:
       self._busy = False
       self.raise_event("x-simulations-busy", busy=False)
       self._update_controls()
+
+  def _load_dates(self, events, overrides=None):
+    overrides = overrides or {}
+    self._dates = []
+    for event in events:
+      row = dict(event)
+      original = event.get("payment_date")
+      value = overrides.get(event["id"]) or original
+      row["_original_payment_date"] = date(*[int(part) for part in original.split("-")]) if original else None
+      row["_payment_date"] = date(*[int(part) for part in value.split("-")]) if value else None
+      self._dates.append(row)
+    self._date_page = min(self._date_page, max(0, (len(self._dates) - 1) // self.DATE_PAGE_SIZE))
 
   def _commit_dates(self):
     changed = False
@@ -153,11 +161,11 @@ class Simulations(SimulationsTemplate):
     total = len(self._dates)
     missing = sum(1 for row in self._dates if row.get("_payment_date") is None)
     if total == 0:
-      message = "No dividend events were found in this period. You can still compare the two scenarios."
+      message = "No dividend events were found in this period; both scenarios use the same logged transactions."
     elif missing:
-      message = "%s dividend records · %s unverified payment dates. Compare will flag any missing date needed for your holdings." % (total, missing)
+      message = "%s dividend records · %s dates unavailable from the sources. Only dividends earned by your holdings need a payment date." % (total, missing)
     else:
-      message = "%s dividends · All payment dates are filled. Check the dates before comparing." % total
+      message = "%s dividends · All payment dates are filled. Sources and optional corrections are available below." % total
     self.date_summary_label.text = message
     self.date_summary_region.classes["has-missing-dates"] = missing > 0
 
@@ -194,7 +202,8 @@ class Simulations(SimulationsTemplate):
     # A candidate dividend may never be earned after a position closes.
     # The server determines which missing dates actually affect the simulation.
     payment_dates = {row["id"]: row["_payment_date"].isoformat()
-                     for row in self._dates if row.get("_payment_date") is not None}
+                     for row in self._dates if row.get("_payment_date") is not None
+                     and row["_payment_date"] != row.get("_original_payment_date")}
     self._generation += 1
     generation = self._generation
     self._invalidate_result()
@@ -206,23 +215,31 @@ class Simulations(SimulationsTemplate):
       result = anvil.server.call("run_drip_simulation", self._transactions, self._as_of, payment_dates)
       if generation != self._generation:
         return
-      if not result["ok"]:
-        event_id = result.get("payment_event_id")
-        for index, row in enumerate(self._dates):
-          if row["id"] == event_id:
-            self._date_page = index // self.DATE_PAGE_SIZE
-            self._render_date_page()
-            break
-        self._set_status(result["message"], error=True)
-        return
-      self._result = result
-      self.results_region.visible = True
-      self._render_result()
-      self._set_status(result.get("message") or "Comparison ready. Your saved transactions are unchanged.")
+      if "payment_events" in result:
+        self._load_dates(result["payment_events"], payment_dates)
+        self._render_date_page()
+      self._show_comparison(result)
     finally:
       self._busy = False
       self.raise_event("x-simulations-busy", busy=False)
       self._update_controls()
+
+  def _show_comparison(self, result):
+    if not result["ok"]:
+      event_id = result.get("payment_event_id")
+      for index, row in enumerate(self._dates):
+        if row["id"] == event_id:
+          self._date_page = index // self.DATE_PAGE_SIZE
+          self._render_date_page()
+          self.dom_nodes["date_review"].setAttribute("open", "")
+          break
+      self._set_status(result["message"], error=True)
+      return
+    self._result = result
+    self.results_region.visible = True
+    self.dom_nodes["date_review"].removeAttribute("open")
+    self._render_result()
+    self._set_status("Comparison ready. Dividend dates were looked up automatically; any corrections you entered are included.")
 
   @staticmethod
   def _money(value):

@@ -90,7 +90,7 @@ fractional shares. The execution pass filters out events with no entitlement.
         events.append({"id": event_id(symbol, day), "symbol": symbol,
                        "ex_date": day.isoformat(), "amount": amount,
                        "payment_date": None, "source": "Not verified",
-                       "note": "Enter the dividend payment date from your broker or the issuer."})
+                       "note": "Automatic sources have not confirmed this payment date."})
         potential.add(symbol)
     for trade in trades.get(day, []):
       symbol = trade["symbol"]
@@ -177,7 +177,7 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
         raise DividendDateError("%s has a distribution with payment before the ex-date. Special due-bill handling is not supported in this simulation." % symbol, event["id"])
       value = payment_dates.get(event["id"]) or event.get("payment_date")
       if not value:
-        raise DividendDateError("A payment date is needed for %s, ex-dividend %s. Enter it from your broker or the issuer, then compare again." % (symbol, event["ex_date"]), event["id"])
+        raise DividendDateError("Automatic sources could not confirm the payment date for %s, ex-dividend %s. Use Refresh & compare to retry. An optional broker-confirmed date can also be entered below; no date will be guessed." % (symbol, event["ex_date"]), event["id"])
       payment = _payment_date(value, event)
       user_date = payment_dates.get(event["id"])
       source = ("Entered by you" if user_date and str(user_date) != str(event.get("payment_date"))
@@ -261,6 +261,6 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
   return {"ok": True, "series": series, "totals": totals, "securities": securities,
           "events": results, "metadata": {"start_date": start.isoformat(), "end_date": end.isoformat(),
           "currency": "USD", "price_source": "Yahoo Finance completed daily closes",
-          "dividend_source": "Yahoo Finance ex-dates and cash amounts; Nasdaq or user-entered payment dates",
+          "dividend_source": "Yahoo Finance ex-dates and cash amounts; Nasdaq, Stock Analysis or user-entered payment dates; Finviz ex-date and amount cross-checks",
           "dividend_totals": "Earned dividends, including amounts awaiting payment",
           "method": "Identical logged trades in both scenarios; sale proceeds stay in cash. Fractional shares reinvest at the payment-date close or next available completed close when a position remains open. Earned unpaid dividends count as receivables. Taxes, fees and cash interest are excluded."}}

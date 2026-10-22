@@ -29,7 +29,7 @@ class DividendDateRow(DividendDateRowTemplate):
   def date_status(self):
     value = self.item.get("_payment_date")
     if value is None:
-      return "Payment date needed"
+      return "Payment date not confirmed"
     if value != self.item.get("_original_payment_date"):
       return "Payment date supplied by you"
     return self.item.get("source") or "Check this payment date"
