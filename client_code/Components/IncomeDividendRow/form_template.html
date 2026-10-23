@@ -1,0 +1,4 @@
+<article class="income-dividend-row">
+  <div><anvil-component type="Label" name="headline_label" bind:text="self.item['headline']" prop:role="security-value"></anvil-component><anvil-component type="Label" name="detail_label" bind:text="self.item['detail']" prop:role="portfolio-help"></anvil-component><anvil-component type="Label" name="status_label" bind:text="self.item['status']" prop:role="portfolio-help"></anvil-component><anvil-component type="Label" name="note_label" bind:text="self.item['note']" prop:role="portfolio-help"></anvil-component></div>
+  <div><anvil-component type="Label" name="amount_label" bind:text="self.item['amount']" prop:role="security-value"></anvil-component><anvil-component type="Link" name="source_link" prop:text="Source ↗" bind:url="self.item['source_url']" bind:visible="bool(self.item['source_url'])" prop:open_in_new_tab="true" prop:role="hedge-fund-source"></anvil-component></div>
+</article>

@@ -1528,3 +1528,37 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
   .simulation-run-row { align-items: stretch; flex-direction: column; gap: 8px; }
   .simulation-chart { margin-left: -12px; margin-right: -12px; }
 }
+
+/* Dividend income and taxable-account loss review. */
+.income-workspace { min-width: 0; color: var(--ink); }
+.income-toolbar, .income-row-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.income-toolbar { margin: 12px 0 20px; }
+.income-toolbar h4, .income-block h4 { font-size: 20px; margin: 0 0 12px; letter-spacing: -.02em; }
+.income-view-tabs { display: flex; flex-wrap: wrap; gap: 12px; margin: 6px 0 26px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.income-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 18px 0; }
+.income-metrics-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.income-workspace .fine-print { line-height: 1.75; margin: 12px 0 18px; }
+.income-workspace .anvil-role-portfolio-help { line-height: 1.7; }
+.income-block { padding-top: 28px; margin-top: 28px; border-top: 1px solid var(--line); min-width: 0; }
+.income-details { padding-top: 22px; margin-top: 24px; border-top: 1px solid var(--line); }
+.income-details summary { font-size: 15px; font-weight: 650; cursor: pointer; line-height: 1.6; }
+.income-details[open] > summary { margin-bottom: 18px; }
+.income-security-row { padding: 18px 22px; border: 1px solid var(--line); border-radius: 14px; margin: 14px 0; background: var(--surface-soft); }
+.income-row-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 12px 0; }
+.income-row-metrics > div { min-width: 0; }
+.income-dividend-row, .income-loss-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, .4fr); gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.income-dividend-row > div, .income-loss-row > div { min-width: 0; overflow-wrap: anywhere; }
+.income-loss-row.needs-review { padding-left: 16px; border-left: 3px solid var(--negative); }
+.income-loss-value .anvil-role-security-value { color: var(--negative); }
+.income-quarter-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.income-account-choice { min-width: 230px; max-width: 100%; }
+.income-account-choice label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.income-notice { background: var(--surface-soft); padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; line-height: 1.75; font-size: 13px; margin: 22px 0; }
+.income-workspace a { color: var(--blue); text-underline-offset: 3px; }
+@media (max-width: 1050px) { .income-metrics-three { grid-template-columns: 1fr; } }
+@media (max-width: 700px) {
+  .income-metrics, .income-row-metrics, .income-dividend-row, .income-loss-row { grid-template-columns: 1fr; gap: 12px; }
+  .income-security-row { padding: 16px; }
+  .income-block { padding-top: 22px; margin-top: 22px; }
+  .income-account-choice { width: 100%; }
+}
