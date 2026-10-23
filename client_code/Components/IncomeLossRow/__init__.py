@@ -17,7 +17,7 @@ class IncomeLossRow(IncomeLossRowTemplate):
     self.parent.raise_event("x-loss-selection")
 
   def details(self):
-    return "%s · acquired %s · {:,.6f} shares".format(self.item["shares"]) % (self.item["term"], self.item["acquired_date"])
+    return "{} · acquired {} · {:,.6f} shares".format(self.item["term"], self.item["acquired_date"], self.item["shares"])
 
   def values(self):
     return "Basis ${:,.2f} · market value ${:,.2f} · price ${:,.4f} on {}{}".format(self.item["cost_basis"], self.item["current_value"], self.item["current_price"], self.item["price_date"], " · estimated basis" if self.item["basis_estimated"] else "")

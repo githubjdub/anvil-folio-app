@@ -114,6 +114,7 @@ class IncomeTracker(IncomeTrackerTemplate):
       self._lots = [dict(lot, selected=False) for lot in report["tax"]["candidates"]]
       self._render_report()
       self.report_region.visible = True
+      self.redraw()
       self._set_status("Income review ready. Estimates use only the selected securities and logged transactions.")
     finally:
       self._busy = False
@@ -129,7 +130,9 @@ class IncomeTracker(IncomeTrackerTemplate):
     return "Unavailable" if value is None else "{:,.2f}%".format(value)
 
   def _render_report(self):
-    dividends = self._report["dividends"]
+    report = self._report
+    assert report is not None
+    dividends = report["dividends"]
     totals = dividends["totals"]
     self.annual_label.text = self.money(totals["annual_estimate"])
     self.quarter_label.text = self.money(totals["quarterly_average"])
@@ -144,7 +147,7 @@ class IncomeTracker(IncomeTrackerTemplate):
     self.upcoming_panel.items = [self._dividend_item(row, True) for row in dividends["upcoming"]]
     self.upcoming_empty_label.visible = not bool(dividends["upcoming"])
     self._render_ledger()
-    tax = self._report["tax"]
+    tax = report["tax"]
     summary = tax["summary"]
     self.tax_context_label.text = "%s · FIFO estimate through %s" % (summary["tax_year"], self._as_of)
     self.realized_short_label.text = self.money(summary["realized_short_term"])
@@ -160,14 +163,17 @@ class IncomeTracker(IncomeTrackerTemplate):
   def _dividend_item(self, row, upcoming=False):
     amount = row.get("estimated_cash") if upcoming else row.get("earned")
     source = row.get("source") or "Unconfirmed source"
+    per_share = "Amount not confirmed" if row.get("amount") is None else "$%.6f per share" % row["amount"]
     return {"headline": "%s · ex-dividend %s" % (row["symbol"], row["ex_date"]),
-      "amount": self.money(amount) + (" estimated" if upcoming else " earned"),
-      "detail": "$%.6f per share · payment %s" % (row["amount"], row.get("payment_date") or "not confirmed"),
+      "amount": "Cash amount unavailable" if amount is None else self.money(amount) + (" estimated" if upcoming else " earned"),
+      "detail": "%s · payment %s" % (per_share, row.get("payment_date") or "not confirmed"),
       "status": ("Published upcoming ex-date" if upcoming else row["status"]) + " · " + source,
       "source_url": row.get("source_url") or "", "note": row.get("note", "")}
 
   def _render_ledger(self):
-    rows = self._report["dividends"]["ledger"]
+    report = self._report
+    assert report is not None
+    rows = report["dividends"]["ledger"]
     start = self._ledger_page * self.PAGE_SIZE
     self.ledger_panel.items = [self._dividend_item(row) for row in rows[start:start + self.PAGE_SIZE]]
     self.ledger_page_label.text = "%s–%s of %s dividends" % (start + 1, min(start + self.PAGE_SIZE, len(rows)), len(rows)) if rows else "No earned dividends in this transaction history."

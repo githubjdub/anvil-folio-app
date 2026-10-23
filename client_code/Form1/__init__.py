@@ -141,9 +141,11 @@ class Form1(Form1Template):
         " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
       )
     name = {"overview": "Overview", "allocation": "Portfolio structure",
-            "performance": "Performance", "simulations": "Simulations", "retirement": "Retirement"}[self._readout_page]
+            "performance": "Performance", "income": "Income", "simulations": "Simulations", "retirement": "Retirement"}[self._readout_page]
     if self._readout_page == "simulations":
       self.readout_tab_context.text = "Simulations · Compare dividend reinvestment with holding cash"
+    elif self._readout_page == "income":
+      self.readout_tab_context.text = "Income · Dividends, upcoming dates and taxable-account loss review"
     elif self._readout_page == "retirement":
       self.readout_tab_context.text = "Retirement · Explore future savings and spending"
     elif self._analysis_source is not None:
@@ -156,7 +158,7 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    portfolio_page = self._readout_page not in ("retirement", "simulations")
+    portfolio_page = self._readout_page not in ("retirement", "simulations", "income")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
     self.hedge_fund_panel.visible = self._readout_page == "performance"
@@ -166,6 +168,7 @@ class Form1(Form1Template):
       ("performance", self.performance_panel, self.performance_tab_button),
       ("retirement", self.retirement_panel, self.retirement_tab_button),
       ("simulations", self.simulations_panel, self.simulations_tab_button),
+      ("income", self.income_panel, self.income_tab_button),
     ):
       active = name == self._readout_page
       panel.visible = active
@@ -179,6 +182,9 @@ class Form1(Form1Template):
         self.simulations_form.redraw()
       elif self._readout_page == "performance":
         self.hedge_fund_comparison.redraw()
+      elif self._readout_page == "income":
+        self.income_form.ensure_loaded()
+        self.income_form.redraw()
       elif self._readout_page == "retirement":
         self.retirement_form.redraw()
 
@@ -242,6 +248,8 @@ class Form1(Form1Template):
       self.simulations_form.apply_appearance()
     elif self._readout_page == "performance":
       self.hedge_fund_comparison.apply_appearance()
+    elif self._readout_page == "income":
+      self.income_form.apply_appearance()
     elif self._readout_page == "retirement":
       self.retirement_form.apply_appearance()
     if self._creator_open:
@@ -251,7 +259,7 @@ class Form1(Form1Template):
 
   def _select_readout_page(self, page):
     if (self._busy or page == self._readout_page or
-        page not in ("overview", "allocation", "performance", "simulations", "retirement")):
+        page not in ("overview", "allocation", "performance", "simulations", "retirement", "income")):
       return
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
@@ -278,7 +286,7 @@ class Form1(Form1Template):
       return
     self.creator_setup_region.visible = not self.creator_setup_region.visible
     if self.creator_setup_region.visible:
-      self.creator_reference_box.text = self._creator_reference
+      self.creator_reference_box.text = str(self._creator_reference)
       self.creator_reference_box.focus()
       self.creator_reference_box.select()
 
@@ -365,6 +373,15 @@ class Form1(Form1Template):
                       if self._security_key(row) in self._selected_symbols]
       as_of = self._history["metadata"]["end_date"]
     self.simulations_form.set_portfolio_context(transactions, as_of)
+    self.income_form.set_portfolio_context(transactions, as_of)
+
+  @handle("income_tab_button", "click")
+  def income_tab_click(self, **event_args):
+    self._select_readout_page("income")
+
+  @handle("income_form", "x-income-busy")
+  def income_busy_change(self, busy, **event_args):
+    self._set_busy(busy)
 
   @handle("simulations_tab_button", "click")
   def simulations_tab_click(self, **event_args):
@@ -411,6 +428,7 @@ class Form1(Form1Template):
         raise ValueError("Enter a whole-number %s page greater than zero." % label)
       pages.append(int(number))
     first, last = pages
+    first = first if first is not None else 1
     if last is not None and (last < first or last - first + 1 > 20):
       raise ValueError("Choose a PDF range of 1–20 pages, with the end on or after the start.")
     return first, last
@@ -724,7 +742,7 @@ class Form1(Form1Template):
       self.collapse_all_button, self.expand_all_button, self.collapse_prior_years_button,
       self.overview_tab_button, self.allocation_tab_button,
       self.performance_tab_button, self.retirement_tab_button,
-      self.simulations_tab_button, self.toggle_transactions_button,
+      self.simulations_tab_button, self.income_tab_button, self.toggle_transactions_button,
       self.creator_tab_button, self.creator_setup_button,
       self.toggle_image_import_button, self.holdings_image_loader,
       self.clear_image_import_button, self.image_import_date_picker,
@@ -749,6 +767,7 @@ class Form1(Form1Template):
     self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.simulations_form.raise_event("x-set-editable", editable=not self._busy)
+    self.income_form.raise_event("x-set-editable", editable=not self._busy)
     self.retirement_form.raise_event("x-set-editable", editable=not self._busy)
     self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
     self.hedge_fund_comparison.raise_event("x-set-editable", editable=not self._busy)
@@ -758,6 +777,8 @@ class Form1(Form1Template):
   def _set_busy(self, busy):
     self._busy = busy
     self._update_controls()
+    if not busy and self._readout_page == "income":
+      self.income_form.ensure_loaded()
 
   def _refresh_portfolios(self):
     portfolios = anvil.server.call("list_portfolios") if self._user is not None else []
@@ -794,7 +815,7 @@ class Form1(Form1Template):
     )
     self._refresh_membership()
     creator = anvil.server.call("get_creator_access") if self._user is not None else {"enabled": False, "email": None}
-    self._creator_enabled = creator["enabled"]
+    self._creator_enabled = bool(creator["enabled"])
     self._creator_reference = creator.get("setup_reference")
     self.creator_setup_button.visible = self._creator_reference is not None
     self.creator_setup_region.visible = False
@@ -959,6 +980,7 @@ class Form1(Form1Template):
     self._current_portfolio = None
     self._clear_image_import()
     self.simulations_form.reset_workspace()
+    self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
     self.portfolio_name_box.text = ""
     self.transactions = [self._new_transaction()]
@@ -1097,6 +1119,7 @@ class Form1(Form1Template):
     self._collapsed_transaction_years.clear()
     self._clear_image_import()
     self.simulations_form.reset_workspace()
+    self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
     self._current_portfolio = portfolio
     self.portfolio_name_box.text = portfolio["name"]
