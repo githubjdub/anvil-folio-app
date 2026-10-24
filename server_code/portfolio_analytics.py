@@ -10,6 +10,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from zoneinfo import ZoneInfo
+from typing import Any
 
 import anvil.server
 from .sectors import build_sector_allocation, classify_securities
@@ -338,7 +339,7 @@ def _build_analysis(transactions, as_of, rate, histories, now=None):
     raise AnalysisInputError("S&P 500 history does not cover the beginning of this portfolio.")
   by_day = {}
   row_summaries = [{} for transaction in transactions]
-  securities = {symbol: {
+  securities: dict[str, dict[str, Any]] = {symbol: {
     "symbol": symbol, "company_name": histories[symbol]["company_name"],
     "sector": "Unclassified", "buy_cost": 0.0, "sale_proceeds": 0.0,
     "buy_shares": 0.0, "sell_shares": 0.0,

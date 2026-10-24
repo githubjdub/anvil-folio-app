@@ -338,7 +338,7 @@ def _leaderboard(start, end, rate, benchmark_symbol=None, benchmark_values=None,
     mask.append(not own or (day in own and previous in own and own[day]["return_observed"]
       and own[day]["session_complete"] and own[previous]["session_complete"]
       and own_positions[day] == own_positions[previous]+1))
-  rows = []
+  rows: list[dict[str, Any]] = []
   for row, model, samples, benchmarks in candidates:
     by_day = {point["date"]: point for point in samples}
     if (model["benchmark_symbol"] != benchmark_symbol or len(grid) < 21

@@ -97,7 +97,7 @@ def creator_set_membership(account_id, tier, expires_on=None):
       return {"ok": False, "message": "This account is no longer available."}
     if tier == "premium" and account["enabled"] is not True:
       return {"ok": False, "message": "Enable this account before setting Premium membership."}
-    values = {"membership_tier": tier, "membership_source": "creator",
+    values: dict[str, Any] = {"membership_tier": tier, "membership_source": "creator",
               "membership_expires_at": expires_at, "membership_updated_at": now,
               "membership_updated_by": creator}
     account.update(**values)

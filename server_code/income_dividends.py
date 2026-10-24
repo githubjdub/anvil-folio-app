@@ -108,7 +108,7 @@ def _parse_nasdaq_upcoming(rows, today):
             ex_date = datetime.strptime(str(row.get("exOrEffDate")), "%m/%d/%Y").date()
         except ValueError:
             continue
-        if ex_date < today:
+        if ex_date <= today:
             continue
         amount = None
         raw = str(row.get("amount") or "").strip()
@@ -137,6 +137,7 @@ def _upcoming(sources, histories, positions, today, as_of):
         nasdaq_rows = source["Nasdaq"][0]
         stock_rows = source["Stock Analysis"][0]
         groups = {}
+        unsupported_dates = set()
         # Finviz is the first reference. Payment dates must be supplied by a
         # provider that publishes them explicitly, never inferred from ex-dates.
         for provider, rows, url in (
@@ -150,7 +151,7 @@ def _upcoming(sources, histories, positions, today, as_of):
                     ex_date = date.fromisoformat(row["ex_date"])
                 except (ValueError, TypeError, KeyError):
                     continue
-                if ex_date < today:
+                if ex_date <= today:
                     continue
                 by_date.setdefault(ex_date.isoformat(), []).append(row)
             for ex_date, components in by_date.items():
@@ -162,10 +163,13 @@ def _upcoming(sources, histories, positions, today, as_of):
                 payments = {row.get("payment_date") for row in components}
                 payment = next(iter(payments)) if len(payments) == 1 else None
                 if payment and payment < ex_date:
+                    unsupported_dates.add(ex_date)
                     continue  # Due-bill events require a different eligibility model.
                 groups.setdefault(ex_date, []).append({"amount": amount, "payment_date": payment,
                     "source": provider, "source_url": url})
         for ex_date, observations in groups.items():
+            if ex_date in unsupported_dates:
+                continue
             known = [row for row in observations if row["amount"] is not None]
             conflict = bool(known) and any(not math.isclose(row["amount"], known[0]["amount"], rel_tol=1e-5, abs_tol=1e-6) for row in known)
             amount = known[0]["amount"] if known and not conflict else None
@@ -179,8 +183,6 @@ def _upcoming(sources, histories, positions, today, as_of):
                 raise AnalysisInputError("%s has an invalid split factor." % symbol)
             eligible_shares = _finite(position["shares"] * split_factor, "Upcoming eligible shares")
             note = "Estimated cash uses snapshot shares adjusted for known splits through the published ex-date, assuming no later trades."
-            if ex_date == today:
-                note += " The ex-date is today; shares newly purchased today generally do not qualify."
             if amount is None:
                 note += " Sources disagree on the amount." if conflict else " The cash amount has not been confirmed."
             result.append({"symbol": symbol, "ex_date": ex_date, "amount": amount,
@@ -198,13 +200,29 @@ def build_dividend_report(transactions, histories, as_of, positions):
     for symbol in symbols:
         selected = [row for row in events if row["symbol"] == symbol]
         source = sources[symbol]
-        _match_records(selected, _nasdaq_records(source["Nasdaq"][0]), "Nasdaq", _nasdaq_url(symbol, histories[symbol]))
         stock_rows = source["Stock Analysis"][0]
-        _match_records(selected, stock_rows, "Stock Analysis", stock_rows[0].get("source_url") if stock_rows else "")
+        observations = []
+        for provider, rows, url in (
+            ("Nasdaq", _nasdaq_records(source["Nasdaq"][0]), _nasdaq_url(symbol, histories[symbol])),
+            ("Stock Analysis", stock_rows, stock_rows[0].get("source_url") if stock_rows else ""),
+        ):
+            matched = [dict(row) for row in selected]
+            _match_records(matched, rows, provider, url)
+            observations.append(matched)
+        for index, row in enumerate(selected):
+            matches = [provider_rows[index] for provider_rows in observations]
+            special = next((match for match in matches if match.get("unsupported")), None)
+            confirmed = [match for match in matches if match["payment_date"]]
+            if special:
+                row.update(unsupported=True, note=special["note"])
+            elif len({match["payment_date"] for match in confirmed}) > 1:
+                row["note"] = "Automatic sources disagree on the payment date; cash is excluded until it can be confirmed."
+            elif confirmed:
+                row.update({key: confirmed[0][key] for key in ("payment_date", "source", "source_url", "note")})
         reference = {row["ex_date"]: row["amount"] for row in source["Finviz"]["rows"]}
         for row in selected:
             reference_amount = reference.get(row["ex_date"])
-            if type(reference_amount) in (int, float) and math.isfinite(reference_amount) and math.isclose(reference_amount, row["amount"], rel_tol=1e-5, abs_tol=1e-6):
+            if isinstance(reference_amount, (int, float)) and not isinstance(reference_amount, bool) and math.isfinite(reference_amount) and math.isclose(reference_amount, row["amount"], rel_tol=1e-5, abs_tol=1e-6):
                 row["note"] += " Ex-date and cash amount also match Finviz."
             if row.get("unsupported"):
                 # Due-bill distributions do not follow ordinary ex-date ownership

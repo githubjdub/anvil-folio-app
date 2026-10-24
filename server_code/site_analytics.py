@@ -253,7 +253,7 @@ def get_creator_site_analytics(range_key="30d", country_code=None, page=None, in
   series_start = max(start, first.date()) if first is not None else end + timedelta(days=1)
   bucket, series = _buckets(series_start, end, now) if series_start <= end else ("day", [])
   global_countries, selected_countries = {}, {}
-  pages = {key: {"key": key, "label": label, "visits": 0, "pageviews": 0} for key, label in _PAGES.items()}
+  pages: dict[str, dict[str, Any]] = {key: {"key": key, "label": label, "visits": 0, "pageviews": 0} for key, label in _PAGES.items()}
   visits = pageviews = 0
   lower = datetime.combine(start, time.min, timezone.utc)
   upper = datetime.combine(end + timedelta(days=1), time.min, timezone.utc)

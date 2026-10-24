@@ -255,9 +255,9 @@ class IncomeTracker(IncomeTrackerTemplate):
   def _draw_chart(self):
     if self._report is None:
       return
-    rows = self._report["dividends"]["quarterly_history"]
+    rows = self._report["dividends"]["quarterly_history"][-8:]
     average = self._report["dividends"]["totals"]["quarterly_average"]
-    labels = [row["label"] for row in rows]
+    labels = [row["label"] + ("*" if row["is_partial"] else "") for row in rows]
     self.income_plot.data = [{"type":"bar", "x":labels, "y":[row["amount"] for row in rows], "name":"Matched dividend cash", "marker":{"color":chart_theme.POSITIVE}, "hovertemplate":"%{x}<br>$%{y:,.2f}<extra>Matched cash</extra>"},
       {"type":"scatter", "mode":"lines", "x":labels, "y":[average for row in rows], "name":"Estimated average quarter", "line":{"color":chart_theme.BENCHMARK,"dash":"dot"}, "hovertemplate":"$%{y:,.2f}<extra>Estimated average quarter</extra>"}]
     self.income_plot.layout = chart_theme.layout({"margin":{"l":64,"r":18,"t":24,"b":70}, "legend":{"orientation":"h","y":-0.2}, "xaxis":{"type":"category"}, "yaxis":{"tickprefix":"$","rangemode":"tozero"}, "hovermode":"x unified"})

@@ -12,6 +12,7 @@ import math
 import re
 import urllib.error
 import urllib.parse
+from typing import Any
 
 from .portfolio_analytics import (
   AnalysisInputError, _as_date, _event_date, _fetch_text, _finite_number,
@@ -80,7 +81,7 @@ def _eligible(item):
 def _clean_snapshots(snapshots, end_date):
   if not isinstance(snapshots, list) or not snapshots or len(snapshots) > 40:
     raise FundSimulationError("Sync at least one quarterly holdings report first (up to 40 quarters).")
-  clean = []
+  clean: list[dict[str, Any]] = []
   for item in snapshots:
     if not isinstance(item, dict) or not isinstance(item.get("holdings"), list):
       raise FundSimulationError("A saved report has invalid holdings data. Refresh its filings.")
