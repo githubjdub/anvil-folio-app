@@ -11,7 +11,7 @@ import urllib.request
 import anvil.server
 
 from .portfolio_analytics import AnalysisInputError, _fetch_history, _validate
-from .drip_engine import DividendDateError, candidate_events, run_engine, simulation_window
+from .drip_engine import DividendDateError, candidate_events, run_engine, simulation_window, validate_rate
 from .dividend_payment_sources import fetch_rows as _stockanalysis_rows
 from .finviz_dividend_reference import fetch_finviz_reference
 
@@ -164,10 +164,10 @@ def _prepare(transactions, as_of_date):
   return clean, histories, events, start, end, as_of, reference_dates
 
 
-def _compare_prepared(prepared, payment_dates=None):
+def _compare_prepared(prepared, payment_dates=None, annual_rate_percent=4.0):
   clean, histories, events, start, end, as_of, reference_dates = prepared
   try:
-    result = run_engine(clean, histories, events, start, end, payment_dates, reference_dates)
+    result = run_engine(clean, histories, events, start, end, payment_dates, reference_dates, annual_rate_percent)
     result["metadata"]["requested_end_date"] = as_of.isoformat()
     return result
   except DividendDateError as exc:
@@ -177,27 +177,30 @@ def _compare_prepared(prepared, payment_dates=None):
 
 
 @anvil.server.callable
-def prepare_drip_simulation(transactions, as_of_date):
+def prepare_drip_simulation(transactions, as_of_date, annual_rate_percent=4.0):
   """Look up dates and compare in one call, retaining sources for optional review."""
   try:
+    annual_rate_percent = validate_rate(annual_rate_percent)
     prepared = _prepare(transactions, as_of_date)
   except AnalysisInputError as exc:
     return {"ok": False, "message": str(exc)}
   clean, histories, events, start, end, as_of, reference_dates = prepared
-  return {"ok": True, "events": events, "comparison": _compare_prepared(prepared),
+  return {"ok": True, "events": events, "comparison": _compare_prepared(prepared, annual_rate_percent=annual_rate_percent),
     "metadata": {"start_date": start.isoformat(), "end_date": end.isoformat(),
+    "annual_rate_percent": annual_rate_percent,
     "requested_end_date": as_of.isoformat(), "currency": "USD", "symbol_count": len(histories),
     "missing_payment_dates": sum(event["payment_date"] is None for event in events),
     "source": "Yahoo Finance ex-dates and amounts; Finviz cross-checks; Nasdaq and Stock Analysis payment dates"}}
 
 
 @anvil.server.callable
-def run_drip_simulation(transactions, as_of_date, payment_dates=None):
+def run_drip_simulation(transactions, as_of_date, payment_dates=None, annual_rate_percent=4.0):
   """Revalidate and replay with optional user corrections to automatic dates."""
   try:
+    annual_rate_percent = validate_rate(annual_rate_percent)
     prepared = _prepare(transactions, as_of_date)
   except AnalysisInputError as exc:
     return {"ok": False, "message": str(exc)}
-  result = _compare_prepared(prepared, payment_dates)
+  result = _compare_prepared(prepared, payment_dates, annual_rate_percent)
   result["payment_events"] = prepared[2]
   return result

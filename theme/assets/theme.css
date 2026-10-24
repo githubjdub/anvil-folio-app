@@ -1469,6 +1469,12 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
 .simulation-launch-card p { color: var(--muted); line-height: 1.65; font-size: 14px; margin: 0 0 8px; }
 .simulation-launch-card > div { min-width: 0; }
 .simulation-launch-card > .anvil-role-analyze-action { flex-shrink: 0; }
+.simulation-rate-settings { display: grid; grid-template-columns: minmax(160px, 220px) minmax(0, 1fr); gap: 24px; align-items: center; padding: 20px 0 8px; }
+.simulation-rate-settings h4 { margin: 0 0 6px; font-size: 15px; }
+.simulation-rate-settings p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.simulation-rate-field { min-width: 0; }
+.simulation-rate-assumption { background: var(--surface-soft); border-left: 3px solid var(--line); padding: 12px 16px; border-radius: 8px; }
+.simulation-rate-assumption .anvil-role-portfolio-help { line-height: 1.7; }
 .simulations-workspace > .fine-print { margin: 14px 0; line-height: 1.7; }
 .simulation-status { min-height: 28px; margin: 14px 0; }
 .simulation-status.is-error { padding: 12px 16px; border-radius: 10px; background: var(--negative-surface); }
@@ -1493,6 +1499,8 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
 .simulation-result-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
 .simulation-result-heading h4, .simulation-security-results h4 { font-size: 20px; margin: 0; letter-spacing: -.02em; }
 .simulation-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.simulation-comparison-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.simulation-security-comparisons { display: flex; gap: 20px 40px; flex-wrap: wrap; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .simulation-summary-card { min-width: 0; border: 1px solid var(--line); border-radius: 14px; padding: 20px; background: var(--surface-soft); }
 .simulation-summary-card .anvil-role-comparison-value { font-size: clamp(22px, 2.1vw, 30px); overflow-wrap: anywhere; }
 .simulation-summary-card .anvil-role-portfolio-help { line-height: 1.7; }
@@ -1520,6 +1528,8 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
 }
 @media (max-width: 700px) {
   .simulation-launch-card { align-items: stretch; flex-direction: column; padding: 20px; gap: 12px; }
+  .simulation-rate-settings, .simulation-comparison-grid { grid-template-columns: 1fr; gap: 12px; }
+  .simulation-rate-field { max-width: 260px; }
   .simulation-date-review { padding: 16px; }
   .simulation-date-row, .simulation-event-row { grid-template-columns: 1fr; gap: 12px; }
   .simulation-payment-field { max-width: 240px; }

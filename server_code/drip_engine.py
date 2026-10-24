@@ -2,7 +2,7 @@
 
 Inputs are validated, as-traded prices/amounts from portfolio_analytics. This
 module performs no network calls or persistence. Logged trades have identical
-quantities in both paths; sale proceeds stay in cash in both paths.
+quantities in all paths; sale proceeds stay in cash in all paths.
 """
 from datetime import date, datetime
 import math
@@ -21,6 +21,20 @@ class DividendDateError(AnalysisInputError):
 
 def event_id(symbol, day):
   return "%s|%s" % (symbol, day.isoformat())
+
+
+def validate_rate(annual_rate_percent):
+  """An effective annual comparison rate, entered as a percentage."""
+  message = "Enter an annual comparison return from 0% to 100%."
+  if isinstance(annual_rate_percent, bool):
+    raise AnalysisInputError(message)
+  try:
+    rate = float(annual_rate_percent)
+  except (TypeError, ValueError, OverflowError):
+    raise AnalysisInputError(message)
+  if not math.isfinite(rate) or not 0 <= rate <= 100:
+    raise AnalysisInputError(message)
+  return rate
 
 
 def _trades_by_day(transactions):
@@ -114,7 +128,8 @@ def _payment_date(value, event):
   return parsed
 
 
-def run_engine(transactions, histories, events, start, end, payment_dates=None, reference_dates=None):
+def run_engine(transactions, histories, events, start, end, payment_dates=None, reference_dates=None, annual_rate_percent=4.0):
+  annual_rate_percent = validate_rate(annual_rate_percent)
   if payment_dates is None:
     payment_dates = {}
   if not isinstance(payment_dates, dict) or len(payment_dates) > 10000:
@@ -126,7 +141,8 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
   ledgers = {symbol: {"drip_shares": 0.0, "cash_shares": 0.0, "drip_cash": 0.0,
                       "cash_cash": 0.0, "drip_receivable": 0.0, "cash_receivable": 0.0,
                       "drip_dividends": 0.0, "cash_dividends": 0.0,
-                      "buy_cost": 0.0, "sale_proceeds": 0.0} for symbol in symbols}
+                      "buy_cost": 0.0, "sale_proceeds": 0.0,
+                      "rate_balance": 0.0, "rate_principal": 0.0} for symbol in symbols}
   trades = _trades_by_day(transactions)
   ex_events = {}
   for event in events:
@@ -155,7 +171,14 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
   results = []
   series = []
   last_price = {}
+  previous_day = start
   for day in sorted(days):
+    # The comparison account earns interest over actual calendar days. Deposits
+    # below happen after accrual, so no interest is earned before payment.
+    growth = math.exp(math.log1p(annual_rate_percent / 100.0) * (day - previous_day).days / 365.0)
+    for account in ledgers.values():
+      account["rate_balance"] *= growth
+    previous_day = day
     for symbol in symbols:
       ratio = histories[symbol]["splits"].get(day, 1)
       account = ledgers[symbol]
@@ -187,6 +210,8 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
       result = {"symbol": symbol, "ex_date": event["ex_date"], "payment_date": payment.isoformat(),
                 "reinvest_date": None, "amount": event["amount"],
                 "drip_dividend": drip_dividend, "cash_dividend": cash_dividend,
+                "rate_deposit": cash_dividend, "rate_deposit_date": None,
+                "rate_status": "Pending payment",
                 "added_shares": 0.0, "price": None, "status": "Pending payment", "source": source}
       results.append(result)
       for mode, amount in (("drip", drip_dividend), ("cash", cash_dividend)):
@@ -220,6 +245,10 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
         account[mode + "_receivable"] -= amount
         account[mode + "_cash"] += amount
       event["status"] = "Awaiting next completed close"
+      account["rate_principal"] += event["cash_dividend"]
+      account["rate_balance"] += event["cash_dividend"]
+      event["rate_deposit_date"] = day.isoformat()
+      event["rate_status"] = "Deposited at the comparison return" if event["cash_dividend"] > 0 else "No original-share dividend to deposit"
     for event in reinvest_on.get(day, []):
       account = ledgers[event["symbol"]]
       if account["drip_shares"] <= _EPSILON:
@@ -239,17 +268,26 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
         value = (account[mode + "_shares"] * last_price.get(symbol, 0.0)
                  + account[mode + "_cash"] + account[mode + "_receivable"])
         values[mode] += value
-    if not all(math.isfinite(value) for value in values.values()):
+    rate_balance = sum(account["rate_balance"] for account in ledgers.values())
+    rate_principal = sum(account["rate_principal"] for account in ledgers.values())
+    rate_interest = rate_balance - rate_principal
+    rate_value = values["cash"] + rate_interest
+    if not all(math.isfinite(value) for value in list(values.values()) + [rate_balance, rate_principal, rate_interest, rate_value]):
       raise AnalysisInputError("The transaction amounts are too large to simulate. Check the share counts and prices.")
-    series.append({"date": day.isoformat(), "drip_value": values["drip"], "cash_value": values["cash"]})
+    series.append({"date": day.isoformat(), "drip_value": values["drip"], "cash_value": values["cash"],
+                   "rate_value": rate_value, "rate_balance": rate_balance, "rate_interest": rate_interest})
   totals = {key: sum(account[key] for account in ledgers.values()) for key in (
-    "drip_cash", "cash_cash", "drip_receivable", "cash_receivable", "drip_dividends", "cash_dividends", "buy_cost", "sale_proceeds")}
+    "drip_cash", "cash_cash", "drip_receivable", "cash_receivable", "drip_dividends", "cash_dividends", "buy_cost", "sale_proceeds", "rate_balance", "rate_principal")}
   if not all(math.isfinite(value) for value in totals.values()):
     raise AnalysisInputError("The transaction amounts are too large to simulate. Check the share counts and prices.")
   totals.update(drip_value=series[-1]["drip_value"], cash_value=series[-1]["cash_value"])
   totals["difference"] = totals["drip_value"] - totals["cash_value"]
   totals["drip_profit"] = totals["drip_value"] - totals["buy_cost"]
   totals["cash_profit"] = totals["cash_value"] - totals["buy_cost"]
+  totals["rate_value"] = series[-1]["rate_value"]
+  totals["rate_interest"] = series[-1]["rate_interest"]
+  totals["rate_profit"] = totals["rate_value"] - totals["buy_cost"]
+  totals["drip_vs_rate"] = totals["drip_value"] - totals["rate_value"]
   securities = []
   for symbol, account in ledgers.items():
     item = {"symbol": symbol, **account}
@@ -257,10 +295,17 @@ def run_engine(transactions, histories, events, start, end, payment_dates=None, 
       item[mode + "_value"] = (account[mode + "_shares"] * last_price.get(symbol, 0.0)
                                 + account[mode + "_cash"] + account[mode + "_receivable"])
     item["difference"] = item["drip_value"] - item["cash_value"]
+    item["rate_interest"] = account["rate_balance"] - account["rate_principal"]
+    item["rate_value"] = item["cash_value"] + item["rate_interest"]
+    item["rate_profit"] = item["rate_value"] - account["buy_cost"]
+    item["drip_vs_rate"] = item["drip_value"] - item["rate_value"]
     securities.append(item)
   return {"ok": True, "series": series, "totals": totals, "securities": securities,
           "events": results, "metadata": {"start_date": start.isoformat(), "end_date": end.isoformat(),
           "currency": "USD", "price_source": "Yahoo Finance completed daily closes",
           "dividend_source": "Yahoo Finance ex-dates and cash amounts; Nasdaq, Stock Analysis or user-entered payment dates; Finviz ex-date and amount cross-checks",
           "dividend_totals": "Earned dividends, including amounts awaiting payment",
-          "method": "Identical logged trades in both scenarios; sale proceeds stay in cash. Fractional shares reinvest at the payment-date close or next available completed close when a position remains open. Earned unpaid dividends count as receivables. Taxes, fees and cash interest are excluded."}}
+          "annual_rate_percent": annual_rate_percent,
+          "rate_compounding_basis": "Actual elapsed calendar days / 365; effective annual return",
+          "rate_method": "Original-share dividends enter a hypothetical fixed-rate account on each confirmed payment date, including weekends. Each deposit grows by (1 + annual rate) ** (elapsed days / 365) through the simulation endpoint. Unpaid dividends and logged sale proceeds earn no interest. The rate is a user assumption, not an actual Treasury quote or security return.",
+          "method": "Identical logged trades in all three scenarios; sale proceeds stay in cash. Fractional shares reinvest at the payment-date close or next available completed close when a position remains open. Earned unpaid dividends count as receivables. The comparison account compounds paid original-share dividends at the selected effective annual return. Taxes, fees and interest on other cash are excluded."}}

@@ -21,18 +21,23 @@ class DividendDateRow(DividendDateRowTemplate):
     self.classes["is-missing"] = value is None
     self.refresh_data_bindings()
 
-  def finviz_url(self, dividends=False):
-    # Symbols come from the server's validated US-security inputs.
-    return "https://finviz.com/quote.ashx?t=%s%s" % (
-      self.item["symbol"], "&ty=dv" if dividends else "")
-
   def date_status(self):
     value = self.item.get("_payment_date")
     if value is None:
       return "Payment date not confirmed"
     if value != self.item.get("_original_payment_date"):
-      return "Payment date supplied by you"
-    return self.item.get("source") or "Check this payment date"
+      return "User-entered payment date"
+    return "Payment date confirmed"
+
+  def date_note(self):
+    if self.item.get("unsupported"):
+      return "This distribution requires special due-bill handling and is not supported."
+    value = self.item.get("_payment_date")
+    if value is None:
+      return "Refresh to check again, or enter a confirmed payment date. No date will be guessed."
+    if value != self.item.get("_original_payment_date"):
+      return "Your entered date will be used when you update the comparison."
+    return "Payment date matched to this dividend's ex-date and cash amount."
 
   @handle("payment_date_picker", "change")
   def payment_date_change(self, **event_args):

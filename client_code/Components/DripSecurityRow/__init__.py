@@ -5,3 +5,4 @@ class DripSecurityRow(DripSecurityRowTemplate):
   def __init__(self, **properties):
     super().__init__(**properties)
     self.difference_region.classes["is-negative"] = self.item["negative"]
+    self.rate_difference_region.classes["is-negative"] = self.item["rate_negative"]

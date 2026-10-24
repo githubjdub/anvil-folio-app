@@ -143,7 +143,7 @@ class Form1(Form1Template):
     name = {"overview": "Overview", "allocation": "Portfolio structure",
             "performance": "Performance", "income": "Income", "simulations": "Simulations", "retirement": "Retirement"}[self._readout_page]
     if self._readout_page == "simulations":
-      self.readout_tab_context.text = "Simulations · Compare dividend reinvestment with holding cash"
+      self.readout_tab_context.text = "Simulations · Compare reinvestment, cash and a fixed-rate account"
     elif self._readout_page == "income":
       self.readout_tab_context.text = "Income · Dividends, upcoming dates and taxable-account loss review"
     elif self._readout_page == "retirement":
@@ -1702,7 +1702,7 @@ class Form1(Form1Template):
       message += " The benchmark has no measurable daily variation; its Sharpe is undefined."
     if provisional:
       message += " Current-session prices are provisional; the unfinished session is excluded from both risk estimates and annualized return."
-    self.risk_status_label.text = message + " Yahoo Finance · 252 trading days/year."
+    self.risk_status_label.text = message + " 252 trading days/year."
     drawdowns = self._drawdowns(portfolio)
     markers = build_trade_markers(
       self._analyzed_transactions, self._analysis_source["rows"],

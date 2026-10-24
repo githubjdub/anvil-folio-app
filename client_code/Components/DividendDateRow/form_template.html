@@ -2,13 +2,8 @@
   <div class="simulation-date-copy">
     <anvil-component type="Label" name="symbol_label" bind:text="self.item['symbol'] + ' · ex-date ' + self.item['ex_date']" prop:role="security-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <anvil-component type="Label" name="amount_label" bind:text="'${:,.6f} per share'.format(self.item['amount'])" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <anvil-component type="Label" name="source_label" bind:text="self.date_status()" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <anvil-component type="Label" name="note_label" bind:text="self.item.get('note', '')" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <div class="simulation-finviz-links">
-      <anvil-component type="Link" name="payment_source_link" prop:text="Payment-date source ↗" bind:url="self.item.get('source_url') or ''" bind:visible="bool(self.item.get('source_url'))" prop:open_in_new_tab="true" prop:role="hedge-fund-source" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-      <anvil-component type="Link" name="finviz_dividends_link" prop:text="Finviz dividend history ↗" bind:url="self.finviz_url(dividends=True)" prop:open_in_new_tab="true" prop:role="hedge-fund-source" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-      <anvil-component type="Link" name="finviz_news_link" prop:text="Finviz company news ↗" bind:url="self.finviz_url()" prop:open_in_new_tab="true" prop:role="hedge-fund-source" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    </div>
+    <anvil-component type="Label" name="payment_status_label" bind:text="self.date_status()" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="note_label" bind:text="self.date_note()" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
   </div>
   <div class="simulation-payment-field"><div class="transaction-field-caption">Payment date</div><anvil-component type="DatePicker" name="payment_date_picker" writeback:date="self.item['_payment_date']" prop:role="date-field"></anvil-component></div>
 </article>
