@@ -6,7 +6,6 @@ daily market value of held shares and exclude accumulated dividend cash.
 """
 
 import math
-from typing import Any
 
 
 def _quarter(day):
@@ -113,7 +112,7 @@ def allocation_snapshots(source, selected_symbols):
     if index == len(dates) - 1:
       key = "latest"
       label += " · latest"
-    holdings: list[dict[str, Any]] = []
+    holdings: list[dict] = []
     groups = {}
     for security in securities:
       daily = security["days"][index]
