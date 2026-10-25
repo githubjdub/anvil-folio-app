@@ -1572,3 +1572,31 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
   .income-block { padding-top: 22px; margin-top: 22px; }
   .income-account-choice { width: 100%; }
 }
+
+/* Folio identity, grouped readout navigation and tax comparison cards. */
+.brand-mark { width: 40px; height: 40px; flex-basis: 40px; }
+.brand-name { font-size: 24px; letter-spacing: -.04em; }
+.readout-navigation { grid-template-columns: 1fr; gap: 10px; padding: 12px; }
+.readout-nav-group { min-width: 0; }
+.readout-nav-group + .readout-nav-group { padding-top: 10px; border-top: 1px solid var(--line); }
+.readout-group-label { display: block; margin: 0 6px 6px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.readout-group-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.readout-group-buttons > * { min-width: 0; }
+.readout-planning-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.anvil-role-income-view-title { color: var(--ink); font-size: 24px; font-weight: 750; letter-spacing: -.03em; margin: 0; }
+.anvil-role-tax-term-grid > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.tax-term-row { min-width: 0; margin: 0; height: 100%; box-sizing: border-box; }
+.tax-term-row .income-row-metrics { grid-template-columns: 1fr; gap: 10px; }
+.tax-term-section { padding-top: 16px; border-top: 1px solid var(--line); margin-top: 16px; }
+.tax-term-section h5 { color: var(--muted); font-size: 12px; letter-spacing: .04em; margin: 0 0 10px; }
+.tax-position-highlight { padding: 12px 0; text-align: right; }
+.tax-position-terms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 14px 0; padding-top: 12px; border-top: 1px solid var(--line); }
+.anvil-role-tax-value-positive, .tax-value-positive .anvil-role-security-value { color: var(--mint-strong); }
+.anvil-role-tax-value-negative, .tax-value-negative .anvil-role-security-value { color: var(--negative); }
+@media (max-width: 620px) {
+  .readout-navigation { padding: 8px; }
+  .readout-group-buttons { gap: 3px; }
+  .readout-navigation button { font-size: 12px; padding: 10px 4px; }
+  .anvil-role-tax-term-grid > div, .tax-position-terms { grid-template-columns: 1fr; }
+  .tax-position-highlight { text-align: left; }
+}

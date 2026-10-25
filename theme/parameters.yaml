@@ -1,6 +1,6 @@
 color_scheme:
   colors:
-  - {color: '#00E676', name: Primary}
+  - {color: '#60D2A0', name: Primary}
   - {color: '#102F28', name: Primary Container}
   - {color: '#062117', name: On Primary}
   - {color: '#B8F5D8', name: On Primary Container}
@@ -36,9 +36,9 @@ color_scheme:
   - {color: '#283346', name: Disabled Container 2}
   - {color: '#EDC38B', name: Warning}
   - {color: '#30291F', name: Warning Container}
-  - {color: 'rgba(0,230,118,0.08)', name: Primary Overlay 1}
-  - {color: 'rgba(0,230,118,0.12)', name: Primary Overlay 2}
-  - {color: 'rgba(0,230,118,0.18)', name: Primary Overlay 3}
+  - {color: 'rgba(96,210,160,0.08)', name: Primary Overlay 1}
+  - {color: 'rgba(96,210,160,0.12)', name: Primary Overlay 2}
+  - {color: 'rgba(96,210,160,0.18)', name: Primary Overlay 3}
   - {color: 'rgba(255,129,144,0.08)', name: Error Overlay 1}
   - {color: 'rgba(255,129,144,0.12)', name: Error Overlay 2}
   - {color: 'rgba(230,237,247,0.05)', name: Light Overlay 1}

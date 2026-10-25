@@ -267,8 +267,8 @@ dependencies:
   dep_id: dep_lin1x4oec0ytd
   resolution_hints: {app_id: 4UK6WHQ6UX7AKELK, name: Material 3 Theme, package_name: m3}
   version: {version_tag: v1.2.6}
-metadata: {logo_img: 'asset:portfoliora-mark.svg'}
-name: M3 App 1
+metadata: {logo_img: 'asset:folio-mark.svg', title: Folio · Portfolio Analyzer}
+name: Folio
 native_deps:
   head_html: |
     <script>

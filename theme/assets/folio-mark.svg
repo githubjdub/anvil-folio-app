@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Folio portfolio analyzer mark</title>
+  <rect width="64" height="64" rx="16" fill="#111D25"/>
+  <rect x="14" y="36" width="9" height="14" rx="4.5" fill="#7C919F"/>
+  <rect x="27.5" y="27" width="9" height="23" rx="4.5" fill="#BCCAD5"/>
+  <rect x="41" y="14" width="9" height="36" rx="4.5" fill="#60D2A0"/>
+</svg>

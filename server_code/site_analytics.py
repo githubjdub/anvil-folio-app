@@ -26,7 +26,8 @@ _PAGES = {
   "dashboard": "Portfolio workspace", "overview": "Overview",
   "allocation": "Portfolio structure", "performance": "Performance",
   "simulations": "Simulations", "retrospective": "Retrospective (archived)", "methods": "Methods", "shared": "Shared performance",
-  "retirement": "Retirement", "income": "Income", "disclosures": "Disclosures",
+  "retirement": "Retirement", "dividends": "Dividends", "passive": "Passive Income",
+  "tax": "Tax Harvester", "income": "Income (previous navigation)", "disclosures": "Disclosures",
   "subscribe": "Plans", "subscription": "My subscription", "profile": "Profile",
 }
 _RANGES = {"7d": 7, "30d": 30, "90d": 90, "1y": 365}

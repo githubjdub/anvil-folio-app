@@ -25,9 +25,12 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._chart_mode = None
     self.account_type_dropdown.items = [("US taxable account", "taxable"), ("IRA / tax-advantaged account", "retirement")]
     self.account_type_dropdown.selected_value = "taxable"
+    self.loss_term_dropdown.items = [("All losing lots", "all"), ("Short-term only", "Short-term"), ("Long-term only", "Long-term")]
+    self.loss_term_dropdown.selected_value = "all"
     self.set_event_handler("x-set-editable", self.set_editable)
     self.losses_panel.set_event_handler("x-loss-selection", self.loss_selection_change)
     self.reset_workspace()
+    self._apply_view()
 
   def reset_workspace(self):
     self._generation += 1
@@ -47,7 +50,7 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._lots = []
     self._plot_size = None
     self.income_plot.data = []
-    for panel in (self.securities_panel, self.quarters_panel, self.upcoming_panel, self.ledger_panel, self.losses_panel):
+    for panel in (self.securities_panel, self.quarters_panel, self.upcoming_panel, self.ledger_panel, self.losses_panel, self.terms_panel, self.positions_panel):
       panel.items = []
     self.report_region.visible = False
 
@@ -62,7 +65,7 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._as_of = as_of
     self._clear_report()
     self.context_label.text = ("Selected securities · %s logged transactions · positions as of %s" % (len(docs), as_of)) if docs and as_of else "Sync a portfolio and select securities to track their income."
-    self._set_status("Open Income to load your dividend and loss review automatically." if docs else "")
+    self._set_status("Open Dividends, Passive Income or Tax Harvester to load this snapshot." if docs else "")
     self._update_controls()
 
   def set_editable(self, editable=True, **event_args):
@@ -80,15 +83,14 @@ class IncomeTracker(IncomeTrackerTemplate):
   def _update_controls(self):
     enabled = not self._busy and self._parent_editable
     setattr(self.refresh_button, "enabled", enabled and bool(self._transactions) and bool(self._as_of))
-    self.refresh_button.text = "Loading income…" if self._busy else "Refresh income"
-    for button in (self.dividends_button, self.tax_button):
-      setattr(button, "enabled", enabled)
+    self.refresh_button.text = "Loading review…" if self._busy else "Refresh review"
+    self.loss_term_dropdown.enabled = enabled
     self.account_type_dropdown.enabled = enabled
     setattr(self.ledger_previous_button, "enabled", enabled and self._ledger_page > 0)
     ledger_count = len(self._report["dividends"]["ledger"]) if self._report else 0
     setattr(self.ledger_next_button, "enabled", enabled and (self._ledger_page + 1) * self.PAGE_SIZE < ledger_count)
     setattr(self.loss_previous_button, "enabled", enabled and self._loss_page > 0)
-    setattr(self.loss_next_button, "enabled", enabled and (self._loss_page + 1) * self.PAGE_SIZE < len(self._lots))
+    setattr(self.loss_next_button, "enabled", enabled and (self._loss_page + 1) * self.PAGE_SIZE < len(self._filtered_lots()))
     self.losses_panel.raise_event_on_children("x-set-editable", editable=enabled)
 
   @handle("refresh_button", "click")
@@ -115,7 +117,7 @@ class IncomeTracker(IncomeTrackerTemplate):
       self._render_report()
       self.report_region.visible = True
       self.redraw()
-      self._set_status("Income review ready. Estimates use only the selected securities and logged transactions.")
+      self._set_status("Review ready. Estimates use only the selected securities and logged transactions.")
     finally:
       self._busy = False
       self._update_controls()
@@ -123,7 +125,7 @@ class IncomeTracker(IncomeTrackerTemplate):
 
   @staticmethod
   def money(value):
-    return "Unavailable" if value is None else "${:,.2f}".format(value)
+    return "Unavailable" if value is None else "{}${:,.2f}".format("−" if value < 0 else "", abs(value))
 
   @staticmethod
   def percent(value):
@@ -136,10 +138,14 @@ class IncomeTracker(IncomeTrackerTemplate):
     totals = dividends["totals"]
     self.annual_label.text = self.money(totals["annual_estimate"])
     self.quarter_label.text = self.money(totals["quarterly_average"])
+    self.monthly_label.text = self.money(totals["annual_estimate"] / 12 if totals["annual_estimate"] is not None else None)
     self.yield_label.text = self.percent(totals["yield_on_cost"])
     self.paid_label.text = self.money(totals["paid_ytd"])
     self.coverage_label.text = dividends["metadata"].get("coverage_note", "")
     self.unresolved_label.text = "%s dividend records have unconfirmed payment dates. Received-cash totals exclude them." % totals["unresolved_count"] if totals["unresolved_count"] else "Payment dates are matched automatically. Received-cash totals are modeled from those dates."
+    self.dividend_unresolved_label.text = self.unresolved_label.text
+    ledger_count = len(dividends["ledger"])
+    self.payment_coverage_label.text = "%s / %s records" % (ledger_count - totals["unresolved_count"], ledger_count)
     self.securities_panel.items = dividends["securities"]
     self.quarters_panel.items = dividends["quarterly_history"]
     upcoming_as_of = dividends["metadata"].get("upcoming_as_of", "today")
@@ -153,8 +159,26 @@ class IncomeTracker(IncomeTrackerTemplate):
     self.realized_short_label.text = self.money(summary["realized_short_term"])
     self.realized_long_label.text = self.money(summary["realized_long_term"])
     self.realized_net_label.text = self.money(summary["realized_net"])
+    self.unrealized_short_label.text = self.money(summary["unrealized_short_term"])
+    self.unrealized_long_label.text = self.money(summary["unrealized_long_term"])
+    self.unrealized_net_label.text = self.money(summary["unrealized_net"])
+    self.terms_panel.items = tax["term_breakdown"]
+    missing_basis = summary["unknown_basis_count"]
+    missing_prices = summary["unknown_price_count"]
+    missing_sales = sum(row["unknown_realized_count"] for row in tax["term_breakdown"])
+    self.tax_coverage_label.visible = bool(missing_basis or missing_prices or missing_sales or summary["estimated_basis_count"])
+    coverage = []
+    if missing_basis or missing_prices or missing_sales:
+      coverage.append("Incomplete coverage: %s open lots lack basis, %s lack market prices, and %s sold lots lack complete trade prices. Affected totals are unavailable; incomplete positions are excluded from the ranking." % (missing_basis, missing_prices, missing_sales))
+    if summary["estimated_basis_count"]:
+      coverage.append("%s open lots use estimated purchase prices. Check broker cost basis before acting." % summary["estimated_basis_count"])
+    self.tax_coverage_label.text = " ".join(coverage)
+    positions = tax["losing_positions"]
+    self.positions_panel.items = positions[:10]
+    self.positions_empty_label.visible = not bool(positions)
+    self.positions_context_label.text = "Largest %s of %s losing positions, ordered by total dollar loss. Position totals combine all remaining lots; the lot list below includes losses inside profitable positions too." % (min(10, len(positions)), len(positions)) if positions else "Position totals combine all remaining lots."
+
     self.tax_notes_label.text = "\n".join(tax.get("notes", []))
-    self.loss_empty_label.visible = not bool(self._lots)
     self._render_losses()
     self.loss_selection_change()
     self._apply_view()
@@ -180,11 +204,18 @@ class IncomeTracker(IncomeTrackerTemplate):
     self.ledger_navigation.visible = len(rows) > self.PAGE_SIZE
     self._update_controls()
 
+  def _filtered_lots(self):
+    term = self.loss_term_dropdown.selected_value
+    return [lot for lot in self._lots if term == "all" or lot["term"] == term]
+
   def _render_losses(self):
+    lots = self._filtered_lots()
     start = self._loss_page * self.PAGE_SIZE
-    self.losses_panel.items = self._lots[start:start + self.PAGE_SIZE]
-    self.loss_page_label.text = "%s–%s of %s losing lots" % (start + 1, min(start + self.PAGE_SIZE, len(self._lots)), len(self._lots)) if self._lots else ""
-    self.loss_navigation.visible = len(self._lots) > self.PAGE_SIZE
+    self.losses_panel.items = lots[start:start + self.PAGE_SIZE]
+    self.loss_empty_label.visible = not bool(lots)
+    self.loss_empty_label.text = "No priced losing lots match this holding-period filter." if self._lots else "No priced losing lots were identified. Missing basis or prices can prevent a lot from being assessed."
+    self.loss_page_label.text = "%s–%s of %s losing lots" % (start + 1, min(start + self.PAGE_SIZE, len(lots)), len(lots)) if lots else ""
+    self.loss_navigation.visible = len(lots) > self.PAGE_SIZE
     self._update_controls()
 
   def loss_selection_change(self, **event_args):
@@ -197,28 +228,33 @@ class IncomeTracker(IncomeTrackerTemplate):
     self.selected_loss_label.text = self.money(eligible)
     self.offset_label.text = self.money(min(eligible, max(0, gain))) if gain is not None else "Unavailable"
     self.flagged_loss_label.text = self.money(flagged)
-    self.offset_note_label.text = "Based on %s selected lots. Flagged purchases are excluded from this estimate. Other accounts, future purchases and broker basis adjustments can change the result." % len(selected)
+    self.offset_note_label.text = "Based on %s selected lots across all pages and holding-period filters. Flagged purchases are excluded from this estimate. Other accounts, future purchases and broker basis adjustments can change the result." % len(selected)
+
+  def set_view(self, view):
+    if view not in ("dividends", "passive", "tax"):
+      raise ValueError("Unknown income view")
+    self._view = view
+    self._apply_view()
 
   def _apply_view(self):
-    income = self._view == "dividends"
-    self.dividends_region.visible = income
-    self.tax_region.visible = not income
-    self.dividends_button.role = "readout-tab-active" if income else "readout-tab"
-    self.tax_button.role = "readout-tab" if income else "readout-tab-active"
+    self.view_title_label.text = {"dividends": "Dividends", "passive": "Passive Income", "tax": "Tax Harvester"}[self._view]
+    self.view_intro_label.text = {
+      "dividends": "Follow upcoming ex-dividend dates and review the payments earned by your selected holdings.",
+      "passive": "See what your holdings could pay each year, quarter and month, with income trends and security-level detail.",
+      "tax": "Compare short-term and long-term capital gains, find your biggest losing positions, and explore losses by tax lot.",
+    }[self._view]
+    self.dividends_region.visible = self._view == "dividends"
+    self.passive_region.visible = self._view == "passive"
+    self.tax_region.visible = self._view == "tax"
+    self.income_coverage_region.visible = self._view != "tax"
     taxable = self.account_type_dropdown.selected_value == "taxable"
     self.taxable_region.visible = taxable
     self.retirement_note.visible = not taxable
 
-  @handle("dividends_button", "click")
-  def dividends_click(self, **event_args):
-    self._view = "dividends"
-    self._apply_view()
-    self.redraw()
-
-  @handle("tax_button", "click")
-  def tax_click(self, **event_args):
-    self._view = "tax"
-    self._apply_view()
+  @handle("loss_term_dropdown", "change")
+  def loss_term_change(self, **event_args):
+    self._loss_page = 0
+    self._render_losses()
 
   @handle("account_type_dropdown", "change")
   def account_type_change(self, **event_args):
@@ -248,7 +284,7 @@ class IncomeTracker(IncomeTrackerTemplate):
       self._ledger_page = max(0, min(maximum, self._ledger_page + direction))
       self._render_ledger()
     else:
-      maximum = max(0, (len(self._lots) - 1) // self.PAGE_SIZE)
+      maximum = max(0, (len(self._filtered_lots()) - 1) // self.PAGE_SIZE)
       self._loss_page = max(0, min(maximum, self._loss_page + direction))
       self._render_losses()
 
@@ -265,7 +301,7 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._plot_size = None
 
   def redraw(self):
-    if self._report is not None and self._view == "dividends":
+    if self._report is not None and self._view == "passive":
       if self._chart_mode != chart_theme.MODE:
         self._draw_chart()
       self._plot_size = chart_theme.redraw(self.income_plot, self._plot_size)

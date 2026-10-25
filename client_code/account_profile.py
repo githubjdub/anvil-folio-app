@@ -14,7 +14,7 @@ def sign_in():
   user = anvil.users.get_user()
   if user is not None:
     return user
-  action = alert(SignIn(), title="Welcome to Portfoliora", buttons=[], dismissible=False,
+  action = alert(SignIn(), title="Welcome to Folio", buttons=[], dismissible=False,
                  role="username-setup-dialog")
   if action == "signup":
     return anvil.users.signup_with_form(allow_cancel=True)

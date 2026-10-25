@@ -1,5 +1,6 @@
 unique_ids:
   assets:
+    folio-mark.svg: '1792933486635.2926478281647037'
     holdings-file-reader.js: '1790979991557.1813767219299519'
     holdings-ocr.js: '1790978894539.7764031333443645'
     portfoliora-mark.svg: '1792288406364.8212475722149104'
@@ -41,6 +42,8 @@ unique_ids:
     Components.SharedPerformance: '1791140296704.16382801456492913'
     Components.SignIn: '1792270331454.1518729917105459'
     Components.Simulations: '1792618012885.6666148715631361'
+    Components.TaxPositionRow: '1792933590650.2994608940603676'
+    Components.TaxTermRow: '1792933590651.0930746859329249'
     Components.ThemeSwitch: '1792355438028.059281722118800007'
     Components.TransactionYearGroup: '1792524268667.013167005265084408'
     Components.UsernameSetup: '1792265597913.026895282448353153'

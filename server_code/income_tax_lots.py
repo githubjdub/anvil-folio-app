@@ -65,11 +65,26 @@ def _mark(history, as_of):
   return float(price), day.isoformat()
 
 
+def _gain_totals(items, field):
+  """Complete signed totals; an unknown amount must never become a zero."""
+  unknown = sum(item[field] is None for item in items)
+  if unknown:
+    return {"gains": None, "losses": None, "net": None, "unknown_count": unknown}
+  return {"gains": _sum(max(0.0, item[field]) for item in items),
+    "losses": _sum(min(0.0, item[field]) for item in items),
+    "net": _sum(item[field] for item in items), "unknown_count": 0}
+
+
 def build_tax_report(clean, histories, as_of):
   """Return open FIFO lots, losing lots and YTD realized estimates.
 
   Missing entered prices use only that session's market price and are labelled
   estimated. If neither exists, basis/proceeds remain unknown rather than zero.
+  ``term_breakdown`` contains short/long rows with signed gross gains, gross
+  losses and net amounts, keeping open lots separate from YTD realized sales.
+  ``losing_positions`` ranks complete net position losses, whereas ``candidates``
+  ranks individual losing lots, including lots inside net-profitable positions.
+  These are transient analysis results, not persisted brokerage tax records.
   """
   symbols = sorted({trade["symbol"] for trade in clean})
   holdings = {symbol: [] for symbol in symbols}
@@ -159,8 +174,40 @@ def build_tax_report(clean, histories, as_of):
   def realized_total(term=None):
     items = [sale for sale in ytd if term is None or sale["term"] == term]
     return _sum(sale["gain"] for sale in items) if all(sale["gain"] is not None for sale in items) else None
-  estimated_count = sum(lot["basis_estimated"] for lot in lots)
+  term_breakdown = []
+  for term in ("Short-term", "Long-term"):
+    open_items = [lot for lot in lots if lot["term"] == term]
+    sold_items = [sale for sale in ytd if sale["term"] == term]
+    unrealized_totals = _gain_totals(open_items, "unrealized_gain")
+    realized_totals = _gain_totals(sold_items, "gain")
+    term_breakdown.append({"term": term, "lot_count": len(open_items),
+      "realized_lot_count": len(sold_items),
+      "unrealized_gains": unrealized_totals["gains"],
+      "unrealized_losses": unrealized_totals["losses"],
+      "unrealized_net": unrealized_totals["net"],
+      "realized_gains": realized_totals["gains"],
+      "realized_losses": realized_totals["losses"],
+      "realized_net": realized_totals["net"],
+      "unknown_unrealized_count": unrealized_totals["unknown_count"],
+      "unknown_realized_count": realized_totals["unknown_count"],
+      "estimated_basis_count": sum(lot["basis_estimated"] and lot["cost_basis"] is not None for lot in open_items)})
+  losing_positions = []
+  for symbol, position in positions.items():
+    symbol_lots = [lot for lot in lots if lot["symbol"] == symbol]
+    position.update(lot_count=len(symbol_lots),
+      short_term_gain=_gain_totals([lot for lot in symbol_lots if lot["term"] == "Short-term"], "unrealized_gain")["net"],
+      long_term_gain=_gain_totals([lot for lot in symbol_lots if lot["term"] == "Long-term"], "unrealized_gain")["net"],
+      possible_wash_sale=any(lot["possible_wash_sale"] for lot in symbol_lots),
+      potential_loss=max(0.0, -position["unrealized_gain"]) if position["unrealized_gain"] is not None else None,
+      unrealized_return=(position["unrealized_gain"] / position["cost_basis"]
+        if position["unrealized_gain"] is not None and position["cost_basis"] else None))
+    if position["unrealized_gain"] is not None and position["unrealized_gain"] < -0.005:
+      losing_positions.append(position)
+  losing_positions.sort(key=lambda position: (position["unrealized_gain"], position["symbol"]))
+  unrealized_totals = _gain_totals(lots, "unrealized_gain")
+  estimated_count = sum(lot["basis_estimated"] and lot["cost_basis"] is not None for lot in lots)
   unknown_count = sum(lot["cost_basis"] is None for lot in lots)
+  unknown_price_count = sum(lot["current_price"] is None for lot in lots)
   notes = [
     "US taxable-account screening estimate using FIFO from the selected logged transactions. A losing lot may exist inside a profitable holding; choose the correct lot with your broker.",
     "Realized amounts are year-to-date estimates before wash-sale adjustments. Recent same-security purchases are flagged conservatively; the app cannot determine deductibility or detect substantially identical securities, other accounts, a spouse's trades, or future purchases.",
@@ -170,12 +217,19 @@ def build_tax_report(clean, histories, as_of):
   if estimated_count or any(sale["basis_estimated"] or sale["proceeds_estimated"] for sale in ytd):
     notes.append("Prices omitted from logged trades use the exact trade-date market price where available. Those basis or proceeds estimates must be checked against your broker's records.")
   if unknown_count or any(sale["gain"] is None for sale in ytd):
-    notes.append("Some trade prices could not be established. Unknown basis is excluded from losing-lot candidates and any affected realized total is unavailable.")
+    notes.append("Some trade prices could not be established. Lots or positions with unknown basis are excluded from loss rankings; affected gain/loss totals are unavailable rather than zero.")
   if any(lot["current_price"] is None for lot in lots):
     notes.append("Some open lots have no market price on or before the analysis date and cannot be screened for unrealized losses.")
   return {"positions": positions, "lots": lots, "candidates": candidates, "realized": realized,
+    "term_breakdown": term_breakdown, "losing_positions": losing_positions,
     "summary": {"tax_year": as_of.year, "realized_short_term": realized_total("Short-term"),
       "realized_long_term": realized_total("Long-term"), "realized_net": realized_total(),
+      "unrealized_short_term": term_breakdown[0]["unrealized_net"],
+      "unrealized_long_term": term_breakdown[1]["unrealized_net"],
+      "unrealized_net": unrealized_totals["net"],
       "potential_loss": _sum(lot["potential_loss"] for lot in candidates),
       "candidate_count": len(candidates), "unknown_basis_count": unknown_count,
-      "estimated_basis_count": estimated_count}, "notes": notes}
+      "estimated_basis_count": estimated_count, "unknown_price_count": unknown_price_count,
+      "losing_position_count": len(losing_positions)}, "notes": notes,
+    "sources": [{"title": "IRS: capital gains and holding periods", "url": "https://www.irs.gov/taxtopics/tc409"},
+      {"title": "IRS Publication 550: investment income and wash sales", "url": "https://www.irs.gov/publications/p550"}]}

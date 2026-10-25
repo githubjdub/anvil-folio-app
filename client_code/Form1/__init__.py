@@ -141,11 +141,16 @@ class Form1(Form1Template):
         " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
       )
     name = {"overview": "Overview", "allocation": "Portfolio structure",
-            "performance": "Performance", "income": "Income", "simulations": "Simulations", "retirement": "Retirement"}[self._readout_page]
+            "performance": "Performance", "dividends": "Dividends", "passive": "Passive Income",
+            "tax": "Tax Harvester", "simulations": "Simulations", "retirement": "Retirement"}[self._readout_page]
     if self._readout_page == "simulations":
       self.readout_tab_context.text = "Simulations · Compare reinvestment, cash and a fixed-rate account"
-    elif self._readout_page == "income":
-      self.readout_tab_context.text = "Income · Dividends, upcoming dates and taxable-account loss review"
+    elif self._readout_page in ("dividends", "passive", "tax"):
+      self.readout_tab_context.text = {
+        "dividends": "Dividends · Upcoming dates and payment history",
+        "passive": "Passive Income · Projected payouts and income trends",
+        "tax": "Tax Harvester · Capital gains by holding period and largest losses",
+      }[self._readout_page]
     elif self._readout_page == "retirement":
       self.readout_tab_context.text = "Retirement · Explore future savings and spending"
     elif self._analysis_source is not None:
@@ -158,7 +163,7 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    portfolio_page = self._readout_page not in ("retirement", "simulations", "income")
+    portfolio_page = self._readout_page not in ("retirement", "simulations", "dividends", "passive", "tax")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
     self.hedge_fund_panel.visible = self._readout_page == "performance"
@@ -168,12 +173,19 @@ class Form1(Form1Template):
       ("performance", self.performance_panel, self.performance_tab_button),
       ("retirement", self.retirement_panel, self.retirement_tab_button),
       ("simulations", self.simulations_panel, self.simulations_tab_button),
-      ("income", self.income_panel, self.income_tab_button),
     ):
       active = name == self._readout_page
       panel.visible = active
       button.role = "readout-tab-active" if active else "readout-tab"
       setattr(button, "enabled", not self._busy)
+    income_page = self._readout_page in ("dividends", "passive", "tax")
+    self.income_panel.visible = income_page
+    for name, button in (("dividends", self.dividends_tab_button),
+                         ("passive", self.passive_tab_button), ("tax", self.tax_tab_button)):
+      button.role = "readout-tab-active" if name == self._readout_page else "readout-tab"
+      setattr(button, "enabled", not self._busy)
+    if income_page:
+      self.income_form.set_view(self._readout_page)
     self._update_readout_context()
     if redraw:
       self._render_active_readout()
@@ -182,7 +194,7 @@ class Form1(Form1Template):
         self.simulations_form.redraw()
       elif self._readout_page == "performance":
         self.hedge_fund_comparison.redraw()
-      elif self._readout_page == "income":
+      elif self._readout_page in ("dividends", "passive", "tax"):
         self.income_form.ensure_loaded()
         self.income_form.redraw()
       elif self._readout_page == "retirement":
@@ -248,7 +260,7 @@ class Form1(Form1Template):
       self.simulations_form.apply_appearance()
     elif self._readout_page == "performance":
       self.hedge_fund_comparison.apply_appearance()
-    elif self._readout_page == "income":
+    elif self._readout_page in ("dividends", "passive", "tax"):
       self.income_form.apply_appearance()
     elif self._readout_page == "retirement":
       self.retirement_form.apply_appearance()
@@ -259,7 +271,7 @@ class Form1(Form1Template):
 
   def _select_readout_page(self, page):
     if (self._busy or page == self._readout_page or
-        page not in ("overview", "allocation", "performance", "simulations", "retirement", "income")):
+        page not in ("overview", "allocation", "performance", "simulations", "retirement", "dividends", "passive", "tax")):
       return
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
@@ -375,9 +387,17 @@ class Form1(Form1Template):
     self.simulations_form.set_portfolio_context(transactions, as_of)
     self.income_form.set_portfolio_context(transactions, as_of)
 
-  @handle("income_tab_button", "click")
-  def income_tab_click(self, **event_args):
-    self._select_readout_page("income")
+  @handle("dividends_tab_button", "click")
+  def dividends_tab_click(self, **event_args):
+    self._select_readout_page("dividends")
+
+  @handle("passive_tab_button", "click")
+  def passive_tab_click(self, **event_args):
+    self._select_readout_page("passive")
+
+  @handle("tax_tab_button", "click")
+  def tax_tab_click(self, **event_args):
+    self._select_readout_page("tax")
 
   @handle("income_form", "x-income-busy")
   def income_busy_change(self, busy, **event_args):
@@ -742,7 +762,8 @@ class Form1(Form1Template):
       self.collapse_all_button, self.expand_all_button, self.collapse_prior_years_button,
       self.overview_tab_button, self.allocation_tab_button,
       self.performance_tab_button, self.retirement_tab_button,
-      self.simulations_tab_button, self.income_tab_button, self.toggle_transactions_button,
+      self.simulations_tab_button, self.dividends_tab_button, self.passive_tab_button,
+      self.tax_tab_button, self.toggle_transactions_button,
       self.creator_tab_button, self.creator_setup_button,
       self.toggle_image_import_button, self.holdings_image_loader,
       self.clear_image_import_button, self.image_import_date_picker,
@@ -777,7 +798,7 @@ class Form1(Form1Template):
   def _set_busy(self, busy):
     self._busy = busy
     self._update_controls()
-    if not busy and self._readout_page == "income":
+    if not busy and self._readout_page in ("dividends", "passive", "tax"):
       self.income_form.ensure_loaded()
 
   def _refresh_portfolios(self):

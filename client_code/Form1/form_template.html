@@ -1,10 +1,10 @@
 <section class="portfolio-app">
   <header class="portfolio-topbar">
     <div class="brand-lockup">
-      <div class="brand-mark" aria-hidden="true"><img src="_/theme/portfoliora-mark.svg" alt="" width="31" height="31"></div>
+      <div class="brand-mark" aria-hidden="true"><img src="_/theme/folio-mark.svg" alt="" width="40" height="40"></div>
       <div>
-        <div class="brand-kicker">Personal finance workspace</div>
-        <div class="brand-name">Portfoli<span>o</span>ra</div>
+        <div class="brand-kicker">Portfolio analyzer</div>
+        <div class="brand-name">Folio</div>
       </div>
     </div>
     <div class="portfolio-topbar-actions">
@@ -21,7 +21,7 @@
       <div>
         <div class="eyebrow">Portfolio intelligence · 01</div>
         <h1>Track the position, not the paperwork.</h1>
-        <p class="hero-copy">Enter what you bought or sold and your price per share. Portfoliora tracks daily returns, dividends, and risk alongside major market benchmarks.</p>
+        <p class="hero-copy">Enter what you bought or sold and your price per share. Folio tracks daily returns, dividends, and risk alongside major market benchmarks.</p>
       </div>
       <div class="hero-note">
         <span class="hero-note-icon">↗</span>
@@ -179,15 +179,32 @@
         <anvil-component type="M3_App_1.Components.ShareComposer" name="share_composer"></anvil-component>
 
         <nav anvil:name="readout_navigation" class="readout-navigation" aria-label="Readout pages">
-          <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Overview" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
-          <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Portfolio structure" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-          <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-          <anvil-component type="m3._Components.Button" name="income_tab_button" prop:text="Income" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-          <div class="readout-tab-with-badge">
-            <anvil-component type="m3._Components.Button" name="simulations_tab_button" prop:text="Simulations" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-            <span class="feature-beta-badge" title="Work in progress">Beta</span>
+          <div class="readout-nav-group" role="group" aria-label="Portfolio">
+            <span class="readout-group-label">Portfolio</span>
+            <div class="readout-group-buttons">
+              <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Overview" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Allocation" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+            </div>
           </div>
-          <anvil-component type="m3._Components.Button" name="retirement_tab_button" prop:text="Retirement" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+          <div class="readout-nav-group" role="group" aria-label="Income and tax">
+            <span class="readout-group-label">Income &amp; tax</span>
+            <div class="readout-group-buttons">
+              <anvil-component type="m3._Components.Button" name="dividends_tab_button" prop:text="Dividends" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="passive_tab_button" prop:text="Passive Income" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="tax_tab_button" prop:text="Tax Harvester" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+            </div>
+          </div>
+          <div class="readout-nav-group" role="group" aria-label="Planning">
+            <span class="readout-group-label">Planning</span>
+            <div class="readout-group-buttons readout-planning-buttons">
+              <div class="readout-tab-with-badge">
+                <anvil-component type="m3._Components.Button" name="simulations_tab_button" prop:text="Simulations" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+                <span class="feature-beta-badge" title="Work in progress">Beta</span>
+              </div>
+              <anvil-component type="m3._Components.Button" name="retirement_tab_button" prop:text="Retirement" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+            </div>
+          </div>
         </nav>
         <div class="readout-disclosures"><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods ↗</a></div>
         <div class="readout-page-status" role="status" aria-live="polite"><anvil-component type="Label" name="readout_tab_context" prop:role="readout-tab-context" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
@@ -335,7 +352,7 @@
         <section anvil:name="retirement_panel" class="readout-page" aria-label="Retirement projections">
           <anvil-component type="M3_App_1.Components.Retirement" name="retirement_form"></anvil-component>
         </section>
-        <section anvil:name="income_panel" class="readout-page" aria-label="Dividend income and loss review">
+        <section anvil:name="income_panel" class="readout-page" aria-label="Income and tax analysis">
           <anvil-component type="M3_App_1.Components.IncomeTracker" name="income_form"></anvil-component>
         </section>
         <section anvil:name="simulations_panel" class="readout-page" aria-label="Dividend reinvestment simulations">
@@ -347,7 +364,7 @@
     </section>
   </main>
 
-  <footer class="portfolio-footer"><span>Portfoliora</span><span>Built for clearer decisions.</span><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods</a></footer>
+  <footer class="portfolio-footer"><span>Folio</span><span>Built for clearer decisions.</span><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods</a></footer>
   <p class="site-analytics-notice">Basic visit counts and approximate country statistics help us understand site usage. Browser privacy signals are respected.</p>
   <anvil-component type="Timer" name="market_status_timer" prop:interval="1"></anvil-component>
 </section>

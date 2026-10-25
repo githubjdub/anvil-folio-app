@@ -1,0 +1,22 @@
+<article class="tax-position-row income-security-row">
+  <div class="income-row-heading">
+    <div>
+      <anvil-component type="Label" name="symbol_label" bind:text="self.item['symbol']" prop:role="security-value"></anvil-component>
+      <anvil-component type="Label" name="details_label" bind:text="self.position_details()" prop:role="portfolio-help"></anvil-component>
+    </div>
+    <div class="tax-position-highlight tax-value-negative">
+      <span class="comparison-metric-label">Potential loss to realize</span>
+      <anvil-component type="Label" name="potential_loss_label" bind:text="self.money(self.item.get('potential_loss'))" prop:role="security-value"></anvil-component>
+    </div>
+  </div>
+  <div class="income-row-metrics">
+    <div><span class="comparison-metric-label">Cost basis</span><anvil-component type="Label" name="basis_label" bind:text="self.money(self.item.get('cost_basis'))" prop:role="security-value"></anvil-component></div>
+    <div><span class="comparison-metric-label">Market value</span><anvil-component type="Label" name="market_label" bind:text="self.money(self.item.get('current_value'))" prop:role="security-value"></anvil-component></div>
+    <div><span class="comparison-metric-label">Net unrealized</span><anvil-component type="Label" name="net_label" bind:text="self.money(self.item.get('unrealized_gain'), signed=True)" bind:role="self.value_role(self.item.get('unrealized_gain'))"></anvil-component></div>
+  </div>
+  <div class="tax-position-terms">
+    <div><span class="comparison-metric-label">Short-term net</span><anvil-component type="Label" name="short_term_label" bind:text="self.money(self.item.get('short_term_gain'), signed=True)" bind:role="self.value_role(self.item.get('short_term_gain'))"></anvil-component></div>
+    <div><span class="comparison-metric-label">Long-term net</span><anvil-component type="Label" name="long_term_label" bind:text="self.money(self.item.get('long_term_gain'), signed=True)" bind:role="self.value_role(self.item.get('long_term_gain'))"></anvil-component></div>
+  </div>
+  <anvil-component type="Label" name="review_label" bind:text="self.review_note()" prop:role="portfolio-help"></anvil-component>
+</article>

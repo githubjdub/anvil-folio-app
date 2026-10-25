@@ -51,7 +51,7 @@ class ShareComposer(ShareComposerTemplate):
       self.live_app_link.visible = not self._origin_ready
       self._refresh_links()
       self.link_availability_label.text = (
-        "Chart links are available on the live site. You can copy percentages here, or open live Portfoliora below."
+        "Chart links are available on the live site. You can copy percentages here, or open live Folio below."
         if not self._origin_ready else
         "Sign in when creating a chart link. Copying percentages works without an account."
         if anvil.users.get_user() is None else
@@ -76,7 +76,7 @@ class ShareComposer(ShareComposerTemplate):
 
   def _share_text(self):
     return self._summary + (
-      "\n\nBuild your own comparison on Portfoliora: " + self._base_url
+      "\n\nBuild your own comparison on Folio: " + self._base_url
       if self._base_url else ""
     )
 
@@ -178,7 +178,7 @@ class ShareComposer(ShareComposerTemplate):
       return
     try:
       anvil.js.window.navigator.share({
-        "title": "My Portfoliora performance",
+        "title": "My Folio performance",
         "text": self._share_text(),
       })
     except anvil.js.ExternalError as error:

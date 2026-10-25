@@ -36,6 +36,9 @@ _SECTORS = {
 
 # Some callers keep this dictionary as an alias. Never replace its identity.
 SECTOR_COLORS = {}
+# Bind the exported colours before set_mode initializes them at import time.
+BACKGROUND = PANEL = TEXT = MUTED = GRID = ZERO_LINE = ""
+POSITIVE = NEGATIVE = BENCHMARK = COMPARISON = AMBER = PIE_TEXT = ""
 
 
 def set_mode(mode):
