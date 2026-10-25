@@ -1,0 +1,50 @@
+---
+custom_component: true
+---
+<section class="notifications-workspace income-workspace">
+  <div class="income-toolbar">
+    <div><div class="detail-heading"><h3>Notifications</h3><span>Insider activity</span></div><anvil-component type="Label" name="unread_label" prop:role="portfolio-help"></anvil-component></div>
+    <anvil-component type="m3._Components.Button" name="refresh_button" prop:text="Refresh inbox" prop:appearance="outlined" prop:icon="mi:refresh" prop:role="chart-tool"></anvil-component>
+  </div>
+  <p class="fine-print">Follow reported insider buying and selling for securities you choose. Filings can arrive after the trade date; alerts reflect newly detected filings.</p>
+  <div anvil:name="status_region" class="simulation-status" role="status" aria-live="polite"><anvil-component type="Label" name="status_label" prop:role="portfolio-help"></anvil-component></div>
+  <section anvil:name="sign_in_region" class="income-notice"><h4>Your personal notification center</h4><p>Sign in using the account button above to save your watchlist, choose a delivery time and read insider alerts.</p></section>
+  <div anvil:name="workspace_region" class="notifications-layout">
+    <section class="notifications-inbox income-block">
+      <div class="income-toolbar"><h4>Inbox</h4><anvil-component type="m3._Components.Button" name="mark_all_button" prop:text="Mark all as read" prop:appearance="text"></anvil-component></div>
+      <anvil-component type="Label" name="inbox_empty_label" prop:role="portfolio-help"></anvil-component>
+      <anvil-component type="RepeatingPanel" name="messages_panel" prop:item_template="M3_App_1.Components.NotificationMessageRow"></anvil-component>
+      <div anvil:name="pagination_region" class="simulation-page-navigation"><anvil-component type="m3._Components.Button" name="previous_button" prop:text="Previous" prop:appearance="text"></anvil-component><anvil-component type="Label" name="page_label" prop:role="portfolio-help"></anvil-component><anvil-component type="m3._Components.Button" name="next_button" prop:text="Next" prop:appearance="text"></anvil-component></div>
+    </section>
+    <aside class="notifications-controls">
+      <section class="income-block notifications-settings">
+        <h4>Delivery preferences</h4>
+        <anvil-component type="CheckBox" name="alerts_checkbox" prop:text="Enable insider alerts"></anvil-component>
+        <div class="notification-field"><label>Delivery channel</label><anvil-component type="DropDown" name="channel_dropdown" prop:role="portfolio-select"></anvil-component></div>
+        <anvil-component type="Label" name="capability_label" prop:role="portfolio-help"></anvil-component>
+        <div anvil:name="schedule_region">
+          <div class="notification-field"><label>Daily delivery time · 24-hour clock</label><anvil-component type="TextBox" name="delivery_time_box" prop:placeholder="18:00" prop:role="portfolio-input"></anvil-component></div>
+          <div class="notification-field"><label>Time zone</label><anvil-component type="TextBox" name="timezone_box" prop:placeholder="America/New_York" prop:role="portfolio-input"></anvil-component></div>
+          <p class="fine-print">Use an IANA zone, such as America/New_York, America/Chicago, America/Los_Angeles, Europe/London or UTC. Regional zones follow daylight saving time.</p>
+          <p class="fine-print">A daily digest is sent only when new alerts are waiting, at your chosen local time or within about five minutes. Your in-app inbox updates independently.</p>
+        </div>
+        <div anvil:name="sms_region">
+          <div class="notification-field"><label>Mobile number · international format</label><anvil-component type="TextBox" name="phone_box" prop:placeholder="+14155552671" prop:role="portfolio-input"></anvil-component></div>
+          <anvil-component type="CheckBox" name="consent_checkbox" prop:text="I agree to receive automated insider-activity text messages from Folio at this number. Message and data rates may apply. Reply STOP to opt out."></anvil-component>
+          <p class="fine-print">You can also stop texts by choosing another channel and saving your preferences.</p>
+        </div>
+        <anvil-component type="m3._Components.Button" name="save_preferences_button" prop:text="Save preferences" prop:appearance="filled"></anvil-component>
+        <anvil-component type="Label" name="delivery_status_label" prop:role="portfolio-help"></anvil-component>
+      </section>
+      <section class="income-block notifications-watches">
+        <h4>Watched securities</h4>
+        <div class="notification-field"><label>Security symbol</label><anvil-component type="TextBox" name="symbol_box" prop:placeholder="e.g. AAPL" prop:role="portfolio-input"></anvil-component></div>
+        <div class="notification-field"><label>Notify me about</label><anvil-component type="DropDown" name="activity_dropdown" prop:role="portfolio-select"></anvil-component></div>
+        <anvil-component type="m3._Components.Button" name="add_watch_button" prop:text="Watch security" prop:icon="mi:add" prop:appearance="outlined"></anvil-component>
+        <p class="fine-print">New watches start with future filings. Purchase and sale reports are included; grants, gifts and option exercises are excluded.</p>
+        <anvil-component type="Label" name="watch_empty_label" prop:text="You are not watching any securities yet." prop:role="portfolio-help"></anvil-component>
+        <anvil-component type="RepeatingPanel" name="watches_panel" prop:item_template="M3_App_1.Components.InsiderWatchRow"></anvil-component>
+      </section>
+    </aside>
+  </div>
+</section>

@@ -195,14 +195,15 @@
               <anvil-component type="m3._Components.Button" name="tax_tab_button" prop:text="Tax Harvester" prop:appearance="text" prop:role="readout-tab"></anvil-component>
             </div>
           </div>
-          <div class="readout-nav-group" role="group" aria-label="Planning">
-            <span class="readout-group-label">Planning</span>
-            <div class="readout-group-buttons readout-planning-buttons">
+          <div class="readout-nav-group" role="group" aria-label="Planning and alerts">
+            <span class="readout-group-label">Planning &amp; alerts</span>
+            <div class="readout-group-buttons">
               <div class="readout-tab-with-badge">
                 <anvil-component type="m3._Components.Button" name="simulations_tab_button" prop:text="Simulations" prop:appearance="text" prop:role="readout-tab"></anvil-component>
                 <span class="feature-beta-badge" title="Work in progress">Beta</span>
               </div>
               <anvil-component type="m3._Components.Button" name="retirement_tab_button" prop:text="Retirement" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="notifications_tab_button" prop:text="Notifications" prop:appearance="text" prop:role="readout-tab"></anvil-component>
             </div>
           </div>
         </nav>
@@ -354,6 +355,9 @@
         </section>
         <section anvil:name="income_panel" class="readout-page" aria-label="Income and tax analysis">
           <anvil-component type="M3_App_1.Components.IncomeTracker" name="income_form"></anvil-component>
+        </section>
+        <section anvil:name="notifications_panel" class="readout-page" aria-label="Notifications and insider alerts">
+          <anvil-component type="M3_App_1.Components.Notifications" name="notifications_form"></anvil-component>
         </section>
         <section anvil:name="simulations_panel" class="readout-page" aria-label="Dividend reinvestment simulations">
           <anvil-component type="M3_App_1.Components.Simulations" name="simulations_form"></anvil-component>

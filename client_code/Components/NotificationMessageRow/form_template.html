@@ -1,0 +1,8 @@
+<article class="notification-message-row income-security-row">
+  <div class="income-row-heading"><anvil-component type="Label" name="activity_label" bind:text="self.activity_label()" prop:role="security-value"></anvil-component><anvil-component type="Label" name="read_state_label" bind:text="'Unread' if not self.item['read_at'] else 'Read'" prop:role="portfolio-help"></anvil-component></div>
+  <anvil-component type="Label" name="title_label" bind:text="self.item['title']" prop:role="notification-message-title"></anvil-component>
+  <anvil-component type="Label" name="body_label" bind:text="self.item['body']" prop:role="portfolio-help"></anvil-component>
+  <anvil-component type="Label" name="trade_label" bind:text="self.trade_details()" prop:role="portfolio-help"></anvil-component>
+  <anvil-component type="Label" name="dates_label" bind:text="self.date_details()" prop:role="portfolio-help"></anvil-component>
+  <div class="notification-row-actions"><anvil-component type="Link" name="filing_link" prop:text="View SEC filing ↗" bind:url="self.item['filing_url']" bind:visible="bool(self.item['filing_url'])" prop:role="portfolio-help"></anvil-component><anvil-component type="m3._Components.Button" name="read_button" bind:text="'Mark as read' if not self.item['read_at'] else 'Mark as unread'" prop:appearance="text"></anvil-component></div>
+</article>

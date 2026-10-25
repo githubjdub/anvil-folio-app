@@ -93,6 +93,189 @@ db_schema:
       type: bool
     server: full
     title: Hedge Funds
+  insider_watches:
+    client: none
+    columns:
+    - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      name: symbol
+      type: string
+    - admin_ui: {}
+      name: activity
+      type: string
+    - admin_ui: {}
+      name: active
+      type: bool
+    - admin_ui: {}
+      name: deleted
+      type: bool
+    - admin_ui: {}
+      name: created_at
+      type: datetime
+    - admin_ui: {}
+      name: since_at
+      type: datetime
+    - admin_ui: {}
+      name: last_checked_at
+      type: datetime
+    - admin_ui: {}
+      name: last_error
+      type: string
+    server: full
+    title: Insider Alert Watchlist
+  notification_deliveries:
+    client: none
+    columns:
+    - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      name: channel
+      type: string
+    - admin_ui: {}
+      name: scheduled_date
+      type: date
+    - admin_ui: {}
+      name: created_at
+      type: datetime
+    - admin_ui: {}
+      name: status
+      type: string
+    - admin_ui: {}
+      name: attempts
+      type: number
+    - admin_ui: {}
+      name: next_attempt_at
+      type: datetime
+    - admin_ui: {}
+      name: claimed_at
+      type: datetime
+    - admin_ui: {}
+      name: attempt_id
+      type: string
+    - admin_ui: {}
+      name: last_error
+      type: string
+    - admin_ui: {}
+      name: provider_id
+      type: string
+    server: full
+    title: Notification Deliveries
+  notification_messages:
+    client: none
+    columns:
+    - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      client_hidden: true
+      name: watch
+      target: insider_watches
+      type: link_single
+    - admin_ui: {}
+      client_hidden: true
+      name: event_id
+      type: string
+    - admin_ui: {}
+      name: symbol
+      type: string
+    - admin_ui: {}
+      name: action
+      type: string
+    - admin_ui: {}
+      name: title
+      type: string
+    - admin_ui: {}
+      name: body
+      type: string
+    - admin_ui: {}
+      name: transaction_date
+      type: date
+    - admin_ui: {}
+      name: filed_at
+      type: datetime
+    - admin_ui: {}
+      name: created_at
+      type: datetime
+    - admin_ui: {}
+      name: shares
+      type: number
+    - admin_ui: {}
+      name: price
+      type: number
+    - admin_ui: {}
+      name: value
+      type: number
+    - admin_ui: {}
+      name: filing_url
+      type: string
+    - admin_ui: {}
+      name: read_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: delivery
+      target: notification_deliveries
+      type: link_single
+    - admin_ui: {}
+      name: delivered_at
+      type: datetime
+    server: full
+    title: Notification Inbox
+  notification_settings:
+    client: none
+    columns:
+    - admin_ui: {}
+      name: delivery_since_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      name: enabled
+      type: bool
+    - admin_ui: {}
+      name: channel
+      type: string
+    - admin_ui: {}
+      name: delivery_time
+      type: string
+    - admin_ui: {}
+      name: timezone
+      type: string
+    - admin_ui: {}
+      name: phone
+      type: string
+    - admin_ui: {}
+      name: sms_consent_at
+      type: datetime
+    - admin_ui: {}
+      name: created_at
+      type: datetime
+    - admin_ui: {}
+      name: updated_at
+      type: datetime
+    - admin_ui: {}
+      name: last_scheduled_date
+      type: date
+    - admin_ui: {}
+      name: delivery_status
+      type: string
+    - admin_ui: {}
+      name: delivery_error
+      type: string
+    server: full
+    title: Notification Preferences
   performance_shares:
     client: none
     columns:
@@ -289,6 +472,9 @@ runtime_options:
   server_spec: {base: python310-minimal}
   version: 3
 scheduled_tasks:
+- job_id: folio-insider-notifications
+  task_name: process_insider_notifications
+  time_spec: {every: minute, n: 5}
 - job_id: portfoliora-13f-check
   task_name: check_hedge_fund_filings
   time_spec:
@@ -320,4 +506,7 @@ services:
 - client_config: {}
   server_config: {}
   source: /runtime/services/anvil/secrets.yml
+- client_config: {}
+  server_config: {}
+  source: /runtime/services/anvil/email.yml
 startup_form: Router

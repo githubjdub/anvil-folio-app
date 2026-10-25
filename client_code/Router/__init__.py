@@ -43,6 +43,8 @@ class Router(RouterTemplate):
         return "shared", route["share"]
       if route.get("page") in ("subscribe", "subscription", "profile", "disclosures"):
         return route["page"], None
+      if route.get("page") == "notifications":
+        return "notifications", None
       if route.get("page") == "portfolio":
         return "dashboard", route.get("portfolio")
     return ("profile", None) if anvil.users.get_user() is not None else ("dashboard", None)
@@ -128,3 +130,5 @@ class Router(RouterTemplate):
           open_form(editor)
           record_page("dashboard")
         self._discarded_editor = None
+        if page == "notifications":
+          editor.open_notifications()

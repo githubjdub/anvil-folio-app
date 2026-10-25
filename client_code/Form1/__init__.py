@@ -142,7 +142,8 @@ class Form1(Form1Template):
       )
     name = {"overview": "Overview", "allocation": "Portfolio structure",
             "performance": "Performance", "dividends": "Dividends", "passive": "Passive Income",
-            "tax": "Tax Harvester", "simulations": "Simulations", "retirement": "Retirement"}[self._readout_page]
+            "tax": "Tax Harvester", "simulations": "Simulations", "retirement": "Retirement",
+            "notifications": "Notifications"}[self._readout_page]
     if self._readout_page == "simulations":
       self.readout_tab_context.text = "Simulations · Compare reinvestment, cash and a fixed-rate account"
     elif self._readout_page in ("dividends", "passive", "tax"):
@@ -151,6 +152,8 @@ class Form1(Form1Template):
         "passive": "Passive Income · Projected payouts and income trends",
         "tax": "Tax Harvester · Capital gains by holding period and largest losses",
       }[self._readout_page]
+    elif self._readout_page == "notifications":
+      self.readout_tab_context.text = "Notifications · Insider activity, your inbox, and delivery preferences"
     elif self._readout_page == "retirement":
       self.readout_tab_context.text = "Retirement · Explore future savings and spending"
     elif self._analysis_source is not None:
@@ -163,7 +166,7 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    portfolio_page = self._readout_page not in ("retirement", "simulations", "dividends", "passive", "tax")
+    portfolio_page = self._readout_page not in ("retirement", "simulations", "dividends", "passive", "tax", "notifications")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
     self.hedge_fund_panel.visible = self._readout_page == "performance"
@@ -173,6 +176,7 @@ class Form1(Form1Template):
       ("performance", self.performance_panel, self.performance_tab_button),
       ("retirement", self.retirement_panel, self.retirement_tab_button),
       ("simulations", self.simulations_panel, self.simulations_tab_button),
+      ("notifications", self.notifications_panel, self.notifications_tab_button),
     ):
       active = name == self._readout_page
       panel.visible = active
@@ -190,7 +194,9 @@ class Form1(Form1Template):
     if redraw:
       self._render_active_readout()
       self._resize_readout_charts()
-      if self._readout_page == "simulations":
+      if self._readout_page == "notifications":
+        self.notifications_form.ensure_loaded()
+      elif self._readout_page == "simulations":
         self.simulations_form.redraw()
       elif self._readout_page == "performance":
         self.hedge_fund_comparison.redraw()
@@ -271,7 +277,7 @@ class Form1(Form1Template):
 
   def _select_readout_page(self, page):
     if (self._busy or page == self._readout_page or
-        page not in ("overview", "allocation", "performance", "simulations", "retirement", "dividends", "passive", "tax")):
+        page not in ("overview", "allocation", "performance", "simulations", "retirement", "dividends", "passive", "tax", "notifications")):
       return
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
@@ -398,6 +404,19 @@ class Form1(Form1Template):
   @handle("tax_tab_button", "click")
   def tax_tab_click(self, **event_args):
     self._select_readout_page("tax")
+
+  @handle("notifications_tab_button", "click")
+  def notifications_tab_click(self, **event_args):
+    self.open_notifications()
+
+  def open_notifications(self):
+    self._select_readout_page("notifications")
+    if self._readout_page == "notifications":
+      self.notifications_form.ensure_loaded()
+
+  @handle("notifications_form", "x-notifications-busy")
+  def notifications_busy_change(self, busy, **event_args):
+    self._set_busy(busy)
 
   @handle("income_form", "x-income-busy")
   def income_busy_change(self, busy, **event_args):
@@ -763,7 +782,7 @@ class Form1(Form1Template):
       self.overview_tab_button, self.allocation_tab_button,
       self.performance_tab_button, self.retirement_tab_button,
       self.simulations_tab_button, self.dividends_tab_button, self.passive_tab_button,
-      self.tax_tab_button, self.toggle_transactions_button,
+      self.tax_tab_button, self.notifications_tab_button, self.toggle_transactions_button,
       self.creator_tab_button, self.creator_setup_button,
       self.toggle_image_import_button, self.holdings_image_loader,
       self.clear_image_import_button, self.image_import_date_picker,
@@ -789,6 +808,7 @@ class Form1(Form1Template):
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.simulations_form.raise_event("x-set-editable", editable=not self._busy)
     self.income_form.raise_event("x-set-editable", editable=not self._busy)
+    self.notifications_form.set_editable(editable=not self._busy)
     self.retirement_form.raise_event("x-set-editable", editable=not self._busy)
     self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
     self.hedge_fund_comparison.raise_event("x-set-editable", editable=not self._busy)
@@ -800,6 +820,8 @@ class Form1(Form1Template):
     self._update_controls()
     if not busy and self._readout_page in ("dividends", "passive", "tax"):
       self.income_form.ensure_loaded()
+    elif not busy and self._readout_page == "notifications":
+      self.notifications_form.ensure_loaded()
 
   def _refresh_portfolios(self):
     portfolios = anvil.server.call("list_portfolios") if self._user is not None else []
@@ -818,6 +840,7 @@ class Form1(Form1Template):
   def _refresh_account(self):
     self._user = anvil.users.get_user()
     self.account_id = self._user.get_id() if self._user is not None else None
+    self.notifications_form.set_account_context(self.account_id)
     self._username = ""
     if self._user is not None:
       # A saved profile can be newer than the Users row cached in this browser.

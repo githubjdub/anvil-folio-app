@@ -1,0 +1,6 @@
+<article class="notification-watch-row income-security-row">
+  <div class="income-row-heading"><anvil-component type="Label" name="symbol_label" bind:text="self.item['symbol']" prop:role="security-value"></anvil-component><anvil-component type="Label" name="state_label" bind:text="'Watching' if self.item['active'] else 'Paused'" prop:role="portfolio-help"></anvil-component></div>
+  <anvil-component type="DropDown" name="activity_dropdown" bind:selected_value="self.item['activity']" prop:role="portfolio-select"></anvil-component>
+  <anvil-component type="Label" name="checked_label" bind:text="self.check_status()" prop:role="portfolio-help"></anvil-component>
+  <div class="notification-row-actions"><anvil-component type="m3._Components.Button" name="pause_button" bind:text="'Pause' if self.item['active'] else 'Resume'" prop:appearance="text"></anvil-component><anvil-component type="m3._Components.Button" name="remove_button" prop:text="Remove" prop:appearance="text"></anvil-component></div>
+</article>
