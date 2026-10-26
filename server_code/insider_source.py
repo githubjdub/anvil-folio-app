@@ -13,12 +13,14 @@ https://www.sec.gov/files/form4.pdf (General Instruction 8)
 from collections import OrderedDict
 from datetime import date, datetime, timedelta, timezone
 import hashlib
+import html
 import json
 import math
 import re
 import threading
 import time
 from xml.etree import ElementTree as ET
+from zoneinfo import ZoneInfo
 
 from . import hedge_fund_data
 
@@ -32,8 +34,10 @@ _CACHE_LOCK = threading.RLock()
 _CACHE_MAX = 256
 _CACHE_BYTES_MAX = 16 * 1024 * 1024
 _MAX_FILINGS = 40
+_MAX_FILINGS_PER_DAY = 160
 _MAX_ARCHIVES = 2
 _MAX_LOOKBACK_DAYS = 366
+_EDGAR_TIMEZONE = ZoneInfo("America/New_York")
 
 
 def _utc(value):
@@ -120,14 +124,41 @@ def _records(document):
             raise InsiderSourceError("A Form 4 did not reference a supported XML document.")
         try:
             filed_at = datetime.fromisoformat(rows["acceptanceDateTime"][index].replace("Z", "+00:00"))
-            date.fromisoformat(rows["filingDate"][index])
+            filing_date = date.fromisoformat(rows["filingDate"][index])
         except (TypeError, ValueError, AttributeError) as error:
             raise InsiderSourceError("SEC returned an invalid filing date.") from error
         if filed_at.tzinfo is None:
             raise InsiderSourceError("SEC returned a filing timestamp without a timezone.")
         result.append({"form": form, "accession": accession, "filed_at": _utc(filed_at),
+                       "filing_date": filing_date,
                        "primary": primary.rsplit("/", 1)[-1]})
     return result
+
+
+def _accepted_at(record, issuer):
+    # The submissions API's acceptanceDateTime has historically mixed local
+    # and UTC values despite its Z suffix. The immutable filing's SEC header
+    # records its actual acceptance clock in Eastern time. Do not apply a
+    # fixed UTC offset: EDGAR operates across daylight-saving transitions.
+    accession = record["accession"]
+    url = "https://www.sec.gov/Archives/edgar/data/%s/%s/%s-index-headers.html" % (
+        issuer["cik"], accession.replace("-", ""), accession)
+    body, _ = _read(url, 86400)
+    try:
+        content = html.unescape(body.decode("utf-8-sig") if isinstance(body, bytes) else body)
+    except UnicodeDecodeError as error:
+        raise InsiderSourceError("A Form 4 filing header was not readable.") from error
+    stamp = re.search(r"<ACCEPTANCE-DATETIME>\s*(\d{14})(?!\d)", content)
+    number = re.search(r"ACCESSION NUMBER:\s*(\d{10}-\d{2}-\d{6})", content)
+    if stamp is None or number is None or number.group(1) != accession:
+        raise InsiderSourceError("A Form 4 filing header did not identify its acceptance time.")
+    try:
+        accepted = datetime.strptime(stamp.group(1), "%Y%m%d%H%M%S").replace(tzinfo=_EDGAR_TIMEZONE)
+    except ValueError as error:
+        raise InsiderSourceError("A Form 4 filing header has an invalid acceptance time.") from error
+    if accepted.date() > record["filing_date"]:
+        raise InsiderSourceError("A Form 4 acceptance time disagrees with its filing date.")
+    return _utc(accepted)
 
 
 def _local(tag):
@@ -228,8 +259,10 @@ def fetch_insider_transactions(symbol, since_datetime):
     """Return new P/S disclosures and a safe inclusive polling cursor.
 
     The caller must deduplicate by event id, persist checked_at, and overlap
-    polls to account for SEC dissemination delays. Up to 40 filings are read
-    per call; checked_at stops at the batch boundary while a backlog remains.
+    polls to account for SEC dissemination delays. Batches close complete
+    Eastern filing days, targeting 40 filings (up to 160 for one dense day),
+    so identical timestamps cannot skip filings or trap a cursor in a loop.
+    checked_at stops at the last complete day while a backlog remains.
     When has_more is true, continue from next_since without applying overlap
     until the backlog is exhausted, then resume ordinary overlapping polls.
     Amendments are counted in amendments_skipped, never emitted as new trades.
@@ -250,6 +283,7 @@ def fetch_insider_transactions(symbol, since_datetime):
     if not isinstance(files, list):
         raise InsiderSourceError("SEC returned invalid filing archive metadata.")
     needed = []
+    first_day = since.astimezone(_EDGAR_TIMEZONE).date()
     for archive in files:
         if not isinstance(archive, dict):
             raise InsiderSourceError("SEC returned invalid filing archive metadata.")
@@ -257,7 +291,7 @@ def fetch_insider_transactions(symbol, since_datetime):
             end = date.fromisoformat(archive.get("filingTo", ""))
         except (TypeError, ValueError) as error:
             raise InsiderSourceError("SEC returned an invalid filing archive date.") from error
-        if end >= since.date():
+        if end >= first_day:
             name = archive.get("name")
             if not isinstance(name, str) or not re.fullmatch(r"CIK\d{10}-submissions-\d+\.json", name):
                 raise InsiderSourceError("SEC returned an invalid filing archive name.")
@@ -267,22 +301,29 @@ def fetch_insider_transactions(symbol, since_datetime):
     for name in needed:
         archive, _ = _json("https://data.sec.gov/submissions/" + name, 3600)
         records.extend(_records(archive))
-    records = {row["accession"]: row for row in records if since <= row["filed_at"] <= checked_at}
-    ordered = sorted(records.values(), key=lambda row: (row["filed_at"], row["accession"]))
-    selected = ordered[:_MAX_FILINGS]
-    if len(ordered) > _MAX_FILINGS:
-        boundary = selected[-1]["filed_at"]
-        # Include all filings at a boundary timestamp or refuse the incomplete
-        # batch. A timestamp-only cursor must never silently skip a sibling.
-        same_time = [row for row in ordered[_MAX_FILINGS:] if row["filed_at"] == boundary]
-        if same_time:
-            selected = [row for row in selected if row["filed_at"] < boundary]
-            if not selected:
-                raise InsiderSourceError("SEC has too many filings at the same timestamp for this alert batch.")
-        checked_at = selected[-1]["filed_at"]
+    last_day = checked_at.astimezone(_EDGAR_TIMEZONE).date()
+    records = {row["accession"]: row for row in records if first_day <= row["filing_date"] <= last_day}
+    days = {}
+    for record in records.values():
+        days.setdefault(record["filing_date"], []).append(record)
+    selected = []
+    for filing_day in sorted(days):
+        group = sorted(days[filing_day], key=lambda row: row["accession"])
+        if selected and len(selected) + len(group) > _MAX_FILINGS:
+            break
+        if len(group) > _MAX_FILINGS_PER_DAY:
+            raise InsiderSourceError("This issuer has over 160 ownership filings in one day; alert processing needs review.")
+        selected.extend(group)
+    has_more = len(selected) < len(records)
+    if has_more:
+        next_day = selected[-1]["filing_date"] + timedelta(days=1)
+        checked_at = _utc(datetime.combine(next_day, datetime.min.time(), _EDGAR_TIMEZONE)) - timedelta(microseconds=1)
     events = []
     amendments = 0
     for record in selected:
+        record["filed_at"] = _accepted_at(record, issuer)
+        if not since <= record["filed_at"] <= checked_at:
+            continue
         if record["form"] == "4/A":
             amendments += 1
             continue
@@ -290,8 +331,8 @@ def fetch_insider_transactions(symbol, since_datetime):
             issuer["cik"], record["accession"].replace("-", ""), record["primary"])
         body, _ = _read(url, 86400)
         events.extend(_parse_filing(body, record, issuer))
-    has_more = len(selected) < len(ordered)
     checked_at = max(since, checked_at)
-    return {"events": events, "checked_at": checked_at, "amendments_skipped": amendments,
+    return {"events": sorted(events, key=lambda event: (event["filed_at"], event["id"])),
+            "checked_at": checked_at, "amendments_skipped": amendments,
             "has_more": has_more,
             "next_since": checked_at + timedelta(microseconds=1) if has_more else None}

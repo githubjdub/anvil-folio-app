@@ -1,5 +1,5 @@
 <article class="notification-message-row income-security-row">
-  <div class="income-row-heading"><anvil-component type="Label" name="activity_label" bind:text="self.activity_label()" prop:role="security-value"></anvil-component><anvil-component type="Label" name="read_state_label" bind:text="'Unread' if not self.item['read_at'] else 'Read'" prop:role="portfolio-help"></anvil-component></div>
+  <div class="income-row-heading"><anvil-component type="Label" name="activity_label" bind:text="self.activity_summary()" prop:role="security-value"></anvil-component><anvil-component type="Label" name="read_state_label" bind:text="'Unread' if not self.item['read_at'] else 'Read'" prop:role="portfolio-help"></anvil-component></div>
   <anvil-component type="Label" name="title_label" bind:text="self.item['title']" prop:role="notification-message-title"></anvil-component>
   <anvil-component type="Label" name="body_label" bind:text="self.item['body']" prop:role="portfolio-help"></anvil-component>
   <anvil-component type="Label" name="trade_label" bind:text="self.trade_details()" prop:role="portfolio-help"></anvil-component>

@@ -22,6 +22,7 @@ class Notifications(NotificationsTemplate):
   def reset_workspace(self):
     self._generation += 1
     self._loaded = False
+    self._auto_load_attempted = False
     self._preferences_dirty = False
     self._settings = None
     self._capabilities = {}
@@ -54,7 +55,7 @@ class Notifications(NotificationsTemplate):
     self._update_controls()
 
   def ensure_loaded(self):
-    if self._account_id and not self._loaded and self._can_act():
+    if not self._loaded and not self._auto_load_attempted and self._can_act():
       self.refresh_click()
 
   def _can_act(self):
@@ -140,6 +141,9 @@ class Notifications(NotificationsTemplate):
     if not self._can_act():
       return
     generation = self._generation
+    # Releasing the parent busy state calls ensure_loaded() again. An initial
+    # load failure must reach Anvil's error handler, without starting a retry loop.
+    self._auto_load_attempted = True
     self._set_busy(True)
     self._set_status("Loading your notifications…")
     try:
@@ -209,11 +213,16 @@ class Notifications(NotificationsTemplate):
   @handle("channel_dropdown", "change")
   @handle("delivery_time_box", "change")
   @handle("timezone_box", "change")
-  @handle("phone_box", "change")
   @handle("consent_checkbox", "change")
   def preference_change(self, **event_args):
     self._preferences_dirty = True
     self._update_controls()
+
+  @handle("phone_box", "change")
+  def phone_change(self, **event_args):
+    # Consent saved for one number does not automatically apply to a new one.
+    self.consent_checkbox.checked = False
+    self.preference_change()
 
   def watch_update(self, watch, activity, active, **event_args):
     self._run_change("update_insider_watch", (watch.get_id(), activity, active))

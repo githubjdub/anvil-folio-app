@@ -6,7 +6,7 @@ custom_component: true
     <div><div class="detail-heading"><h3>Notifications</h3><span>Insider activity</span></div><anvil-component type="Label" name="unread_label" prop:role="portfolio-help"></anvil-component></div>
     <anvil-component type="m3._Components.Button" name="refresh_button" prop:text="Refresh inbox" prop:appearance="outlined" prop:icon="mi:refresh" prop:role="chart-tool"></anvil-component>
   </div>
-  <p class="fine-print">Follow reported insider buying and selling for securities you choose. Filings can arrive after the trade date; alerts reflect newly detected filings.</p>
+  <p class="fine-print">Follow insider purchases and sales reported on U.S. SEC Form 4 for the issuer behind each symbol. Reports can include other share classes. Filings can arrive after the trade date; alerts reflect newly detected filings.</p>
   <div anvil:name="status_region" class="simulation-status" role="status" aria-live="polite"><anvil-component type="Label" name="status_label" prop:role="portfolio-help"></anvil-component></div>
   <section anvil:name="sign_in_region" class="income-notice"><h4>Your personal notification center</h4><p>Sign in using the account button above to save your watchlist, choose a delivery time and read insider alerts.</p></section>
   <div anvil:name="workspace_region" class="notifications-layout">
@@ -30,7 +30,7 @@ custom_component: true
         </div>
         <div anvil:name="sms_region">
           <div class="notification-field"><label>Mobile number · international format</label><anvil-component type="TextBox" name="phone_box" prop:placeholder="+14155552671" prop:role="portfolio-input"></anvil-component></div>
-          <anvil-component type="CheckBox" name="consent_checkbox" prop:text="I agree to receive automated insider-activity text messages from Folio at this number. Message and data rates may apply. Reply STOP to opt out."></anvil-component>
+          <anvil-component type="CheckBox" name="consent_checkbox" prop:text="This is my mobile number, and I agree to receive automated insider-activity text messages from Folio at this number. Message and data rates may apply. Reply STOP to opt out."></anvil-component>
           <p class="fine-print">You can also stop texts by choosing another channel and saving your preferences.</p>
         </div>
         <anvil-component type="m3._Components.Button" name="save_preferences_button" prop:text="Save preferences" prop:appearance="filled"></anvil-component>
@@ -41,7 +41,7 @@ custom_component: true
         <div class="notification-field"><label>Security symbol</label><anvil-component type="TextBox" name="symbol_box" prop:placeholder="e.g. AAPL" prop:role="portfolio-input"></anvil-component></div>
         <div class="notification-field"><label>Notify me about</label><anvil-component type="DropDown" name="activity_dropdown" prop:role="portfolio-select"></anvil-component></div>
         <anvil-component type="m3._Components.Button" name="add_watch_button" prop:text="Watch security" prop:icon="mi:add" prop:appearance="outlined"></anvil-component>
-        <p class="fine-print">New watches start with future filings. Purchase and sale reports are included; grants, gifts and option exercises are excluded.</p>
+        <p class="fine-print">New watches start with future filings. Coverage includes non-derivative purchases and sales on U.S. SEC Form 4. Amendments, grants, gifts and option exercises are excluded.</p>
         <anvil-component type="Label" name="watch_empty_label" prop:text="You are not watching any securities yet." prop:role="portfolio-help"></anvil-component>
         <anvil-component type="RepeatingPanel" name="watches_panel" prop:item_template="M3_App_1.Components.InsiderWatchRow"></anvil-component>
       </section>

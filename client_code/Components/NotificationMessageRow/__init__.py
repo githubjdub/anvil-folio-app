@@ -13,7 +13,7 @@ class NotificationMessageRow(NotificationMessageRowTemplate):
     self._editable = editable
     self.read_button.enabled = editable
 
-  def activity_label(self):
+  def activity_summary(self):
     return "%s · %s" % (self.item["symbol"], "Insider buying" if self.item["action"] == "buy" else "Insider selling")
 
   def trade_details(self):

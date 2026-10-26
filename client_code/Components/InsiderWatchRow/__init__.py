@@ -25,7 +25,10 @@ class InsiderWatchRow(InsiderWatchRowTemplate):
   @handle("activity_dropdown", "change")
   def activity_change(self, **event_args):
     if self._editable:
-      self.parent.raise_event("x-watch-update", watch=self.item, activity=self.activity_dropdown.selected_value, active=self.item["active"])
+      try:
+        self.parent.raise_event("x-watch-update", watch=self.item, activity=self.activity_dropdown.selected_value, active=self.item["active"])
+      finally:
+        self.refresh_data_bindings()
 
   @handle("pause_button", "click")
   def pause_click(self, **event_args):

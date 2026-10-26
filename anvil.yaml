@@ -98,6 +98,10 @@ db_schema:
     columns:
     - admin_ui: {}
       client_hidden: true
+      name: poll_next_since
+      type: datetime
+    - admin_ui: {}
+      client_hidden: true
       name: owner
       target: users
       type: link_single
