@@ -117,6 +117,7 @@ class Notifications(NotificationsTemplate):
     self.messages_panel.items = result["messages"]
     self.watch_empty_label.visible = not bool(result["watches"])
     self.inbox_empty_label.visible = not bool(result["messages"])
+    self.inbox_empty_region.visible = not bool(result["messages"])
     self.inbox_empty_label.text = "No messages on this page. Go back or refresh your inbox." if self._page else "No insider alerts yet. Add a security to start watching future filings. Existing trades are not backfilled."
     self.unread_label.text = "%s unread message%s" % (self._unread_count, "" if self._unread_count == 1 else "s")
     self.page_label.text = "Page %s · %s message%s" % (self._page + 1, len(result["messages"]), "" if len(result["messages"]) == 1 else "s")
@@ -136,6 +137,7 @@ class Notifications(NotificationsTemplate):
     if not self._settings["enabled"]:
       self.delivery_status_label.text = "Alerts are paused. Enable alerts and save preferences to resume watching."
     self._update_controls()
+    self.raise_event("x-notifications-unread", count=self._unread_count, account_id=self._account_id)
 
   def _load_page(self, page, cursor):
     if not self._can_act():

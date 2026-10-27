@@ -195,15 +195,21 @@
               <anvil-component type="m3._Components.Button" name="tax_tab_button" prop:text="Tax Harvester" prop:appearance="text" prop:role="readout-tab"></anvil-component>
             </div>
           </div>
-          <div class="readout-nav-group" role="group" aria-label="Planning and alerts">
-            <span class="readout-group-label">Planning &amp; alerts</span>
-            <div class="readout-group-buttons">
+          <div class="readout-nav-group" role="group" aria-label="Planning">
+            <span class="readout-group-label">Planning</span>
+            <div class="readout-group-buttons readout-planning-buttons">
               <div class="readout-tab-with-badge">
                 <anvil-component type="m3._Components.Button" name="simulations_tab_button" prop:text="Simulations" prop:appearance="text" prop:role="readout-tab"></anvil-component>
                 <span class="feature-beta-badge" title="Work in progress">Beta</span>
               </div>
               <anvil-component type="m3._Components.Button" name="retirement_tab_button" prop:text="Retirement" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="notifications_tab_button" prop:text="Notifications" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+            </div>
+          </div>
+          <div class="readout-nav-group readout-notifications-group">
+            <div class="notification-tab-wrap">
+              <anvil-component type="m3._Components.Button" name="notifications_tab_button" prop:text="Notifications" prop:icon="mi:mail" prop:align="full" prop:appearance="text" prop:role="readout-tab" prop:tooltip="Your insider activity inbox"></anvil-component>
+              <span anvil:name="notification_badge" class="notification-tab-badge" aria-hidden="true"><anvil-component type="Label" name="notification_badge_label" prop:role="notification-tab-count" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></span>
+              <span class="notification-tab-announcement" role="status" aria-live="polite" aria-atomic="true"><anvil-component type="Label" name="notification_badge_accessible_label" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></span>
             </div>
           </div>
         </nav>
@@ -371,4 +377,5 @@
   <footer class="portfolio-footer"><span>Folio</span><span>Built for clearer decisions.</span><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods</a></footer>
   <p class="site-analytics-notice">Basic visit counts and approximate country statistics help us understand site usage. Browser privacy signals are respected.</p>
   <anvil-component type="Timer" name="market_status_timer" prop:interval="1"></anvil-component>
+  <anvil-component type="Timer" name="notification_badge_timer" prop:interval="60"></anvil-component>
 </section>

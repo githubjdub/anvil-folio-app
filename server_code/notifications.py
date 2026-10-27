@@ -52,6 +52,12 @@ def _settings(user, now):
 
 
 @anvil.server.callable(require_user=True)
+def get_notification_unread_count():
+    """Small owner-scoped response for the navigation badge on any tab."""
+    return len(app_tables.notification_messages.search(owner=_user(), read_at=None))
+
+
+@anvil.server.callable(require_user=True)
 def get_notification_workspace(before=None):
     user = _user()
     settings = _settings(user, _now())

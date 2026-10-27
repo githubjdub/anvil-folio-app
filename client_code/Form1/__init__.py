@@ -35,6 +35,9 @@ class Form1(Form1Template):
     self._user = None
     self._username = ""
     self.account_id = None
+    self._notification_badge_loading = False
+    self._notification_badge_revision = 0
+    self._set_notification_unread_count(0)
     self._restore_on_resume = False
     self.membership_region.visible = False
     self._creator_enabled = False
@@ -417,6 +420,39 @@ class Form1(Form1Template):
   @handle("notifications_form", "x-notifications-busy")
   def notifications_busy_change(self, busy, **event_args):
     self._set_busy(busy)
+
+  def _set_notification_unread_count(self, count):
+    self._notification_badge_revision += 1
+    count = max(0, int(count or 0)) if self.account_id else 0
+    self.notification_badge.visible = count > 0
+    self.notification_badge_label.text = "99+" if count > 99 else str(count)
+    description = "%s unread notification%s" % (count, "" if count == 1 else "s")
+    self.notification_badge_accessible_label.text = description if self.account_id else ""
+    self.notifications_tab_button.tooltip = description if self.account_id else "Sign in to view your notifications"
+
+  @handle("notifications_form", "x-notifications-unread")
+  def notifications_unread_change(self, count, account_id, **event_args):
+    if account_id == self.account_id:
+      self._set_notification_unread_count(count)
+
+  def _refresh_notification_unread_count(self):
+    if not self.account_id or self._notification_badge_loading:
+      return
+    account_id = self.account_id
+    revision = self._notification_badge_revision
+    self._notification_badge_loading = True
+    try:
+      count = anvil.server.call_s("get_notification_unread_count")
+      # A newer inbox response or account change takes precedence over a poll.
+      if account_id == self.account_id and revision == self._notification_badge_revision:
+        self._set_notification_unread_count(count)
+    finally:
+      self._notification_badge_loading = False
+
+  @handle("notification_badge_timer", "tick")
+  def notification_badge_timer_tick(self, **event_args):
+    if not self._initializing and not self._busy:
+      self._refresh_notification_unread_count()
 
   @handle("income_form", "x-income-busy")
   def income_busy_change(self, busy, **event_args):
@@ -838,8 +874,11 @@ class Form1(Form1Template):
     self._update_controls()
 
   def _refresh_account(self):
+    previous_account_id = self.account_id
     self._user = anvil.users.get_user()
     self.account_id = self._user.get_id() if self._user is not None else None
+    if self.account_id != previous_account_id:
+      self._set_notification_unread_count(0)
     self.notifications_form.set_account_context(self.account_id)
     self._username = ""
     if self._user is not None:
@@ -871,6 +910,8 @@ class Form1(Form1Template):
     self._set_creator_open(False)
     self._apply_readout_page()
     self._refresh_portfolios()
+
+    self._refresh_notification_unread_count()
 
   def resume_account(self):
     self.apply_appearance()
