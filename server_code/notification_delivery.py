@@ -119,6 +119,9 @@ def _due_date(settings, now):
 
 @in_transaction
 def _stage_digest(user, now):
+    user = app_tables.users.get_by_id(user.get_id())
+    if user is None:
+        return None
     settings = app_tables.notification_settings.get(owner=user)
     if not user["enabled"] or settings is None or not settings["enabled"] or settings["channel"] == "in_app":
         return None
@@ -133,6 +136,9 @@ def _stage_digest(user, now):
         order_by("created_at"), owner=user, delivery=None,
         created_at=q.greater_than_or_equal_to(settings["delivery_since_at"] or settings["created_at"]))[:500])
     if not messages:
+        # Consume today's scheduled window even when there is no digest. New
+        # filings later today belong in tomorrow's digest at the chosen time.
+        settings["last_scheduled_date"] = day
         return None
     delivery = app_tables.notification_deliveries.add_row(
         owner=user, channel=channel, scheduled_date=day, created_at=now,
@@ -145,8 +151,14 @@ def _stage_digest(user, now):
 
 @in_transaction
 def _claim_delivery(delivery, now):
-    user = delivery["owner"]
-    settings = app_tables.notification_settings.get(owner=user)
+    # Scheduled runs may hold separate cached Row instances of this delivery.
+    # Re-read inside the transaction so only the first current claim can send.
+    delivery = app_tables.notification_deliveries.get_by_id(delivery.get_id())
+    if delivery is None:
+        return None
+    owner = delivery["owner"]
+    user = app_tables.users.get_by_id(owner.get_id()) if owner is not None else None
+    settings = app_tables.notification_settings.get(owner=user) if user is not None else None
     if delivery["status"] not in ("pending", "retry_pending"):
         if delivery["status"] == "sending" and _utc(delivery["claimed_at"]) < now - timedelta(minutes=20):
             delivery.update(status="unknown", last_error="Delivery was interrupted after sending began. This digest will not be resent automatically.")
@@ -156,7 +168,7 @@ def _claim_delivery(delivery, now):
         return None
     if delivery["next_attempt_at"] and _utc(delivery["next_attempt_at"]) > now:
         return None
-    if (not user["enabled"] or settings is None or not settings["enabled"]
+    if (user is None or not user["enabled"] or settings is None or not settings["enabled"]
             or settings["channel"] != delivery["channel"]
             or _utc(settings["updated_at"]) > _utc(delivery["created_at"])):
         delivery.update(status="cancelled", last_error="Preferences changed before this digest was sent.")
@@ -206,18 +218,22 @@ def _digest_text(messages, channel):
 
 @in_transaction
 def _finish_delivery(delivery, token, now, provider_id=None, failure=None):
+    delivery = app_tables.notification_deliveries.get_by_id(delivery.get_id())
+    if delivery is None:
+        return
     if delivery["attempt_id"] != token or delivery["status"] != "sending":
         return
     if failure is None:
         status, message = "accepted", "Accepted by the delivery provider; receipt is not confirmed."
-        delivery.update(status=status, provider_id=provider_id, last_error="", next_attempt_at=None)
+        delivery.update(status=status, provider_id=str(provider_id or "accepted"), last_error="")
+        delivery["next_attempt_at"] = None
         for row in app_tables.notification_messages.search(delivery=delivery, owner=delivery["owner"]):
             row["delivered_at"] = now
     else:
         status = "unknown" if failure.ambiguous else ("retry_pending" if failure.retryable and delivery["attempts"] < 3 else "failed")
         message = str(failure)[:300]
-        delivery.update(status=status, last_error=message,
-                        next_attempt_at=now + timedelta(minutes=5) if status == "retry_pending" else None)
+        delivery.update(status=status, last_error=message)
+        delivery["next_attempt_at"] = now + timedelta(minutes=5) if status == "retry_pending" else None
     settings = app_tables.notification_settings.get(owner=delivery["owner"])
     if settings is not None and settings["channel"] == delivery["channel"] and _utc(settings["updated_at"]) <= _utc(delivery["created_at"]):
         settings.update(delivery_status=status, delivery_error=message)

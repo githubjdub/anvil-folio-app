@@ -209,7 +209,14 @@ def _watch_snapshot(watch):
 
 @in_transaction
 def _record_poll(watch, snapshot, result, now, failure=None):
-    user = watch["owner"]
+    # Source requests can outlive a pause, removal or account change. Read the
+    # current rows inside the transaction rather than the pre-request cache.
+    watch = app_tables.insider_watches.get_by_id(watch.get_id())
+    if watch is None or watch["owner"] is None:
+        return 0
+    user = app_tables.users.get_by_id(watch["owner"].get_id())
+    if user is None:
+        return 0
     settings = app_tables.notification_settings.get(owner=user)
     if (not user["enabled"] or not watch["active"] or watch["deleted"]
             or settings is None or not settings["enabled"] or _watch_snapshot(watch) != snapshot):
@@ -237,8 +244,8 @@ def _record_poll(watch, snapshot, result, now, failure=None):
             created_at=now, shares=event["shares"], price=event["price"], value=event["value"],
             filing_url=event["filing_url"])
         count += 1
-    watch.update(last_checked_at=result["checked_at"], poll_next_since=result["next_since"] if result["has_more"] else None,
-                 last_error="")
+    watch.update(last_checked_at=result["checked_at"], last_error="")
+    watch["poll_next_since"] = result["next_since"] if result["has_more"] else None
     return count
 
 
