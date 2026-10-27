@@ -60,8 +60,7 @@ def get_notification_workspace(before=None):
         cursor = _owned(app_tables.notification_messages, before, user)
         if cursor is None:
             raise anvil.users.AuthenticationFailed("That inbox page is unavailable. Refresh your inbox.")
-        query.append(q.any_of(created_at=q.less_than(cursor["created_at"]),
-                             **{}) if False else q.any_of(
+        query.append(q.any_of(
             q.all_of(created_at=q.less_than(cursor["created_at"])),
             q.all_of(created_at=cursor["created_at"], event_id=q.less_than(cursor["event_id"]))))
     messages = list(app_tables.notification_messages.search(
@@ -81,12 +80,14 @@ def _add_watch(user, symbol, activity, now):
         return {"ok": False, "message": "%s is already on your watchlist." % symbol}
     if len(app_tables.insider_watches.search(owner=user, deleted=False)) >= _MAX_WATCHES:
         return {"ok": False, "message": "You can watch up to 25 securities. Remove one before adding another."}
-    values = dict(activity=activity, active=True, deleted=False, since_at=now,
-                  last_checked_at=None, poll_next_since=None, last_error="")
     if existing is not None:
-        existing.update(**values)
+        existing.update(activity=activity, active=True, deleted=False, since_at=now, last_error="")
+        existing["last_checked_at"] = None
+        existing["poll_next_since"] = None
     else:
-        app_tables.insider_watches.add_row(owner=user, symbol=symbol, created_at=now, **values)
+        app_tables.insider_watches.add_row(owner=user, symbol=symbol, created_at=now,
+                                         activity=activity, active=True, deleted=False,
+                                         since_at=now, last_error="")
     return {"ok": True, "message": "Watching future %s filings. Existing trades are not backfilled." % symbol}
 
 
@@ -111,10 +112,11 @@ def update_insider_watch(watch_id, activity, active):
     watch = _owned(app_tables.insider_watches, watch_id, user)
     if watch is None or watch["deleted"]:
         return {"ok": False, "message": "This watch is unavailable. Refresh the watchlist."}
-    values = dict(activity=activity, active=active)
     if (active and not watch["active"]) or activity != watch["activity"]:
-        values.update(since_at=_now(), last_checked_at=None, poll_next_since=None, last_error="")
-    watch.update(**values)
+        watch.update(since_at=_now(), last_error="")
+        watch["last_checked_at"] = None
+        watch["poll_next_since"] = None
+    watch.update(activity=activity, active=active)
     return {"ok": True, "message": "Watch updated. New matching filings will appear after scheduled checks." if active else "Watch paused."}
 
 
@@ -164,17 +166,19 @@ def _save_preferences(user, enabled, channel, delivery_time, timezone_name, phon
     changed_destination = channel != settings["channel"] or phone != settings["phone"]
     if resumed:
         for watch in app_tables.insider_watches.search(owner=user, deleted=False):
-            watch.update(since_at=now, last_checked_at=None, poll_next_since=None, last_error="")
+            watch.update(since_at=now, last_error="")
+            watch["last_checked_at"] = None
+            watch["poll_next_since"] = None
     consent_at = settings["sms_consent_at"]
     if not sms_consent or channel != "sms":
         consent_at = None
     elif phone != settings["phone"] or consent_at is None:
         consent_at = now
-    values = dict(enabled=enabled, channel=channel, delivery_time=delivery_time,
-                  timezone=timezone_name, phone=phone, sms_consent_at=consent_at, updated_at=now)
     if resumed or changed_destination:
-        values.update(delivery_since_at=now, delivery_status="", delivery_error="")
-    settings.update(**values)
+        settings.update(delivery_since_at=now, delivery_status="", delivery_error="")
+    settings.update(enabled=enabled, channel=channel, delivery_time=delivery_time,
+                    timezone=timezone_name, phone=phone, updated_at=now)
+    settings["sms_consent_at"] = consent_at
     return {"ok": True, "message": "Notification preferences saved." if enabled else "All insider alerts are paused."}
 
 

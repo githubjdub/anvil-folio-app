@@ -84,7 +84,9 @@ def _send_sms(destination, body):
         document = json.loads(raw) if len(raw) <= 65536 else None
     except (json.JSONDecodeError, UnicodeDecodeError):
         document = None
-    provider_id = document.get("sid") if isinstance(document, dict) else None
+    if not isinstance(document, dict):
+        raise DeliveryError("The text provider response was incomplete. This digest will not be resent automatically.", ambiguous=True)
+    provider_id = document.get("sid")
     if not isinstance(provider_id, str) or not re.fullmatch(r"(?:SM|MM)[0-9a-fA-F]{32}", provider_id):
         raise DeliveryError("The text provider response was incomplete. This digest will not be resent automatically.", ambiguous=True)
     if document.get("status") in ("failed", "undelivered", "canceled"):
@@ -148,7 +150,8 @@ def _claim_delivery(delivery, now):
     if delivery["status"] not in ("pending", "retry_pending"):
         if delivery["status"] == "sending" and _utc(delivery["claimed_at"]) < now - timedelta(minutes=20):
             delivery.update(status="unknown", last_error="Delivery was interrupted after sending began. This digest will not be resent automatically.")
-            if settings is not None:
+            if (settings is not None and settings["channel"] == delivery["channel"]
+                    and _utc(settings["updated_at"]) <= _utc(delivery["created_at"])):
                 settings.update(delivery_status="unknown", delivery_error=delivery["last_error"])
         return None
     if delivery["next_attempt_at"] and _utc(delivery["next_attempt_at"]) > now:
@@ -157,6 +160,10 @@ def _claim_delivery(delivery, now):
             or settings["channel"] != delivery["channel"]
             or _utc(settings["updated_at"]) > _utc(delivery["created_at"])):
         delivery.update(status="cancelled", last_error="Preferences changed before this digest was sent.")
+        if (settings is not None and settings["channel"] == delivery["channel"]
+                and settings["last_scheduled_date"] == delivery["scheduled_date"]
+                and settings["delivery_status"] in ("pending", "retry_pending")):
+            settings.update(delivery_status="cancelled", delivery_error=delivery["last_error"])
         return None
     if _utc(now).astimezone(ZoneInfo(settings["timezone"])).date() != delivery["scheduled_date"]:
         delivery.update(status="failed", last_error="The delivery window expired; the messages remain in your inbox.")
