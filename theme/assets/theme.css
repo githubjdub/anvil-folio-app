@@ -1686,3 +1686,134 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
   .notifications-header-actions .anvil-role-notification-inbox-summary { align-self: center; margin-right: auto; }
   .notification-empty-state { padding: 32px 16px; min-height: 210px; }
 }
+
+/* Compact, responsive analysis navigation and tax planning. */
+.readout-workspace { container: readout / inline-size; }
+.income-workspace { container: income / inline-size; }
+.portfolio-app .readout-navigation { padding: 12px; gap: 12px; background: var(--surface-soft); border-radius: 14px; }
+.readout-navigation .readout-group-label { margin-bottom: 7px; letter-spacing: .09em; }
+.readout-navigation button.anvil-role-readout-tab,
+.readout-navigation button.anvil-role-readout-tab-active { min-height: 44px; font-weight: 600; border-radius: 9px; transition: background-color .15s, border-color .15s; }
+.readout-navigation button.anvil-role-readout-tab-active { background: var(--mint); color: var(--mint-strong); border-color: color-mix(in srgb, var(--mint-strong) 30%, var(--line)); box-shadow: inset 0 -2px 0 var(--mint-strong); }
+@container readout (min-width: 680px) {
+  .portfolio-app .readout-navigation { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .readout-nav-group + .readout-nav-group { padding-top: 0; border-top: 0; }
+  .readout-notifications-group { grid-column: auto; }
+}
+.tax-workspace { min-width: 0; }
+.tax-workspace .tax-toolbar { margin: 12px 0 18px; gap: 12px; }
+.tax-toolbar .income-account-choice { min-width: 200px; }
+.tax-copy, .tax-assumption { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 8px 0 14px; }
+.tax-eyebrow, .tax-field-label { display: block; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.45; }
+.tax-eyebrow { letter-spacing: .07em; text-transform: uppercase; }
+.tax-overview-grid, .tax-rankings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.tax-overview-card { padding: 16px 18px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-soft); min-width: 0; }
+.anvil-role-tax-overview-number { font-size: clamp(22px, 4cqi, 30px); font-weight: 750; letter-spacing: -.03em; color: var(--ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; margin: 5px 0 10px; }
+.tax-overview-terms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
+.tax-overview-terms span, .tax-position-facts span { color: var(--muted); font-size: 11px; }
+.tax-rankings { margin-top: 22px; align-items: start; }
+.tax-ranking-card { min-width: 0; border: 1px solid var(--line); border-radius: 13px; padding: 14px 16px 3px; background: var(--paper); }
+.tax-ranking-card > header { display: flex; gap: 8px; align-items: center; margin: 0 0 6px; }
+.tax-ranking-card h4 { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: -.015em; line-height: 1.4; }
+.tax-ranking-marker { flex: 0 0 24px; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 7px; font-weight: 700; }
+.tax-marker-loss { color: var(--negative); background: color-mix(in srgb, var(--negative) 9%, var(--paper)); }
+.tax-marker-gain { color: var(--mint-strong); background: var(--mint); }
+.tax-position-row { padding: 12px 0 9px; border-top: 1px solid var(--line); margin: 9px 0 0; min-width: 0; }
+.tax-position-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.tax-position-value { text-align: right; max-width: 100%; overflow-wrap: anywhere; }
+.tax-position-value .anvil-role-security-value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 0; }
+.tax-position-actions { display: flex; gap: 8px; align-items: start; justify-content: space-between; margin-top: 4px; }
+.tax-position-details { flex: 1; min-width: 0; padding-top: 7px; }
+.tax-position-details summary { font-size: 11px; color: var(--muted); cursor: pointer; line-height: 1.6; }
+.tax-position-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+.tax-ranking-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 11px; margin: 8px 0 22px; }
+.anvil-role-tax-symbol { margin: 0; font-size: 14px; font-weight: 750; color: var(--ink); letter-spacing: .01em; }
+.anvil-role-tax-caption { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.anvil-role-tax-symbol > span, .anvil-role-tax-caption > span, .anvil-role-tax-number > span,
+.tax-position-row .anvil-role-security-value > span, .anvil-role-tax-overview-number > span { padding-top: 1px; padding-bottom: 1px; }
+.anvil-role-tax-number { margin: 2px 0; font-size: 19px; font-weight: 700; color: var(--ink); letter-spacing: -.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.anvil-role-tax-number.anvil-role-tax-value-positive { color: var(--mint-strong); }
+.anvil-role-tax-number.anvil-role-tax-value-negative { color: var(--negative); }
+.anvil-role-tax-empty { padding: 16px 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.anvil-role-tax-quiet-button { margin: 0; }
+.anvil-role-tax-quiet-button > button { min-height: 36px; border: 1px solid transparent; background: transparent; color: var(--mint-strong); padding: 6px 9px; font-size: 12px; font-weight: 600; border-radius: 8px; text-transform: none; letter-spacing: 0; box-shadow: none; }
+.anvil-role-tax-quiet-button > button:hover:not(:disabled) { background: var(--mint); border-color: var(--line); }
+.anvil-role-tax-primary-button { margin: 0; }
+.anvil-role-tax-primary-button > button { min-height: 42px; background: var(--mint-strong); color: var(--paper); border: 1px solid var(--mint-strong); border-radius: 9px; padding: 10px 18px; font-size: 13px; font-weight: 700; text-transform: none; letter-spacing: 0; box-shadow: none; }
+.anvil-role-tax-primary-button > button:hover:not(:disabled) { filter: brightness(.93); }
+.anvil-role-tax-quiet-button > button:disabled, .anvil-role-tax-primary-button > button:disabled { opacity: .45; cursor: default; }
+.anvil-role-tax-quiet-button > button:focus-visible, .anvil-role-tax-primary-button > button:focus-visible,
+.tax-workspace summary:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: 3px; }
+.tax-sale-planner { min-width: 0; border: 1px solid var(--line); border-top: 3px solid var(--mint-strong); border-radius: 14px; background: var(--paper); padding: 20px; scroll-margin-top: 24px; }
+.tax-section-heading { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.tax-section-heading h4 { margin: 3px 0 0; font-size: 21px; letter-spacing: -.03em; color: var(--ink); }
+.tax-sandbox-badge { flex: 0 0 auto; font-size: 11px; font-weight: 650; padding: 5px 9px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface-soft); color: var(--muted); }
+.tax-sale-entry { margin-top: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft); }
+.tax-sale-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 10px; }
+.tax-field-group { min-width: 0; }
+.tax-field-group .tax-field-label { margin-bottom: 5px; }
+input.anvil-role-tax-field, .anvil-role-tax-select select { width: 100%; min-width: 0; min-height: 42px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); padding: 9px 10px; font-size: 13px; line-height: 1.4; box-shadow: none; margin: 0; }
+.anvil-role-tax-select { margin: 0; width: 100%; }
+input.anvil-role-tax-field:focus, .anvil-role-tax-select select:focus { outline: 2px solid color-mix(in srgb, var(--mint-strong) 35%, transparent); outline-offset: 1px; border-color: var(--mint-strong); }
+.tax-entry-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-top: 12px; }
+.tax-quantity-shortcuts { display: flex; align-items: center; flex-wrap: wrap; gap: 3px; }
+.tax-quantity-shortcuts > span { color: var(--muted); font-size: 12px; margin-right: 4px; }
+.anvil-role-tax-input-error { color: var(--negative); font-size: 12px; line-height: 1.5; margin-top: 10px; }
+.tax-basket-heading { margin: 16px 0 4px; }
+.tax-sale-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+.tax-sale-row > div { min-width: 0; }
+.tax-sale-row-result { text-align: right; }
+.tax-row-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 4px; }
+.tax-sale-row .tax-row-actions { margin-top: -4px; }
+.tax-scenario-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; padding: 18px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 11px; margin-top: 12px; }
+.tax-scenario-totals > div { min-width: 0; }
+.tax-result-primary { grid-column: 1 / -1; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.tax-result-primary .anvil-role-tax-number { font-size: 28px; }
+.tax-result-primary p { color: var(--muted); font-size: 11px; margin: 2px 0 0; }
+.tax-ytd-result { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.anvil-role-tax-review-note { color: var(--muted); padding: 8px 12px; border-left: 3px solid var(--warning); background: var(--surface-soft); margin: 10px 0; font-size: 12px; line-height: 1.55; }
+.tax-comparison-heading { margin-top: 18px; }
+.tax-comparison-heading h5 { margin: 0; font-size: 14px; color: var(--ink); }
+.tax-comparison-heading .tax-copy { margin: 5px 0 10px; }
+.anvil-role-tax-method-grid > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.tax-method-card { padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); min-width: 0; }
+.tax-method-card .anvil-role-tax-number { margin: 8px 0; font-size: 18px; }
+.tax-method-card .anvil-role-tax-caption { font-size: 11px; }
+.tax-lot-details { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.tax-lot-details summary { font-size: 12px; font-weight: 600; cursor: pointer; color: var(--ink); }
+.tax-sale-lot-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.tax-sale-lot-row .anvil-role-tax-number { font-size: 15px; text-align: right; }
+.tax-assumption { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11px; }
+.tax-workspace .income-details { margin-top: 18px; padding-top: 16px; }
+.tax-workspace .income-details summary { font-size: 14px; }
+.tax-workspace .tax-term-row { padding: 14px; }
+.tax-workspace .tax-term-row .income-row-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 4px; }
+.tax-workspace .tax-term-row .anvil-role-security-value { font-size: 14px; overflow-wrap: anywhere; }
+.tax-workspace .tax-term-row .anvil-role-portfolio-help { font-size: 11px; line-height: 1.5; }
+.tax-workspace .tax-term-section { padding-top: 10px; margin-top: 10px; }
+.tax-workspace .income-loss-row { gap: 12px; padding: 12px 0; }
+.tax-workspace .income-loss-row .anvil-role-portfolio-help { font-size: 12px; line-height: 1.5; }
+.tax-selected-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 14px; margin: 12px 0; background: var(--surface-soft); border-radius: 10px; }
+@container income (max-width: 620px) {
+  .tax-rankings { grid-template-columns: 1fr; }
+  .tax-ranking-card { padding: 12px 14px 2px; }
+  .tax-position-row { padding-top: 9px; margin-top: 7px; }
+  .tax-position-main { grid-template-columns: minmax(0, 1fr) auto; }
+  .tax-workspace .anvil-role-tax-term-grid > div { grid-template-columns: 1fr; }
+  .anvil-role-tax-method-grid > div { grid-template-columns: 1fr; }
+  .tax-method-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 12px; }
+  .tax-method-card .anvil-role-tax-number { grid-column: 2; grid-row: 1 / 3; text-align: right; margin: 2px 0; }
+  .tax-method-card .anvil-role-tax-caption { grid-column: 1; }
+}
+@container income (max-width: 400px) {
+  .tax-overview-grid, .tax-sale-fields, .tax-selected-totals { grid-template-columns: 1fr; }
+  .tax-sale-planner { padding: 14px; }
+  .tax-sale-entry { padding: 12px; }
+  .tax-entry-actions > .anvil-role-tax-primary-button { width: 100%; }
+  .anvil-role-tax-primary-button > button { width: 100%; }
+  .tax-ranking-footer { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .tax-scenario-totals { padding: 12px; gap: 12px; }
+}
+@media (pointer: coarse) {
+  .anvil-role-tax-quiet-button > button { min-height: 44px; }
+}

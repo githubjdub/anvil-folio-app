@@ -191,7 +191,7 @@ def build_tax_report(clean, histories, as_of):
       "unknown_unrealized_count": unrealized_totals["unknown_count"],
       "unknown_realized_count": realized_totals["unknown_count"],
       "estimated_basis_count": sum(lot["basis_estimated"] and lot["cost_basis"] is not None for lot in open_items)})
-  losing_positions = []
+  losing_positions, winning_positions = [], []
   for symbol, position in positions.items():
     symbol_lots = [lot for lot in lots if lot["symbol"] == symbol]
     position.update(lot_count=len(symbol_lots),
@@ -203,7 +203,10 @@ def build_tax_report(clean, histories, as_of):
         if position["unrealized_gain"] is not None and position["cost_basis"] else None))
     if position["unrealized_gain"] is not None and position["unrealized_gain"] < -0.005:
       losing_positions.append(position)
+    elif position["unrealized_gain"] is not None and position["unrealized_gain"] > 0.005:
+      winning_positions.append(position)
   losing_positions.sort(key=lambda position: (position["unrealized_gain"], position["symbol"]))
+  winning_positions.sort(key=lambda position: (-position["unrealized_gain"], position["symbol"]))
   unrealized_totals = _gain_totals(lots, "unrealized_gain")
   estimated_count = sum(lot["basis_estimated"] and lot["cost_basis"] is not None for lot in lots)
   unknown_count = sum(lot["cost_basis"] is None for lot in lots)
@@ -222,6 +225,7 @@ def build_tax_report(clean, histories, as_of):
     notes.append("Some open lots have no market price on or before the analysis date and cannot be screened for unrealized losses.")
   return {"positions": positions, "lots": lots, "candidates": candidates, "realized": realized,
     "term_breakdown": term_breakdown, "losing_positions": losing_positions,
+    "winning_positions": winning_positions,
     "summary": {"tax_year": as_of.year, "realized_short_term": realized_total("Short-term"),
       "realized_long_term": realized_total("Long-term"), "realized_net": realized_total(),
       "unrealized_short_term": term_breakdown[0]["unrealized_net"],
@@ -230,6 +234,7 @@ def build_tax_report(clean, histories, as_of):
       "potential_loss": _sum(lot["potential_loss"] for lot in candidates),
       "candidate_count": len(candidates), "unknown_basis_count": unknown_count,
       "estimated_basis_count": estimated_count, "unknown_price_count": unknown_price_count,
-      "losing_position_count": len(losing_positions)}, "notes": notes,
+      "losing_position_count": len(losing_positions),
+      "winning_position_count": len(winning_positions)}, "notes": notes,
     "sources": [{"title": "IRS: capital gains and holding periods", "url": "https://www.irs.gov/taxtopics/tc409"},
       {"title": "IRS Publication 550: investment income and wash sales", "url": "https://www.irs.gov/publications/p550"}]}

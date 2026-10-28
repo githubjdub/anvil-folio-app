@@ -153,7 +153,7 @@ class Form1(Form1Template):
       self.readout_tab_context.text = {
         "dividends": "Dividends · Upcoming dates and payment history",
         "passive": "Passive Income · Projected payouts and income trends",
-        "tax": "Tax Harvester · Capital gains by holding period and largest losses",
+        "tax": "Tax Harvester · Winning and losing positions, lot selection and sale scenarios",
       }[self._readout_page]
     elif self._readout_page == "notifications":
       self.readout_tab_context.text = "Notifications · Insider activity, your inbox, and delivery preferences"

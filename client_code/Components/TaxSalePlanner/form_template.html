@@ -1,0 +1,39 @@
+---
+custom_component: true
+---
+<section class="tax-sale-planner">
+  <header class="tax-section-heading"><div><span class="tax-eyebrow">Build a scenario</span><h4>Sale simulator</h4></div><span class="tax-sandbox-badge">What-if only</span></header>
+  <p class="tax-copy">Mix winning and losing positions. Choose shares, a sale price and which lots to use, then add the sale to see the combined result.</p>
+  <anvil-component type="Label" name="snapshot_label" prop:role="tax-caption"></anvil-component>
+  <anvil-component type="Label" name="no_positions_label" prop:text="There are no open positions in this snapshot." prop:role="tax-caption"></anvil-component>
+  <div anvil:name="entry_region" class="tax-sale-entry">
+    <div class="tax-sale-fields">
+      <label class="tax-field-group"><span class="tax-field-label">Position</span><anvil-component type="DropDown" name="symbol_dropdown" prop:role="tax-select" prop:tooltip="Position to simulate selling"></anvil-component></label>
+      <label class="tax-field-group"><span class="tax-field-label">Shares to sell</span><anvil-component type="TextBox" name="shares_box" prop:type="number" prop:placeholder="e.g. 12.5" prop:role="tax-field" prop:tooltip="Shares to sell; fractional shares are supported"></anvil-component></label>
+      <label class="tax-field-group"><span class="tax-field-label">Sale price / share ($)</span><anvil-component type="TextBox" name="price_box" prop:type="number" prop:role="tax-field" prop:tooltip="Hypothetical sale price per share in US dollars"></anvil-component></label>
+      <label class="tax-field-group"><span class="tax-field-label">Lot selection</span><anvil-component type="DropDown" name="method_dropdown" prop:role="tax-select" prop:tooltip="Cost-basis lot selection for this hypothetical sale"></anvil-component></label>
+    </div>
+    <anvil-component type="Label" name="position_label" prop:role="tax-caption"></anvil-component>
+    <div class="tax-entry-actions"><div class="tax-quantity-shortcuts"><span>Use</span><anvil-component type="Button" name="quarter_button" prop:text="25%" prop:role="tax-quiet-button" prop:tooltip="Use one quarter of the available shares"></anvil-component><anvil-component type="Button" name="half_button" prop:text="50%" prop:role="tax-quiet-button" prop:tooltip="Use half of the available shares"></anvil-component><anvil-component type="Button" name="all_button" prop:text="All shares" prop:role="tax-quiet-button"></anvil-component></div><anvil-component type="Button" name="add_button" prop:text="Add to scenario" prop:role="tax-primary-button"></anvil-component></div>
+    <div role="status" aria-live="polite"><anvil-component type="Label" name="feedback_label" prop:role="tax-input-error" prop:visible="false"></anvil-component></div>
+  </div>
+  <div class="tax-section-heading tax-basket-heading"><anvil-component type="Label" name="scenario_count_label" prop:role="tax-caption"></anvil-component><anvil-component type="Button" name="clear_button" prop:text="Clear scenario" prop:role="tax-quiet-button"></anvil-component></div>
+  <anvil-component type="Label" name="empty_label" prop:text="Your scenario is empty. Add a sale above, or choose Simulate on any winning or losing position." prop:role="tax-empty"></anvil-component>
+  <anvil-component type="RepeatingPanel" name="sales_panel" prop:item_template="M3_App_1.Components.TaxSaleRow" prop:role="tax-compact-list"></anvil-component>
+  <section anvil:name="results_region" aria-live="polite">
+    <div class="tax-scenario-totals">
+      <div class="tax-result-primary"><span class="tax-field-label">Scenario gain / loss</span><anvil-component type="Label" name="gain_label" prop:role="tax-number"></anvil-component><p>Before fees and wash-sale adjustments</p></div>
+      <div><span class="tax-field-label">Sale proceeds</span><anvil-component type="Label" name="proceeds_label" prop:role="tax-number"></anvil-component></div>
+      <div><span class="tax-field-label">Cost basis sold</span><anvil-component type="Label" name="basis_label" prop:role="tax-number"></anvil-component></div>
+      <div><span class="tax-field-label">Short-term</span><anvil-component type="Label" name="short_label" prop:role="tax-number"></anvil-component></div>
+      <div><span class="tax-field-label">Long-term</span><anvil-component type="Label" name="long_label" prop:role="tax-number"></anvil-component></div>
+    </div>
+    <div class="tax-ytd-result"><div><span class="tax-field-label">YTD net if these sales were added</span><anvil-component type="Label" name="ytd_terms_label" prop:role="tax-caption"></anvil-component></div><anvil-component type="Label" name="ytd_label" prop:role="tax-number"></anvil-component></div>
+    <anvil-component type="Label" name="wash_label" prop:role="tax-review-note"></anvil-component>
+    <anvil-component type="Label" name="estimated_label" prop:role="tax-review-note"></anvil-component>
+    <div class="tax-comparison-heading"><h5>Compare lot methods</h5><p class="tax-copy">Same shares and prices, with one method applied to every sale.</p></div>
+    <anvil-component type="RepeatingPanel" name="comparisons_panel" prop:item_template="M3_App_1.Components.TaxMethodRow" prop:role="tax-method-grid"></anvil-component>
+    <details class="tax-lot-details"><summary>See the exact lots used in your scenario</summary><anvil-component type="RepeatingPanel" name="lots_panel" prop:item_template="M3_App_1.Components.TaxSaleLotRow" prop:role="tax-compact-list"></anvil-component></details>
+  </section>
+  <p class="tax-assumption">Uses the remaining FIFO lots and holding periods at the snapshot date. Changing lot selection here affects only the hypothetical sales. LIFO and HIFO require appropriate lot identification with your broker. This simulator does not place trades or change your transactions.</p>
+</section>

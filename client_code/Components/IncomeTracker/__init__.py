@@ -29,6 +29,8 @@ class IncomeTracker(IncomeTrackerTemplate):
     self.loss_term_dropdown.selected_value = "all"
     self.set_event_handler("x-set-editable", self.set_editable)
     self.losses_panel.set_event_handler("x-loss-selection", self.loss_selection_change)
+    self.positions_panel.set_event_handler("x-simulate-position", self.simulate_position)
+    self.winning_positions_panel.set_event_handler("x-simulate-position", self.simulate_position)
     self.reset_workspace()
     self._apply_view()
 
@@ -48,10 +50,12 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._ledger_page = 0
     self._loss_page = 0
     self._lots = []
+    self._positions_expanded = False
     self._plot_size = None
     self.income_plot.data = []
-    for panel in (self.securities_panel, self.quarters_panel, self.upcoming_panel, self.ledger_panel, self.losses_panel, self.terms_panel, self.positions_panel):
+    for panel in (self.securities_panel, self.quarters_panel, self.upcoming_panel, self.ledger_panel, self.losses_panel, self.terms_panel, self.positions_panel, self.winning_positions_panel):
       panel.items = []
+    self.sale_planner.set_report(None)
     self.report_region.visible = False
 
   def set_portfolio_context(self, transactions, as_of=None):
@@ -92,6 +96,10 @@ class IncomeTracker(IncomeTrackerTemplate):
     setattr(self.loss_previous_button, "enabled", enabled and self._loss_page > 0)
     setattr(self.loss_next_button, "enabled", enabled and (self._loss_page + 1) * self.PAGE_SIZE < len(self._filtered_lots()))
     self.losses_panel.raise_event_on_children("x-set-editable", editable=enabled)
+    self.positions_panel.raise_event_on_children("x-set-editable", editable=enabled)
+    self.winning_positions_panel.raise_event_on_children("x-set-editable", editable=enabled)
+    self.positions_toggle_button.enabled = enabled
+    self.sale_planner.set_editable(enabled)
 
   @handle("refresh_button", "click")
   def refresh_click(self, **event_args):
@@ -173,10 +181,8 @@ class IncomeTracker(IncomeTrackerTemplate):
     if summary["estimated_basis_count"]:
       coverage.append("%s open lots use estimated purchase prices. Check broker cost basis before acting." % summary["estimated_basis_count"])
     self.tax_coverage_label.text = " ".join(coverage)
-    positions = tax["losing_positions"]
-    self.positions_panel.items = positions[:10]
-    self.positions_empty_label.visible = not bool(positions)
-    self.positions_context_label.text = "Largest %s of %s losing positions, ordered by total dollar loss. Position totals combine all remaining lots; the lot list below includes losses inside profitable positions too." % (min(10, len(positions)), len(positions)) if positions else "Position totals combine all remaining lots."
+    self._render_positions()
+    self.sale_planner.set_report(tax, self._as_of)
 
     self.tax_notes_label.text = "\n".join(tax.get("notes", []))
     self._render_losses()
@@ -193,6 +199,33 @@ class IncomeTracker(IncomeTrackerTemplate):
       "detail": "%s · payment %s" % (per_share, row.get("payment_date") or "not confirmed"),
       "status": ("Published upcoming ex-date" if upcoming else row["status"]) + " · " + source,
       "source_url": row.get("source_url") or "", "note": row.get("note", "")}
+
+  def _render_positions(self):
+    if self._report is None:
+      return
+    tax = self._report["tax"]
+    losing, winning = tax["losing_positions"], tax["winning_positions"]
+    for positions, panel, empty, context in (
+        (losing, self.positions_panel, self.positions_empty_label, self.positions_context_label),
+        (winning, self.winning_positions_panel, self.winning_positions_empty_label, self.winning_positions_context_label)):
+      shown = positions if self._positions_expanded else positions[:5]
+      panel.items = shown
+      empty.visible = not bool(positions)
+      context.text = "%s of %s positions · ranked by dollar amount" % (len(shown), len(positions)) if positions else "No positions to rank"
+    self.positions_toggle_button.visible = max(len(losing), len(winning)) > 5
+    self.positions_toggle_button.text = "Show top 5" if self._positions_expanded else "Show all positions"
+    self._update_controls()
+
+  @handle("positions_toggle_button", "click")
+  def positions_toggle(self, **event_args):
+    if self._busy or not self._parent_editable:
+      return
+    self._positions_expanded = not self._positions_expanded
+    self._render_positions()
+
+  def simulate_position(self, symbol, **event_args):
+    if not self._busy and self._parent_editable:
+      self.sale_planner.choose_position(symbol)
 
   def _render_ledger(self):
     report = self._report
@@ -241,7 +274,7 @@ class IncomeTracker(IncomeTrackerTemplate):
     self.view_intro_label.text = {
       "dividends": "Follow upcoming ex-dividend dates and review the payments earned by your selected holdings.",
       "passive": "See what your holdings could pay each year, quarter and month, with income trends and security-level detail.",
-      "tax": "Compare short-term and long-term capital gains, find your biggest losing positions, and explore losses by tax lot.",
+      "tax": "Find opportunities across winning and losing positions, then test how a sale would change your realized gains.",
     }[self._view]
     self.dividends_region.visible = self._view == "dividends"
     self.passive_region.visible = self._view == "passive"

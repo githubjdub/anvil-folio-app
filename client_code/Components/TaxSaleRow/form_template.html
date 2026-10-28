@@ -1,0 +1,5 @@
+<article class="tax-sale-row">
+  <div><anvil-component type="Label" name="symbol_label" bind:text="self.item['symbol']" prop:role="tax-symbol"></anvil-component><anvil-component type="Label" name="details_label" bind:text="self.details()" prop:role="tax-caption"></anvil-component></div>
+  <div class="tax-sale-row-result"><span class="tax-field-label">Gain / loss</span><anvil-component type="Label" name="gain_label" bind:text="self.money(self.item['gain'], True)" bind:role="self.value_role(self.item['gain'])"></anvil-component></div>
+  <div class="tax-row-actions"><anvil-component type="Button" name="edit_button" prop:text="Edit" prop:role="tax-quiet-button" bind:tooltip="'Edit simulated sale of ' + self.item['symbol']"></anvil-component><anvil-component type="Button" name="remove_button" prop:text="Remove" prop:role="tax-quiet-button" bind:tooltip="'Remove ' + self.item['symbol'] + ' from the scenario'"></anvil-component></div>
+</article>
