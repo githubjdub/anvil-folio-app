@@ -32,12 +32,14 @@ class ProfileHome(ProfileHomeTemplate):
       self._refresh()
       return
     self.account_id = account_id
-    self.greeting_label.text = 'Welcome back, %s.' % profile['username']
-    self.display_name_label.text = profile['display_name']
-    self.username_label.text = '@' + profile['username']
+    # A route can open beneath username setup for an older account.
+    username = profile['username'] or ''
+    self.greeting_label.text = 'Welcome back, %s.' % username if username else 'Welcome back.'
+    self.display_name_label.text = profile['display_name'] or username or 'Your account'
+    self.username_label.text = '@' + username if username else 'Choose your username to finish setup'
     self.email_label.text = profile['email']
     self.display_name_box.text = profile['display_name']
-    self._can_edit_name = profile['can_change_display_name']
+    self._can_edit_name = bool(username) and profile['can_change_display_name']
     self.plan_label.text = usage['plan']
     self.usage_label.text = '%s of %s portfolios saved' % (usage['count'], usage['limit'])
     self.usage_note.text = ('Your existing portfolios remain available. Your plan is currently at its saving limit.'
@@ -46,8 +48,11 @@ class ProfileHome(ProfileHomeTemplate):
     self.empty_label.visible = not portfolios
     self.member_since_label.text = 'Member since ' + profile['member_since'].strftime('%B %Y') if profile['member_since'] else 'Your personal investing workspace'
     change = profile['next_display_name_change_at']
-    self.change_note.text = ('Next display-name change: %s UTC.' % change.astimezone(anvil.tz.tzutc()).strftime('%b %d, %Y at %H:%M')
-                            if not self._can_edit_name else 'You can change your display name now. After that, once every 7 days.')
+    if not username:
+      self.change_note.text = 'Choose your permanent username before editing your display name.'
+    else:
+      self.change_note.text = ('Next display-name change: %s UTC.' % change.astimezone(anvil.tz.tzutc()).strftime('%b %d, %Y at %H:%M')
+                              if not self._can_edit_name else 'You can change your display name now. After that, once every 7 days.')
     self._set_busy(self._busy)
 
   def _set_busy(self, busy):

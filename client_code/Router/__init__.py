@@ -61,15 +61,18 @@ class Router(RouterTemplate):
     if (account_id is not None and account_id != self._username_account_id
         and self._route_key()[0] != "disclosures" and not username_prompt_open()):
       ready = ensure_username()
-      if generation != self._route_generation:
-        return
-      if not ready and anvil.users.get_user() is not None:
-        return
       current_user = anvil.users.get_user()
       if ready and current_user is not None and current_user.get_id() == account_id:
         # Usernames are permanent; a successful check remains valid for this
         # account until sign-out. Other routes need not fetch it again.
         self._username_account_id = account_id
+      if generation != self._route_generation:
+        # A route opened beneath username setup may still show the incomplete
+        # profile. Resume the latest destination after setup or sign-out.
+        self._open_route()
+        return
+      if not ready and current_user is not None:
+        return
     route = self._route_key()
     page, token = route
     active = get_open_form()
