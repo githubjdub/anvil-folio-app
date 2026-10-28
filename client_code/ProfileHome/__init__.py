@@ -13,10 +13,16 @@ class ProfileHome(ProfileHomeTemplate):
     self._can_edit_name = False
     self.account_id = None
     self.status_label.visible = False
+    self._notification_count_loading = False
+    self._notification_count_revision = 0
+    self._set_notification_count(0)
     self._refresh()
 
   def _refresh(self):
     user = anvil.users.get_user()
+    account_id = user.get_id() if user is not None else None
+    if account_id != self.account_id:
+      self._set_notification_count(0)
     self.profile_region.visible = user is not None
     self.signed_out_region.visible = user is None
     self.signout_button.visible = user is not None
@@ -54,6 +60,49 @@ class ProfileHome(ProfileHomeTemplate):
       self.change_note.text = ('Next display-name change: %s UTC.' % change.astimezone(anvil.tz.tzutc()).strftime('%b %d, %Y at %H:%M')
                               if not self._can_edit_name else 'You can change your display name now. After that, once every 7 days.')
     self._set_busy(self._busy)
+
+  def _set_notification_count(self, count):
+    self._notification_count_revision += 1
+    count = max(0, int(count or 0))
+    self.notification_badge.visible = count > 0
+    self.notification_count_label.visible = count > 0
+    self.notification_count_label.text = '99+' if count > 99 else str(count)
+    self.notification_count_description.text = '%s unread notification%s' % (count, '' if count == 1 else 's')
+
+  @handle('', 'show')
+  def profile_show(self, **event_args):
+    # Fetch after the page opens, keeping this shortcut out of account startup.
+    self.notification_count_timer.interval = 0.1
+
+  @handle('', 'hide')
+  def profile_hide(self, **event_args):
+    self.notification_count_timer.interval = 0
+    self._notification_count_revision += 1
+
+  @handle('notification_count_timer', 'tick')
+  def notification_count_tick(self, **event_args):
+    if get_open_form() is not self:
+      self.notification_count_timer.interval = 0
+      return
+    self.notification_count_timer.interval = 60
+    if self._busy or self._notification_count_loading:
+      return
+    user = anvil.users.get_user()
+    account_id = user.get_id() if user is not None else None
+    if account_id is None or account_id != self.account_id:
+      self._set_notification_count(0)
+      return
+    revision = self._notification_count_revision
+    self._notification_count_loading = True
+    try:
+      count = anvil.server.call_s('get_notification_unread_count')
+      current = anvil.users.get_user()
+      if (get_open_form() is self and revision == self._notification_count_revision
+          and current is not None and current.get_id() == account_id
+          and self.account_id == account_id):
+        self._set_notification_count(count)
+    finally:
+      self._notification_count_loading = False
 
   def _set_busy(self, busy):
     self._busy = busy
