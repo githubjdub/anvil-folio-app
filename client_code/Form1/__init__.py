@@ -13,7 +13,7 @@ from ..portfolio_periods import quarterly_returns, allocation_snapshots
 from ..HoldingRow import HoldingRow
 from ..Components.TransactionYearGroup import TransactionYearGroup
 from ..transaction_groups import group_transactions_by_year
-from ..site_tracking import record_page
+from ..site_tracking import record_page, pause_tracking
 from ..account_profile import ensure_username, sign_in
 
 
@@ -116,6 +116,15 @@ class Form1(Form1Template):
         self._set_busy(False)
     self._initializing = False
 
+  @handle("", "show")
+  def workspace_show(self, **event_args):
+    if not self._initializing:
+      record_page("creator" if self._creator_open else self._readout_page)
+
+  @handle("", "hide")
+  def workspace_hide(self, **event_args):
+    pause_tracking()
+
   @handle("market_status_timer", "tick")
   def market_status_timer_tick(self, **event_args):
     if self._market_status_loading:
@@ -148,7 +157,7 @@ class Form1(Form1Template):
     name = {"overview": "Overview", "allocation": "Portfolio structure",
             "performance": "Performance", "dividends": "Dividends", "passive": "Passive Income",
             "tax": "Tax Harvester", "simulations": "Simulations", "retirement": "Retirement",
-            "notifications": "Notifications", "networth": "Net Worth"}[self._readout_page]
+            "notifications": "Notifications", "networth": "Net Worth", "forex": "Forex"}[self._readout_page]
     if self._readout_page == "simulations":
       self.readout_tab_context.text = "Simulations · Compare reinvestment, cash and a fixed-rate account"
     elif self._readout_page in ("dividends", "passive", "tax"):
@@ -165,6 +174,8 @@ class Form1(Form1Template):
       self.readout_tab_context.text = "Net Worth · Your assets, debts and progress over time"
     elif self._readout_page == "allocation":
       self.readout_tab_context.text = "Allocation · Explore Schwab models and your portfolio structure"
+    elif self._readout_page == "forex":
+      self.readout_tab_context.text = "Forex · Currency markets, conversions and trade scenarios"
     elif self._analysis_source is not None:
       count = len(self._analysis_source["selection_data"]["securities"])
       self.readout_tab_context.text = "%s · %d of %d securities selected" % (
@@ -175,7 +186,7 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    portfolio_page = self._readout_page not in ("retirement", "simulations", "dividends", "passive", "tax", "notifications", "networth")
+    portfolio_page = self._readout_page not in ("retirement", "simulations", "dividends", "passive", "tax", "notifications", "networth", "forex")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page and self._readout_page != "allocation"
     self.allocation_guide_panel.visible = self._readout_page == "allocation"
@@ -186,6 +197,7 @@ class Form1(Form1Template):
       ("performance", self.performance_panel, self.performance_tab_button),
       ("retirement", self.retirement_panel, self.retirement_tab_button),
       ("networth", self.net_worth_panel, self.net_worth_tab_button),
+      ("forex", self.forex_panel, self.forex_tab_button),
       ("simulations", self.simulations_panel, self.simulations_tab_button),
       ("notifications", self.notifications_panel, self.notifications_tab_button),
     ):
@@ -202,6 +214,8 @@ class Form1(Form1Template):
     if income_page:
       self.income_form.set_view(self._readout_page)
     self._update_readout_context()
+    if not self._initializing and get_open_form() is self:
+      record_page("creator" if self._creator_open else self._readout_page)
     if redraw:
       self._render_active_readout()
       self._resize_readout_charts()
@@ -219,6 +233,9 @@ class Form1(Form1Template):
       elif self._readout_page == "networth":
         self.net_worth_form.ensure_loaded()
         self.net_worth_form.redraw()
+      elif self._readout_page == "forex":
+        self.forex_form.ensure_loaded()
+        self.forex_form.redraw()
 
   def _render_active_readout(self):
     self._ensure_readout_rendered(self._readout_page)
@@ -266,6 +283,8 @@ class Form1(Form1Template):
       self.net_worth_form.redraw()
     elif self._readout_page == "allocation":
       self.allocation_guide.redraw()
+    elif self._readout_page == "forex":
+      self.forex_form.redraw()
     if self._history is None:
       return
     for name, plot in self._page_charts(self._readout_page):
@@ -292,26 +311,31 @@ class Form1(Form1Template):
       self.net_worth_form.apply_appearance()
     elif self._readout_page == "allocation":
       self.allocation_guide.apply_appearance()
+    elif self._readout_page == "forex":
+      self.forex_form.apply_appearance()
     if self._creator_open:
       self.creator_workspace.apply_appearance()
     if self.share_composer.visible:
       self.share_composer.apply_appearance()
 
   def _select_readout_page(self, page):
-    if (self._busy or page == self._readout_page or
-        page not in ("overview", "allocation", "performance", "simulations", "retirement", "dividends", "passive", "tax", "notifications", "networth")):
+    if (self._busy or (page == self._readout_page and not self._creator_open) or
+        page not in ("overview", "allocation", "performance", "simulations", "retirement", "dividends", "passive", "tax", "notifications", "networth", "forex")):
       return
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
     self._readout_page = page
+    if self._creator_open:
+      self._set_creator_open(False)
     self._apply_readout_page(redraw=True)
     self.dom_nodes["readout_scroller"].scrollTop = 0
-    record_page(page)
 
   def _set_creator_open(self, opened):
     self._creator_open = bool(opened and self._creator_enabled)
     self.creator_panel.visible = self._creator_open
     self.creator_tab_button.text = "Close creator workspace" if self._creator_open else "Open creator workspace"
+    if not self._initializing and get_open_form() is self:
+      record_page("creator" if self._creator_open else self._readout_page)
     if self._creator_open:
       self.creator_workspace.open_library()
 
@@ -386,6 +410,10 @@ class Form1(Form1Template):
   @handle("net_worth_tab_button", "click")
   def net_worth_tab_click(self, **event_args):
     self._select_readout_page("networth")
+
+  @handle("forex_tab_button", "click")
+  def forex_tab_click(self, **event_args):
+    self._select_readout_page("forex")
 
   def _update_allocation_context(self):
     value = None
@@ -900,6 +928,7 @@ class Form1(Form1Template):
     self.notifications_form.set_editable(editable=not self._busy)
     self.net_worth_form.set_editable(editable=not self._busy)
     self.allocation_guide.set_editable(editable=not self._busy)
+    self.forex_form.set_editable(editable=not self._busy)
     self.retirement_form.raise_event("x-set-editable", editable=not self._busy)
     self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
     self.hedge_fund_comparison.raise_event("x-set-editable", editable=not self._busy)
@@ -915,6 +944,8 @@ class Form1(Form1Template):
       self.notifications_form.ensure_loaded()
     elif not busy and self._readout_page == "networth":
       self.net_worth_form.ensure_loaded()
+    elif not busy and self._readout_page == "forex":
+      self.forex_form.ensure_loaded()
 
   def _refresh_portfolios(self):
     portfolios = anvil.server.call("list_portfolios") if self._user is not None else []
@@ -937,6 +968,7 @@ class Form1(Form1Template):
     if self.account_id != previous_account_id:
       self._set_notification_unread_count(0)
       self.allocation_guide.reset_workspace()
+      self.forex_form.reset_workspace()
     self.notifications_form.set_account_context(self.account_id)
     self.net_worth_form.set_account_context(self.account_id)
     self._username = ""
@@ -1101,7 +1133,7 @@ class Form1(Form1Template):
       return False
     self._refresh_account()
     if new_login:
-      record_page(self._readout_page)
+      record_page("creator" if self._creator_open else self._readout_page)
     return True
 
   def _mark_portfolio_dirty(self):
@@ -1127,6 +1159,7 @@ class Form1(Form1Template):
     self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
     self.allocation_guide.reset_workspace()
+    self.forex_form.reset_workspace()
     self.portfolio_name_box.text = ""
     self.transactions = [self._new_transaction()]
     self._refresh_transactions()
@@ -1267,6 +1300,7 @@ class Form1(Form1Template):
     self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
     self.allocation_guide.reset_workspace()
+    self.forex_form.reset_workspace()
     self._current_portfolio = portfolio
     self.portfolio_name_box.text = portfolio["name"]
     # Reopening a portfolio starts a fresh analysis through today. Users can

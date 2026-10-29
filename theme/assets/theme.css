@@ -1819,7 +1819,7 @@ input.anvil-role-tax-field:focus, .anvil-role-tax-select select:focus { outline:
 }
 
 /* Account balance sheet: compact ledgers, clear totals and deliberate history. */
-.readout-planning-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.readout-planning-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .nw-workspace { container: networth / inline-size; color: var(--ink); }
 .nw-workspace h3, .nw-workspace h4, .nw-workspace h5 { color: var(--ink); margin: 0; letter-spacing: -.025em; }
 .nw-workspace h3 { font-size: 26px; line-height: 1.3; }
@@ -2013,4 +2013,125 @@ input.anvil-role-ag-field:focus, .anvil-role-ag-select select:focus { border-col
 }
 @media (pointer: coarse) {
   .ag-workspace button, .ag-current input.anvil-role-ag-field { min-height: 44px; }
+}
+
+/* Forex: reference research and a transparent position scenario. */
+.fx-workspace { container: forex / inline-size; color: var(--ink); display: grid; gap: 22px; }
+.fx-heading, .fx-section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
+.fx-eyebrow { display: block; color: var(--mint-strong); font-size: 10px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; margin-bottom: 7px; }
+.fx-heading h3 { font-size: 28px; font-weight: 650; letter-spacing: -.04em; line-height: 1.3; margin: 0; color: var(--ink); }
+.fx-heading p, .fx-section-heading p { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 8px 0 0; }
+.fx-badge { border: 1px solid var(--line); border-radius: 20px; background: var(--surface-soft); color: var(--muted); font-size: 10px; padding: 7px 11px; white-space: nowrap; }
+.fx-card { border: 1px solid var(--line); border-radius: 16px; background: var(--paper); padding: 24px; min-width: 0; }
+.fx-pair-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 13px; align-items: end; }
+.fx-field { display: block; min-width: 0; margin: 0; }
+.fx-field > span, .fx-workspace .anvil-role-fx-field-label { color: var(--muted); font-size: 10px; font-weight: 600; line-height: 1.6; display: block; margin: 0 0 6px; }
+input.anvil-role-fx-input, .anvil-role-fx-select select { width: 100%; min-height: 42px; background: var(--surface-soft); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; font-size: 12px; padding: 9px 10px; box-shadow: none; }
+input.anvil-role-fx-input { font-variant-numeric: tabular-nums; }
+input.anvil-role-fx-input:focus, .anvil-role-fx-select select:focus { border-color: var(--mint-strong); outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.fx-rate-overview { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin: 26px 0 20px; }
+.fx-workspace .anvil-role-fx-caption { font-size: 11px; line-height: 1.7; color: var(--muted); margin: 0; white-space: pre-line; }
+.fx-workspace .anvil-role-fx-rate { font-size: clamp(25px, 5.7cqi, 41px); line-height: 1.4; letter-spacing: -.04em; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; margin: 2px 0; }
+.fx-movement { text-align: right; max-width: 160px; }
+.fx-workspace .anvil-role-fx-change { font-size: 22px; font-weight: 600; line-height: 1.5; margin: 0 0 4px; }
+.fx-movement > span { font-size: 10px; line-height: 1.6; color: var(--muted); }
+.fx-chart-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 15px; border-top: 1px solid var(--line); padding-top: 15px; }
+.fx-range { min-width: 120px; }
+.fx-range > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.fx-range .anvil-role-fx-select select { min-height: 34px; padding: 5px 8px; }
+.fx-converter { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 22px; align-items: center; padding: 18px; background: var(--surface-soft); border-radius: 10px; margin-top: 10px; }
+.fx-conversion-result > span, .fx-result-card > span, .fx-sizing > div > span { color: var(--muted); font-size: 10px; line-height: 1.6; }
+.fx-workspace .anvil-role-fx-conversion { color: var(--ink); font-size: clamp(20px, 3.5cqi, 29px); font-weight: 600; line-height: 1.5; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; margin: 3px 0 0; }
+.fx-section-heading h4 { color: var(--ink); font-size: 21px; line-height: 1.4; letter-spacing: -.025em; font-weight: 600; margin: 0; }
+.fx-workspace .anvil-role-fx-context { background: var(--surface-soft); color: var(--muted); padding: 10px 12px; border-radius: 8px; font-size: 11px; line-height: 1.7; margin: 20px 0; }
+.fx-scenario-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 14px; align-items: end; }
+.fx-actions { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin: 20px 0 0; }
+.fx-actions > .anvil-role-fx-caption { max-width: 380px; }
+.fx-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+.fx-result-card { background: var(--surface-soft); border-radius: 10px; padding: 17px 14px; min-width: 0; }
+.fx-workspace .anvil-role-fx-result-value { color: var(--ink); font-size: clamp(17px, 2.8cqi, 23px); font-weight: 600; line-height: 1.5; margin: 7px 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fx-result-card.is-positive .anvil-role-fx-result-value { color: var(--mint-strong); }
+.fx-result-card.is-negative .anvil-role-fx-result-value { color: var(--negative); }
+.fx-sizing { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 0 2px; }
+.fx-workspace .anvil-role-fx-sizing-value { color: var(--ink); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.5; margin: 4px 0 0; }
+.fx-workspace .anvil-role-fx-status { color: var(--warning); background: var(--surface-soft); border: 1px solid var(--line); padding: 10px 12px; border-radius: 8px; font-size: 11px; line-height: 1.7; margin: 12px 0; grid-column: 1 / -1; }
+.fx-workspace .anvil-role-fx-error { color: var(--negative); font-size: 12px; line-height: 1.7; margin: 12px 0 0; }
+.fx-footnote { color: var(--muted); font-size: 10px; line-height: 1.9; border-top: 1px solid var(--line); padding-top: 16px; margin: 22px 0 0; }
+.fx-footnote a { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+.fx-workspace button:disabled { opacity: .5; cursor: default; }
+.fx-workspace button:focus-visible, .fx-footnote a:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+@container forex (max-width: 700px) {
+  .fx-card { padding: 18px; }
+  .fx-pair-controls { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+  .fx-pair-controls > .anvil-role-ag-quiet-button { grid-column: 1 / -1; justify-self: end; }
+  .fx-scenario-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fx-heading, .fx-section-heading { flex-wrap: wrap; }
+  .fx-sizing { align-items: flex-start; flex-direction: column; gap: 12px; }
+}
+@container forex (max-width: 430px) {
+  .fx-card { padding: 14px; }
+  .fx-heading h3 { font-size: 25px; }
+  .fx-pair-controls { grid-template-columns: minmax(0, 1fr) auto; }
+  .fx-pair-controls > .fx-field:nth-of-type(2) { grid-column: 1; }
+  .fx-pair-controls > .anvil-role-ag-quiet-button { grid-column: 2; grid-row: 2; }
+  .fx-pair-controls button { padding: 8px; font-size: 10px; }
+  .fx-movement { max-width: 110px; }
+  .fx-workspace .anvil-role-fx-change { font-size: 18px; }
+  .fx-converter { grid-template-columns: 1fr; gap: 12px; padding: 14px; }
+  .fx-actions { flex-direction: column; align-items: stretch; gap: 12px; }
+  .fx-actions button { width: 100%; }
+  .fx-results { grid-template-columns: 1fr; }
+  .fx-result-card { padding: 14px; }
+}
+@media (pointer: coarse) { .fx-workspace button, input.anvil-role-fx-input, .anvil-role-fx-select select { min-height: 44px; } }
+
+/* Tax scenarios: visible holding periods and a compact gains/losses bridge. */
+.tax-position-terms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--surface-soft); }
+.tax-position-terms > div { min-width: 0; }
+.tax-position-terms .anvil-role-security-value { margin: 1px 0 0; font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tax-position-terms .tax-field-label { font-size: 10px; }
+.tax-offset-section { margin-top: 18px; }
+.anvil-role-tax-netting-grid > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tax-netting-row { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.tax-netting-heading { margin-bottom: 12px; }
+.tax-netting-heading .anvil-role-tax-caption { font-size: 11px; }
+.tax-netting-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tax-netting-values > div { min-width: 0; }
+.tax-netting-values .anvil-role-tax-number { font-size: 14px; }
+.tax-netting-explanation { margin-top: 10px; padding: 12px 14px; border-radius: 9px; background: var(--surface-soft); border-left: 3px solid var(--mint-strong); }
+.tax-netting-explanation .tax-field-label, .tax-ytd-netting .tax-field-label { margin-bottom: 4px; }
+.tax-ytd-netting { flex: 0 0 100%; padding-top: 8px; }
+.tax-assumption a { color: var(--mint-strong); text-underline-offset: 3px; }
+@container income (max-width: 620px) {
+  .anvil-role-tax-netting-grid > div { grid-template-columns: 1fr; }
+}
+/* Creator monitor: compact, responsive usage and ownership reference. */
+.creator-monitor { container-type: inline-size; display: grid; gap: 18px; color: var(--ink); }
+.creator-monitor-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.creator-monitor h4 { margin: 4px 0 8px; font-size: 19px; letter-spacing: -.025em; }
+.creator-monitor-heading p { color: var(--muted); margin: 0; font-size: 13px; }
+.creator-monitor-controls { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.creator-monitor-controls label { color: var(--muted); font-size: 11px; font-weight: 600; }
+.creator-monitor-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.creator-monitor-metrics > div { border: 1px solid var(--line); border-radius: 14px; background: var(--surface-soft); padding: 16px; min-width: 0; }
+.creator-monitor-metrics > div > span { color: var(--muted); font-size: 11px; font-weight: 650; }
+.anvil-role-creator-monitor-top { color: var(--ink); font-size: 20px; font-weight: 650; line-height: 1.2; }
+.creator-monitor-status { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.creator-monitor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.creator-monitor-method { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 2px 0; }
+.creator-usage-row, .creator-recent-account { padding: 11px 0; border-bottom: 1px solid var(--line); }
+.creator-usage-title, .creator-recent-account { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.creator-recent-account > div { min-width: 0; overflow-wrap: anywhere; }
+.creator-usage-track { height: 5px; width: 100%; border-radius: 8px; background: var(--surface-raised); overflow: hidden; }
+.creator-usage-track > span { display: block; height: 100%; background: var(--mint-strong); border-radius: inherit; }
+.anvil-role-creator-monitor-value { font-size: 14px; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; }
+.creator-holding-row { display: grid; grid-template-columns: minmax(130px, 1.4fr) .65fr 1fr 1fr 1.15fr; gap: 14px; align-items: start; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.creator-holding-row > div { min-width: 0; }
+.creator-holding-row > div > span { color: var(--muted); font-size: 10px; font-weight: 600; }
+.anvil-role-creator-monitor-list .label-text { margin-top: 0; margin-bottom: 0; }
+@container (max-width: 740px) {
+  .creator-monitor-grid { grid-template-columns: 1fr; }
+  .creator-monitor-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .creator-holding-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
+  .creator-holding-identity { grid-column: 1 / -1; }
 }

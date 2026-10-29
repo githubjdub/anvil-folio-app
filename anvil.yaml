@@ -500,6 +500,15 @@ db_schema:
     client: none
     columns:
     - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      client_hidden: true
+      name: tab_activity
+      type: simpleObject
+    - admin_ui: {}
       client_hidden: null
       name: started_at
       type: datetime

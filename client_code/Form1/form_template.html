@@ -204,6 +204,7 @@
                 <span class="feature-beta-badge" title="Work in progress">Beta</span>
               </div>
               <anvil-component type="m3._Components.Button" name="retirement_tab_button" prop:text="Retirement" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="forex_tab_button" prop:text="Forex" prop:appearance="text" prop:role="readout-tab"></anvil-component>
             </div>
           </div>
           <div class="readout-nav-group readout-notifications-group">
@@ -364,6 +365,9 @@
         <section anvil:name="net_worth_panel" class="readout-page" aria-label="Net worth balance sheet">
           <anvil-component type="M3_App_1.Components.NetWorth" name="net_worth_form"></anvil-component>
         </section>
+        <section anvil:name="forex_panel" class="readout-page" aria-label="Foreign exchange tools">
+          <anvil-component type="M3_App_1.Components.Forex" name="forex_form"></anvil-component>
+        </section>
         <section anvil:name="retirement_panel" class="readout-page" aria-label="Retirement projections">
           <anvil-component type="M3_App_1.Components.Retirement" name="retirement_form"></anvil-component>
         </section>
@@ -383,7 +387,7 @@
   </main>
 
   <footer class="portfolio-footer"><span>Folio</span><span>Built for clearer decisions.</span><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods</a></footer>
-  <p class="site-analytics-notice">Basic visit counts and approximate country statistics help us understand site usage. Browser privacy signals are respected.</p>
+  <p class="site-analytics-notice">Usage analytics include tab visits and approximate active time. Signed-in activity is linked to your account for creator-only reporting. Browser privacy signals are respected. <a href="#?page=disclosures">Details</a></p>
   <anvil-component type="Timer" name="market_status_timer" prop:interval="1"></anvil-component>
   <anvil-component type="Timer" name="notification_badge_timer" prop:interval="60"></anvil-component>
 </section>

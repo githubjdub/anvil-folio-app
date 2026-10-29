@@ -1,8 +1,8 @@
 import anvil.secrets
 """Coarse browser-visit counts, aggregated only for the platform creator.
 
-There are no user links, IP addresses, stored session identifiers or precise
-locations. Anvil's private server session holds the current visit row only.
+Named pages and aggregate active time can be linked to signed-in accounts.
+No input contents, IP addresses, stored browser IDs or precise locations are kept.
 """
 
 from calendar import monthrange
@@ -27,7 +27,7 @@ _PAGES = {
   "allocation": "Portfolio structure", "performance": "Performance",
   "simulations": "Simulations", "retrospective": "Retrospective (archived)", "methods": "Methods", "shared": "Shared performance",
   "retirement": "Retirement", "networth": "Net Worth", "dividends": "Dividends", "passive": "Passive Income",
-  "tax": "Tax Harvester", "notifications": "Notifications", "income": "Income (previous navigation)", "disclosures": "Disclosures",
+  "tax": "Tax Harvester", "forex": "Forex", "creator": "Creator workspace", "notifications": "Notifications", "income": "Income (previous navigation)", "disclosures": "Disclosures",
   "subscribe": "Plans", "subscription": "My subscription", "profile": "Profile",
 }
 _RANGES = {"7d": 7, "30d": 30, "90d": 90, "1y": 365}
@@ -105,11 +105,13 @@ def record_site_page(page):
   now = _now()
   state = anvil.server.session.get(_SESSION_KEY, {})
   visit = state.get("visit")
-  creator = _creator._is_creator(anvil.users.get_user())
+  owner = anvil.users.get_user()
+  creator = _creator._is_creator(owner)
   if visit is not None:
     try:
       last_seen = _utc(visit["last_seen_at"])
-      if last_seen is None or (now - last_seen).total_seconds() >= 1800:
+      if (last_seen is None or (now - last_seen).total_seconds() >= 1800
+          or _utc(visit["started_at"]).date() != now.date() or visit["owner"] != owner):
         visit = None
       elif creator and visit["is_creator"] is not True:
         # Mark a guest-to-creator visit even if the current event is deduped.
@@ -131,13 +133,58 @@ def record_site_page(page):
     country = _country(_field(location, "country"))
     visit = table.add_row(started_at=now, last_seen_at=now, page_views=1,
                           pages={page: 1}, country_code=country["country_code"],
-                          country_name=country["country_name"], is_creator=creator)
+                          country_name=country["country_name"], is_creator=creator,
+                          owner=owner, tab_activity={})
   else:
     pages = dict(visit["pages"])
     pages[page] = pages.get(page, 0) + 1
     visit.update(last_seen_at=now, page_views=visit["page_views"] + 1, pages=pages)
-  _remember({"visit": visit, "accepted_at": accepted + [now],
-             "last_page": page, "last_event_at": now})
+  state.update({"visit": visit, "accepted_at": accepted + [now],
+                "last_page": page, "last_event_at": now,
+                "activity_page": page, "activity_at": now})
+  _remember(state)
+  return {"ok": True, "recorded": True}
+
+
+@anvil.server.callable
+def record_site_activity(page, seconds):
+  """Accept only a bounded elapsed interval from the current browser session."""
+  if (_field(anvil.server.context.client, "type") != "browser"
+      or _field(anvil.server.context.remote_caller, "type") != "browser"):
+    return {"ok": True, "recorded": False, "reason": "browser_only"}
+  if (not isinstance(page, str) or page not in _PAGES or isinstance(seconds, bool)
+      or not isinstance(seconds, (int, float)) or not math.isfinite(seconds)
+      or not 0 < seconds <= 45):
+    return {"ok": False, "recorded": False, "message": "Choose a supported page and elapsed interval."}
+  now = _now()
+  state = anvil.server.session.get(_SESSION_KEY, {})
+  visit = state.get("visit")
+  owner = anvil.users.get_user()
+  try:
+    if visit is not None and visit["owner"] != owner:
+      # An in-flight pulse from a prior login must not create activity for the
+      # newly signed-in account. Its next page event establishes a new visit.
+      return {"ok": True, "recorded": False, "reason": "account_changed"}
+    if (visit is None or _utc(visit["started_at"]).date() != now.date()
+        or (now - _utc(visit["last_seen_at"])).total_seconds() >= 1800):
+      record_site_page(page)
+      return {"ok": True, "recorded": False, "reason": "new_visit"}
+    previous = _utc(state.get("activity_at"))
+    if previous is None or state.get("activity_page") != page:
+      state.update(activity_page=page, activity_at=now)
+      _remember(state)
+      return {"ok": True, "recorded": False, "reason": "new_page"}
+    elapsed = (now - previous).total_seconds()
+    if elapsed < 1:
+      return {"ok": True, "recorded": False, "reason": "repeat"}
+    accepted = min(float(seconds), elapsed, 45.0)
+    activity = dict(visit["tab_activity"] or {})
+    activity[page] = round(float(activity.get(page, 0)) + accepted, 3)
+    visit.update(tab_activity=activity, last_seen_at=now)
+    state.update(activity_at=now)
+    _remember(state)
+  except RowDeleted:
+    return {"ok": True, "recorded": False, "reason": "expired_visit"}
   return {"ok": True, "recorded": True}
 
 

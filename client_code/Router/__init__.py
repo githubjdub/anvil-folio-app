@@ -131,7 +131,6 @@ class Router(RouterTemplate):
         self._editor_form = editor
         if get_open_form() is not editor:
           open_form(editor)
-          record_page("dashboard")
         self._discarded_editor = None
         if page == "notifications":
           editor.open_notifications()

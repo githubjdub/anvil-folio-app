@@ -16,6 +16,9 @@ class TaxSaleRow(TaxSaleRowTemplate):
       format_shares(self.item["shares"]), money(self.item["price"]), self.item["method"],
       format_shares(self.item["remaining_shares"]))
 
+  def holding_periods(self):
+    return "Short-term %s · long-term %s" % (money(self.item["short_term"], True), money(self.item["long_term"], True))
+
   def set_editable(self, editable=True, **event_args):
     self.edit_button.enabled = editable
     self.remove_button.enabled = editable

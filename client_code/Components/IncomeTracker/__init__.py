@@ -40,7 +40,7 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._transactions = []
     self._as_of = None
     self._clear_report()
-    self.context_label.text = "Sync a portfolio to track income and review its losing tax lots."
+    self.context_label.text = "Sync a portfolio to track income and compare winning and losing positions."
     self._set_status("")
     self._update_controls()
 

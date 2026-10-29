@@ -110,6 +110,15 @@ def _simulate(tax, sales):
 
 def simulate_sales(tax, sales):
   result = _simulate(tax, sales)
+  result["holding_periods"] = []
+  for term, key in (("Short-term", "short_term"), ("Long-term", "long_term")):
+    lots = [lot for lot in result["lots"] if lot["term"] == term]
+    result["holding_periods"].append({"term": term,
+      "gains": _total(max(0.0, lot["gain"]) for lot in lots),
+      "losses": _total(min(0.0, lot["gain"]) for lot in lots),
+      "net": result["totals"][key]})
+  result["netting"] = net_holding_periods(result["totals"]["short_term"], result["totals"]["long_term"])
+  result["ytd_netting"] = net_holding_periods(result["totals"]["ytd_short_term"], result["totals"]["ytd_long_term"])
   comparisons = []
   for label, method in METHODS:
     try:
@@ -119,6 +128,40 @@ def simulate_sales(tax, sales):
       comparisons.append({"method": method, "available": False, "note": str(exc),
                           "gain": None, "short_term": None, "long_term": None})
   result["comparisons"] = comparisons
+  return result
+
+
+def net_holding_periods(short_term, long_term):
+  """Illustrate cross-period netting of complete ordinary capital-asset totals.
+
+  Inputs have already been netted within each holding period. This illustration
+  excludes wash-sale adjustments, carryforwards, special asset rules and taxes.
+  Unknown YTD totals must remain unknown instead of implying a zero balance.
+  """
+  if short_term is None or long_term is None:
+    return {"available": False, "offset": None, "short_term": None, "long_term": None}
+  short_term, long_term = _finite(short_term), _finite(long_term)
+  offset = 0.0
+  if short_term > 0 and long_term < 0:
+    offset = min(short_term, -long_term)
+    short_term, long_term = short_term - offset, long_term + offset
+  elif short_term < 0 and long_term > 0:
+    offset = min(-short_term, long_term)
+    short_term, long_term = short_term + offset, long_term - offset
+  return {"available": True, "offset": offset, "short_term": short_term, "long_term": long_term}
+
+
+def netting_description(netting):
+  if not netting["available"]:
+    return "Netting is unavailable because some year-to-date trade prices are missing."
+  remaining = []
+  for key, title in (("short_term", "short-term"), ("long_term", "long-term")):
+    value = netting[key]
+    if abs(value) >= 0.005:
+      remaining.append("%s %s %s" % (money(abs(value)), title, "gain" if value > 0 else "loss"))
+  result = "Remaining: %s." % (" and ".join(remaining)) if remaining else "No net gain or loss remains."
+  if netting["offset"] >= 0.005:
+    return "%s of gains and losses offset across holding periods. %s" % (money(netting["offset"]), result)
   return result
 
 

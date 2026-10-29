@@ -1,0 +1,8 @@
+<article class="tax-netting-row">
+  <div class="tax-netting-heading"><anvil-component type="Label" name="term_label" bind:text="self.item['term']" prop:role="tax-symbol"></anvil-component><anvil-component type="Label" name="period_label" bind:text="self.holding_period()" prop:role="tax-caption"></anvil-component></div>
+  <div class="tax-netting-values">
+    <div><span class="tax-field-label">Gains</span><anvil-component type="Label" name="gains_label" bind:text="self.money(self.item['gains'], True)" bind:role="self.value_role(self.item['gains'])"></anvil-component></div>
+    <div><span class="tax-field-label">Losses</span><anvil-component type="Label" name="losses_label" bind:text="self.money(self.item['losses'], True)" bind:role="self.value_role(self.item['losses'])"></anvil-component></div>
+    <div><span class="tax-field-label">Net</span><anvil-component type="Label" name="net_label" bind:text="self.money(self.item['net'], True)" bind:role="self.value_role(self.item['net'])"></anvil-component></div>
+  </div>
+</article>

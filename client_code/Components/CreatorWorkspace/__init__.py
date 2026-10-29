@@ -14,6 +14,7 @@ class CreatorWorkspace(CreatorWorkspaceTemplate):
     self.trade_action_dropdown.items = [("Any action", None), ("Buy entries", "Buy"), ("Sell entries", "Sell")]
     self._reset_private_state()
     self.site_analytics.configure_access(False, None)
+    self.monitor.configure_access(False, None)
     self.creator_email_label.text = ""
     self.visible = False
     self.show_status("Open the creator workspace to browse accounts and saved portfolios.")
@@ -69,6 +70,7 @@ class CreatorWorkspace(CreatorWorkspaceTemplate):
     self._creator_email = email
     self._reset_private_state()
     self.site_analytics.configure_access(enabled, email)
+    self.monitor.configure_access(enabled, email)
     self.creator_email_label.text = email
     self.show_status("Open the creator workspace to browse accounts and saved portfolios." if enabled else "")
     self.visible = enabled
@@ -96,11 +98,12 @@ class CreatorWorkspace(CreatorWorkspaceTemplate):
       ("portfolios", self.portfolios_region, self.portfolios_tab_button),
       ("activity", self.activity_region, self.activity_tab_button),
       ("analytics", self.analytics_region, self.analytics_tab_button),
+      ("monitor", self.monitor_region, self.monitor_tab_button),
     ):
       region.visible = self._active_tab == name
       button.role = "creator-tab-active" if self._active_tab == name else "creator-tab"
     self.portfolio_scope_region.visible = self._active_tab != "analytics"
-    self.status_region.visible = self._active_tab != "analytics"
+    self.status_region.visible = self._active_tab not in ("analytics", "monitor")
 
   def _select_tab(self, tab):
     if not self._can_edit():
@@ -115,6 +118,13 @@ class CreatorWorkspace(CreatorWorkspaceTemplate):
       self._load_activity()
     elif tab == "analytics":
       self.site_analytics.open_dashboard()
+    elif tab == "monitor":
+      self.monitor.set_scope(self._include_own)
+      self.monitor.open_dashboard()
+
+  @handle("monitor_tab_button", "click")
+  def show_monitor(self, **event_args):
+    self._select_tab("monitor")
 
   @handle("accounts_tab_button", "click")
   @handle("back_accounts_button", "click")
@@ -143,7 +153,7 @@ class CreatorWorkspace(CreatorWorkspaceTemplate):
     for component in (
       self.accounts_search_box, self.accounts_search_button,
       self.accounts_tab_button, self.portfolios_tab_button, self.activity_tab_button,
-      self.analytics_tab_button,
+      self.analytics_tab_button, self.monitor_tab_button,
       self.search_box, self.search_button, self.refresh_button,
       self.include_own_checkbox, self.trade_action_dropdown, self.activity_mode_dropdown,
       self.clear_account_button, self.back_accounts_button,
@@ -157,6 +167,7 @@ class CreatorWorkspace(CreatorWorkspaceTemplate):
                   self.stock_popularity_panel, self.more_stocks_panel):
       panel.raise_event_on_children("x-set-editable", editable=editable)
     self.site_analytics.raise_event("x-set-editable", editable=editable)
+    self.monitor.raise_event("x-set-editable", editable=editable)
 
   def _begin_load(self, message):
     if not self._can_edit():
@@ -300,6 +311,7 @@ class CreatorWorkspace(CreatorWorkspaceTemplate):
       self._load_accounts(self._accounts_page + 1)
 
   @handle("accounts_panel", "x-browse-account")
+  @handle("monitor", "x-browse-account")
   def browse_account(self, account_id, **event_args):
     if not self._can_edit():
       return
@@ -367,6 +379,8 @@ class CreatorWorkspace(CreatorWorkspaceTemplate):
       self._apply_filters(refresh=True)
     elif self._active_tab == "analytics":
       self.site_analytics.refresh()
+    elif self._active_tab == "monitor":
+      self.monitor.refresh()
     else:
       self._load_activity()
 

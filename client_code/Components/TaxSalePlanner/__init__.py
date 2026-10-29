@@ -1,6 +1,6 @@
 from anvil import *
 from ._anvil_designer import TaxSalePlannerTemplate
-from ...tax_scenarios import METHODS, SaleInputError, simulate_sales, money, value_role, format_shares
+from ...tax_scenarios import METHODS, SaleInputError, simulate_sales, money, value_role, format_shares, netting_description
 
 
 class TaxSalePlanner(TaxSalePlannerTemplate):
@@ -130,6 +130,7 @@ class TaxSalePlanner(TaxSalePlannerTemplate):
     self.sales_panel.items = result["sales"] if result else []
     self.comparisons_panel.items = result["comparisons"] if result else []
     self.lots_panel.items = result["lots"] if result else []
+    self.netting_panel.items = result["holding_periods"] if result else []
     self.scenario_count_label.text = "%s sale%s in this scenario" % (len(self._sales), "" if len(self._sales) == 1 else "s")
     if result:
       totals = result["totals"]
@@ -140,8 +141,10 @@ class TaxSalePlanner(TaxSalePlannerTemplate):
       self.proceeds_label.text = money(totals["proceeds"])
       self.basis_label.text = money(totals["cost_basis"])
       self.ytd_terms_label.text = "Short-term %s · long-term %s" % (money(totals["ytd_short_term"], True), money(totals["ytd_long_term"], True))
+      self.netting_label.text = netting_description(result["netting"])
+      self.ytd_netting_label.text = netting_description(result["ytd_netting"])
       self.wash_label.visible = totals["flagged_loss"] > 0
-      self.wash_label.text = "%s of modeled losses have recent-purchase flags. Results below are before wash-sale adjustments." % money(totals["flagged_loss"])
+      self.wash_label.text = "%s of modeled losses have recent-purchase flags. Review potential wash sales: the modeled offsets below may not be deductible as shown." % money(totals["flagged_loss"])
       self.estimated_label.visible = totals["basis_estimated"]
       self.estimated_label.text = "This scenario includes estimated purchase prices. Check the basis against your broker records."
     self._update_controls()

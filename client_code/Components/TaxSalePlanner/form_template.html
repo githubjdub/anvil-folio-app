@@ -3,7 +3,7 @@ custom_component: true
 ---
 <section class="tax-sale-planner">
   <header class="tax-section-heading"><div><span class="tax-eyebrow">Build a scenario</span><h4>Sale simulator</h4></div><span class="tax-sandbox-badge">What-if only</span></header>
-  <p class="tax-copy">Mix winning and losing positions. Choose shares, a sale price and which lots to use, then add the sale to see the combined result.</p>
+  <p class="tax-copy">Combine a winner with a loser: choose shares, a sale price and a lot method for each position, then add both sales to compare the combined short-term and long-term result.</p>
   <anvil-component type="Label" name="snapshot_label" prop:role="tax-caption"></anvil-component>
   <anvil-component type="Label" name="no_positions_label" prop:text="There are no open positions in this snapshot." prop:role="tax-caption"></anvil-component>
   <div anvil:name="entry_region" class="tax-sale-entry">
@@ -28,12 +28,17 @@ custom_component: true
       <div><span class="tax-field-label">Short-term</span><anvil-component type="Label" name="short_label" prop:role="tax-number"></anvil-component></div>
       <div><span class="tax-field-label">Long-term</span><anvil-component type="Label" name="long_label" prop:role="tax-number"></anvil-component></div>
     </div>
-    <div class="tax-ytd-result"><div><span class="tax-field-label">YTD net if these sales were added</span><anvil-component type="Label" name="ytd_terms_label" prop:role="tax-caption"></anvil-component></div><anvil-component type="Label" name="ytd_label" prop:role="tax-number"></anvil-component></div>
     <anvil-component type="Label" name="wash_label" prop:role="tax-review-note"></anvil-component>
     <anvil-component type="Label" name="estimated_label" prop:role="tax-review-note"></anvil-component>
+    <section class="tax-offset-section" aria-label="Gains and losses by holding period">
+      <div class="tax-comparison-heading"><h5>How the winners and losers combine</h5><p class="tax-copy">First combine gains and losses within each holding period, then offset any remaining gain against a loss in the other period. These modeled amounts are before wash-sale adjustments.</p></div>
+      <anvil-component type="RepeatingPanel" name="netting_panel" prop:item_template="M3_App_1.Components.TaxNettingRow" prop:role="tax-netting-grid"></anvil-component>
+      <div class="tax-netting-explanation"><span class="tax-field-label">Modeled scenario after netting</span><anvil-component type="Label" name="netting_label" prop:role="tax-caption"></anvil-component></div>
+    </section>
+    <div class="tax-ytd-result"><div><span class="tax-field-label">YTD net if these sales were added</span><anvil-component type="Label" name="ytd_terms_label" prop:role="tax-caption"></anvil-component></div><anvil-component type="Label" name="ytd_label" prop:role="tax-number"></anvil-component><div class="tax-ytd-netting"><span class="tax-field-label">Modeled YTD after netting</span><anvil-component type="Label" name="ytd_netting_label" prop:role="tax-caption"></anvil-component></div></div>
     <div class="tax-comparison-heading"><h5>Compare lot methods</h5><p class="tax-copy">Same shares and prices, with one method applied to every sale.</p></div>
     <anvil-component type="RepeatingPanel" name="comparisons_panel" prop:item_template="M3_App_1.Components.TaxMethodRow" prop:role="tax-method-grid"></anvil-component>
     <details class="tax-lot-details"><summary>See the exact lots used in your scenario</summary><anvil-component type="RepeatingPanel" name="lots_panel" prop:item_template="M3_App_1.Components.TaxSaleLotRow" prop:role="tax-compact-list"></anvil-component></details>
   </section>
-  <p class="tax-assumption">Uses the remaining FIFO lots and holding periods at the snapshot date. Changing lot selection here affects only the hypothetical sales. LIFO and HIFO require appropriate lot identification with your broker. This simulator does not place trades or change your transactions.</p>
+  <p class="tax-assumption">Uses the remaining FIFO lots and holding periods at the snapshot date. Generally, short-term means held one year or less; long-term means more than one year. Netting excludes wash-sale adjustments, carryforwards, fees and special asset rules; it does not estimate tax owed. LIFO and HIFO require appropriate lot identification with your broker. <a href="https://www.irs.gov/taxtopics/tc409" target="_blank" rel="noopener noreferrer">IRS holding periods &amp; gains/losses ↗</a> This simulator does not place trades or change your transactions.</p>
 </section>
