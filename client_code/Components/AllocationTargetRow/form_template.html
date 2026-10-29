@@ -1,0 +1,23 @@
+<div class="ag-target-row">
+  <div class="ag-asset">
+    <span anvil:name="swatch" class="ag-swatch" aria-hidden="true"></span>
+    <div>
+      <anvil-component type="Label" name="asset_label" bind:text="self.item['name']" prop:role="ag-asset-name" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+      <anvil-component type="Label" name="asset_hint" bind:text="self.item['hint']" prop:role="ag-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    </div>
+  </div>
+  <div class="ag-target">
+    <span class="ag-mobile-label">Target</span>
+    <anvil-component type="Label" name="percent_label" bind:text="str(self.item['target_percent']) + '%'" prop:role="ag-weight" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="target_label" bind:text="self.item['target_text']" prop:role="ag-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <label anvil:name="current_region" class="ag-current">
+    <span class="ag-mobile-label">Current balance · USD</span>
+    <anvil-component type="TextBox" name="current_box" writeback:text="self.item['current_input']" bind:tooltip="'Current balance in ' + self.item['name'] + ' (USD)'" prop:placeholder="0.00" prop:role="ag-field" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </label>
+  <div anvil:name="difference_region" class="ag-difference">
+    <span class="ag-mobile-label">Gap to target</span>
+    <anvil-component type="Label" name="difference_label" bind:text="self.item['difference_text']" prop:role="ag-gap" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="difference_hint" bind:text="self.item['difference_hint']" prop:role="ag-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+</div>

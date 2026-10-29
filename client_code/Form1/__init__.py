@@ -139,6 +139,7 @@ class Form1(Form1Template):
     self._update_retirement_context()
     self._update_simulations_context()
     self._update_net_worth_context()
+    self._update_allocation_context()
     if self._history is not None:
       self.period_label.text = "%s · %d selected open holdings%s" % (
         self._history["metadata"]["end_date"], self._history["metrics"]["holding_count"],
@@ -162,6 +163,8 @@ class Form1(Form1Template):
       self.readout_tab_context.text = "Retirement · Explore future savings and spending"
     elif self._readout_page == "networth":
       self.readout_tab_context.text = "Net Worth · Your assets, debts and progress over time"
+    elif self._readout_page == "allocation":
+      self.readout_tab_context.text = "Allocation · Explore Schwab models and your portfolio structure"
     elif self._analysis_source is not None:
       count = len(self._analysis_source["selection_data"]["securities"])
       self.readout_tab_context.text = "%s · %d of %d securities selected" % (
@@ -174,7 +177,8 @@ class Form1(Form1Template):
     has_analysis = self._history is not None
     portfolio_page = self._readout_page not in ("retirement", "simulations", "dividends", "passive", "tax", "notifications", "networth")
     self.results_section.visible = has_analysis and portfolio_page
-    self.empty_results.visible = not has_analysis and portfolio_page
+    self.empty_results.visible = not has_analysis and portfolio_page and self._readout_page != "allocation"
+    self.allocation_guide_panel.visible = self._readout_page == "allocation"
     self.hedge_fund_panel.visible = self._readout_page == "performance"
     for name, panel, button in (
       ("overview", self.overview_panel, self.overview_tab_button),
@@ -260,6 +264,8 @@ class Form1(Form1Template):
   def _resize_readout_charts(self):
     if self._readout_page == "networth":
       self.net_worth_form.redraw()
+    elif self._readout_page == "allocation":
+      self.allocation_guide.redraw()
     if self._history is None:
       return
     for name, plot in self._page_charts(self._readout_page):
@@ -284,6 +290,8 @@ class Form1(Form1Template):
       self.retirement_form.apply_appearance()
     elif self._readout_page == "networth":
       self.net_worth_form.apply_appearance()
+    elif self._readout_page == "allocation":
+      self.allocation_guide.apply_appearance()
     if self._creator_open:
       self.creator_workspace.apply_appearance()
     if self.share_composer.visible:
@@ -378,6 +386,14 @@ class Form1(Form1Template):
   @handle("net_worth_tab_button", "click")
   def net_worth_tab_click(self, **event_args):
     self._select_readout_page("networth")
+
+  def _update_allocation_context(self):
+    value = None
+    as_of = None
+    if self._history is not None and self._selected_symbols:
+      value = self._history["metrics"]["market_value"]
+      as_of = self._history["metadata"]["end_date"]
+    self.allocation_guide.set_portfolio_context(value, as_of)
 
   def _update_net_worth_context(self):
     value = None
@@ -883,6 +899,7 @@ class Form1(Form1Template):
     self.income_form.raise_event("x-set-editable", editable=not self._busy)
     self.notifications_form.set_editable(editable=not self._busy)
     self.net_worth_form.set_editable(editable=not self._busy)
+    self.allocation_guide.set_editable(editable=not self._busy)
     self.retirement_form.raise_event("x-set-editable", editable=not self._busy)
     self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
     self.hedge_fund_comparison.raise_event("x-set-editable", editable=not self._busy)
@@ -919,6 +936,7 @@ class Form1(Form1Template):
     self.account_id = self._user.get_id() if self._user is not None else None
     if self.account_id != previous_account_id:
       self._set_notification_unread_count(0)
+      self.allocation_guide.reset_workspace()
     self.notifications_form.set_account_context(self.account_id)
     self.net_worth_form.set_account_context(self.account_id)
     self._username = ""
@@ -1108,6 +1126,7 @@ class Form1(Form1Template):
     self.simulations_form.reset_workspace()
     self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
+    self.allocation_guide.reset_workspace()
     self.portfolio_name_box.text = ""
     self.transactions = [self._new_transaction()]
     self._refresh_transactions()
@@ -1247,6 +1266,7 @@ class Form1(Form1Template):
     self.simulations_form.reset_workspace()
     self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
+    self.allocation_guide.reset_workspace()
     self._current_portfolio = portfolio
     self.portfolio_name_box.text = portfolio["name"]
     # Reopening a portfolio starts a fresh analysis through today. Users can
