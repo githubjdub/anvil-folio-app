@@ -138,6 +138,7 @@ class Form1(Form1Template):
   def _update_readout_context(self):
     self._update_retirement_context()
     self._update_simulations_context()
+    self._update_net_worth_context()
     if self._history is not None:
       self.period_label.text = "%s · %d selected open holdings%s" % (
         self._history["metadata"]["end_date"], self._history["metrics"]["holding_count"],
@@ -146,7 +147,7 @@ class Form1(Form1Template):
     name = {"overview": "Overview", "allocation": "Portfolio structure",
             "performance": "Performance", "dividends": "Dividends", "passive": "Passive Income",
             "tax": "Tax Harvester", "simulations": "Simulations", "retirement": "Retirement",
-            "notifications": "Notifications"}[self._readout_page]
+            "notifications": "Notifications", "networth": "Net Worth"}[self._readout_page]
     if self._readout_page == "simulations":
       self.readout_tab_context.text = "Simulations · Compare reinvestment, cash and a fixed-rate account"
     elif self._readout_page in ("dividends", "passive", "tax"):
@@ -159,6 +160,8 @@ class Form1(Form1Template):
       self.readout_tab_context.text = "Notifications · Insider activity, your inbox, and delivery preferences"
     elif self._readout_page == "retirement":
       self.readout_tab_context.text = "Retirement · Explore future savings and spending"
+    elif self._readout_page == "networth":
+      self.readout_tab_context.text = "Net Worth · Your assets, debts and progress over time"
     elif self._analysis_source is not None:
       count = len(self._analysis_source["selection_data"]["securities"])
       self.readout_tab_context.text = "%s · %d of %d securities selected" % (
@@ -169,7 +172,7 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    portfolio_page = self._readout_page not in ("retirement", "simulations", "dividends", "passive", "tax", "notifications")
+    portfolio_page = self._readout_page not in ("retirement", "simulations", "dividends", "passive", "tax", "notifications", "networth")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
     self.hedge_fund_panel.visible = self._readout_page == "performance"
@@ -178,6 +181,7 @@ class Form1(Form1Template):
       ("allocation", self.allocation_panel, self.allocation_tab_button),
       ("performance", self.performance_panel, self.performance_tab_button),
       ("retirement", self.retirement_panel, self.retirement_tab_button),
+      ("networth", self.net_worth_panel, self.net_worth_tab_button),
       ("simulations", self.simulations_panel, self.simulations_tab_button),
       ("notifications", self.notifications_panel, self.notifications_tab_button),
     ):
@@ -208,6 +212,9 @@ class Form1(Form1Template):
         self.income_form.redraw()
       elif self._readout_page == "retirement":
         self.retirement_form.redraw()
+      elif self._readout_page == "networth":
+        self.net_worth_form.ensure_loaded()
+        self.net_worth_form.redraw()
 
   def _render_active_readout(self):
     self._ensure_readout_rendered(self._readout_page)
@@ -251,6 +258,8 @@ class Form1(Form1Template):
     return (round(bounds.width), round(bounds.height))
 
   def _resize_readout_charts(self):
+    if self._readout_page == "networth":
+      self.net_worth_form.redraw()
     if self._history is None:
       return
     for name, plot in self._page_charts(self._readout_page):
@@ -273,6 +282,8 @@ class Form1(Form1Template):
       self.income_form.apply_appearance()
     elif self._readout_page == "retirement":
       self.retirement_form.apply_appearance()
+    elif self._readout_page == "networth":
+      self.net_worth_form.apply_appearance()
     if self._creator_open:
       self.creator_workspace.apply_appearance()
     if self.share_composer.visible:
@@ -280,7 +291,7 @@ class Form1(Form1Template):
 
   def _select_readout_page(self, page):
     if (self._busy or page == self._readout_page or
-        page not in ("overview", "allocation", "performance", "simulations", "retirement", "dividends", "passive", "tax", "notifications")):
+        page not in ("overview", "allocation", "performance", "simulations", "retirement", "dividends", "passive", "tax", "notifications", "networth")):
       return
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
@@ -363,6 +374,32 @@ class Form1(Form1Template):
   @handle("retirement_tab_button", "click")
   def retirement_tab_click(self, **event_args):
     self._select_readout_page("retirement")
+
+  @handle("net_worth_tab_button", "click")
+  def net_worth_tab_click(self, **event_args):
+    self._select_readout_page("networth")
+
+  def _update_net_worth_context(self):
+    value = None
+    as_of = None
+    if self._history is not None and self._selected_symbols:
+      value = self._history["metrics"]["market_value"]
+      as_of = self._history["metadata"]["end_date"]
+    self.net_worth_form.set_portfolio_context(value, as_of)
+
+  @handle("net_worth_form", "x-net-worth-busy")
+  def net_worth_busy_change(self, busy, **event_args):
+    self._set_busy(busy)
+
+  @handle("net_worth_form", "x-sign-in")
+  def net_worth_sign_in(self, **event_args):
+    if self._busy:
+      return
+    self._set_busy(True)
+    try:
+      self._ensure_signed_in()
+    finally:
+      self._set_busy(False)
 
   def _update_retirement_context(self):
     value = None
@@ -816,7 +853,7 @@ class Form1(Form1Template):
       self.transaction_view_dropdown, self.regroup_button,
       self.collapse_all_button, self.expand_all_button, self.collapse_prior_years_button,
       self.overview_tab_button, self.allocation_tab_button,
-      self.performance_tab_button, self.retirement_tab_button,
+      self.performance_tab_button, self.retirement_tab_button, self.net_worth_tab_button,
       self.simulations_tab_button, self.dividends_tab_button, self.passive_tab_button,
       self.tax_tab_button, self.notifications_tab_button, self.toggle_transactions_button,
       self.creator_tab_button, self.creator_setup_button,
@@ -845,6 +882,7 @@ class Form1(Form1Template):
     self.simulations_form.raise_event("x-set-editable", editable=not self._busy)
     self.income_form.raise_event("x-set-editable", editable=not self._busy)
     self.notifications_form.set_editable(editable=not self._busy)
+    self.net_worth_form.set_editable(editable=not self._busy)
     self.retirement_form.raise_event("x-set-editable", editable=not self._busy)
     self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
     self.hedge_fund_comparison.raise_event("x-set-editable", editable=not self._busy)
@@ -858,6 +896,8 @@ class Form1(Form1Template):
       self.income_form.ensure_loaded()
     elif not busy and self._readout_page == "notifications":
       self.notifications_form.ensure_loaded()
+    elif not busy and self._readout_page == "networth":
+      self.net_worth_form.ensure_loaded()
 
   def _refresh_portfolios(self):
     portfolios = anvil.server.call("list_portfolios") if self._user is not None else []
@@ -880,6 +920,7 @@ class Form1(Form1Template):
     if self.account_id != previous_account_id:
       self._set_notification_unread_count(0)
     self.notifications_form.set_account_context(self.account_id)
+    self.net_worth_form.set_account_context(self.account_id)
     self._username = ""
     if self._user is not None:
       # A saved profile can be newer than the Users row cached in this browser.

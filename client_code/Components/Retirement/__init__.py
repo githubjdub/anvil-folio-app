@@ -175,7 +175,7 @@ class Retirement(RetirementTemplate):
                    "y": [row["p50"] for row in years], "name": "Median balance",
                    "line": {"color": chart_theme.POSITIVE, "width": 3},
                    "customdata": [[row["p10"], row["p90"]] for row in years],
-                   "hovertemplate": "Age %{x}<br>Median: $%{y:,.0f}<br>10th: $%{customdata[0]:,.0f}<br>90th: $%{customdata[1]:,.0f}<extra></extra>"})
+                   "hovertemplate": "Age %{x}<br>90th: $%{customdata[1]:,.0f}<br>Median: $%{y:,.0f}<br>10th: $%{customdata[0]:,.0f}<extra></extra>"})
     retirement_age = self._result["inputs"]["retirement_age"]
     self.projection_plot.data = traces
     self.projection_plot.layout = chart_theme.layout({

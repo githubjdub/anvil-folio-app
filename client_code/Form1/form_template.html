@@ -198,6 +198,7 @@
           <div class="readout-nav-group" role="group" aria-label="Planning">
             <span class="readout-group-label">Planning</span>
             <div class="readout-group-buttons readout-planning-buttons">
+              <anvil-component type="m3._Components.Button" name="net_worth_tab_button" prop:text="Net Worth" prop:appearance="text" prop:role="readout-tab"></anvil-component>
               <div class="readout-tab-with-badge">
                 <anvil-component type="m3._Components.Button" name="simulations_tab_button" prop:text="Simulations" prop:appearance="text" prop:role="readout-tab"></anvil-component>
                 <span class="feature-beta-badge" title="Work in progress">Beta</span>
@@ -356,6 +357,9 @@
           </section>
         </section>
         <section anvil:name="hedge_fund_panel" class="readout-page detail-card hedge-fund-subsection" aria-label="Hedge fund comparisons"><anvil-component type="M3_App_1.Components.HedgeFundComparison" name="hedge_fund_comparison"></anvil-component></section>
+        <section anvil:name="net_worth_panel" class="readout-page" aria-label="Net worth balance sheet">
+          <anvil-component type="M3_App_1.Components.NetWorth" name="net_worth_form"></anvil-component>
+        </section>
         <section anvil:name="retirement_panel" class="readout-page" aria-label="Retirement projections">
           <anvil-component type="M3_App_1.Components.Retirement" name="retirement_form"></anvil-component>
         </section>
