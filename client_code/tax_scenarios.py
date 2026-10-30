@@ -97,8 +97,10 @@ def _simulate(tax, sales):
       "basis_estimated": any(lot["basis_estimated"] for lot in used),
       "price_date": position["price_date"]})
     allocations.extend(used)
-  total = {key: _total(sale[key] for sale in results)
-           for key in ("cost_basis", "proceeds", "gain", "short_term", "long_term", "flagged_loss")}
+  # Skulpt cannot compile a generator nested inside a dictionary comprehension.
+  total = {}
+  for key in ("cost_basis", "proceeds", "gain", "short_term", "long_term", "flagged_loss"):
+    total[key] = _total(sale[key] for sale in results)
   for key, field in (("ytd_short_term", "realized_short_term"),
                      ("ytd_long_term", "realized_long_term"), ("ytd_net", "realized_net")):
     extra = total[{"ytd_short_term": "short_term", "ytd_long_term": "long_term", "ytd_net": "gain"}[key]]
