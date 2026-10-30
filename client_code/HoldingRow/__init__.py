@@ -37,7 +37,8 @@ class HoldingRow(HoldingRowTemplate):
     action = self.item.get("action") or "Buy"
     shares = self._positive_number(self.item.get("shares"))
     quantity = ("%s shares" % self._compact_number(shares)) if shares is not None else "Add shares"
-    self.summary_title_label.text = "%s · %s · %s" % (ticker, action, quantity)
+    self.summary_title_label.text = "%s · %s" % (ticker, action)
+    self.summary_quantity_label.text = "· " + quantity
     trade_date = self.item.get("trade_date")
     dated = trade_date.isoformat() if trade_date is not None else "Choose date"
     entered_price = self.item.get("trade_price")
@@ -56,7 +57,8 @@ class HoldingRow(HoldingRowTemplate):
         price_text += " (historical)"
       total = shares * price if shares is not None else None
       value_text = "$%s trade value" % format(total, ",.2f") if total is not None and not math.isinf(total) else "Add a valid share count"
-    self.summary_details_label.text = "%s · %s" % (dated, price_text)
+    self.summary_details_label.text = dated
+    self.summary_price_label.text = "· " + price_text
     self.summary_value_label.text = value_text
 
   def _show_expanded(self):

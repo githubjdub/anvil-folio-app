@@ -15,6 +15,7 @@
     <anvil-component type="M3_App_1.Components.ThemeSwitch" name="theme_switch"></anvil-component>
     </div>
   </header>
+  <p class="privacy-notice" role="status">Privacy mode is on. Amounts, quantities, and dollar charts are hidden; percentages remain visible. Choose Show amounts to edit hidden fields.</p>
 
   <main class="portfolio-shell">
     <section anvil:name="guest_hero" class="portfolio-hero">
@@ -117,11 +118,11 @@
                 <anvil-component type="m3._Components.TextInput.TextBox" name="pdf_password_box" prop:label="PDF password (optional)" prop:hide_text="true" prop:appearance="outlined" prop:role="pdf-password-field"></anvil-component>
                 <p class="image-import-help">PDF passwords are used only in your browser to open the file.</p>
               </div>
-              <anvil-component type="Image" name="holdings_image_preview" prop:height="150px" prop:display_mode="shrink_to_fit" prop:alt_text="Holdings image selected for import" prop:role="holdings-image-preview"></anvil-component>
+              <div class="privacy-block privacy-chart"><anvil-component type="Image" name="holdings_image_preview" prop:height="150px" prop:display_mode="shrink_to_fit" prop:alt_text="Holdings image selected for import" prop:role="holdings-image-preview"></anvil-component></div>
               <div anvil:name="image_import_status_region" class="image-import-status" role="status" aria-live="polite"><anvil-component type="Label" name="image_import_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
               <div anvil:name="image_import_review_region" class="image-import-review">
                 <div class="image-review-heading"><h4>Review detected positions</h4><anvil-component type="Label" name="image_import_count_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-                <anvil-component type="Label" name="image_import_warnings_label" prop:role="import-warnings" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
+                <anvil-component type="Label" name="image_import_warnings_label" prop:role='["import-warnings", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
                 <p class="image-import-help">Check every row before importing. A holdings snapshot becomes a Buy on the date its share quantities were current; it starts performance tracking there and does not reconstruct earlier trades or dividends. Use actual trade dates only for a transaction history. Purchase prices are filled only from labelled purchase cost or average cost, never the current quote.</p>
                 <div class="image-import-settings"><div><div class="portfolio-field-caption">Snapshot / fallback date</div><anvil-component type="DatePicker" name="image_import_date_picker" prop:role="date-field" prop:tooltip="Used for rows without a date. For current holdings, choose the date these quantities apply to."></anvil-component></div><div><div class="portfolio-field-caption">Import into this portfolio</div><anvil-component type="DropDown" name="image_import_mode_dropdown" prop:role="portfolio-picker"></anvil-component></div></div>
                 <anvil-component type="RepeatingPanel" name="image_import_rows_panel" prop:item_template="M3_App_1.Components.ImportedHoldingRow"></anvil-component>
@@ -173,7 +174,7 @@
         </details>
 
         <div anvil:name="status_region" class="status-region is-hidden">
-          <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
+          <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role='["status-label", "privacy-value"]'></anvil-component>
         </div>
         <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync history &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
         <anvil-component type="M3_App_1.Components.ShareComposer" name="share_composer"></anvil-component>
@@ -233,17 +234,17 @@
           <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="365 days · 2 open holdings" prop:role="period-label"></anvil-component></div>
           <section anvil:name="overview_panel" class="readout-page" aria-label="Portfolio overview">
           <div class="metric-grid">
-            <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Open positions at the latest available price</div></div>
+            <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role='["metric-value", "privacy-value"]'></anvil-component><div class="metric-sub">Open positions at the latest available price</div></div>
             <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Investment profit ÷ total buy capital</div></div>
             <div class="metric-card"><div class="metric-label">Annualized return</div><anvil-component type="Label" name="annualized_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Time-weighted · completed sessions</div></div>
-            <div class="metric-card metric-card-dark"><div class="metric-label">Dividends earned</div><anvil-component type="Label" name="dividends_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Held as cash · before tax</div></div>
+            <div class="metric-card metric-card-dark"><div class="metric-label">Dividends earned</div><anvil-component type="Label" name="dividends_label" prop:text="—" prop:role='["metric-value", "privacy-value"]'></anvil-component><div class="metric-sub">Held as cash · before tax</div></div>
           </div>
           <div class="detail-card">
             <div class="detail-heading"><h3>Portfolio anatomy</h3><span>Inputs included</span></div>
             <div class="detail-rows">
-              <div class="detail-row"><span>Buy capital</span><anvil-component type="Label" name="invested_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
-              <div class="detail-row"><span>Sale proceeds</span><anvil-component type="Label" name="sale_proceeds_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
-              <div class="detail-row"><span>Investment profit</span><anvil-component type="Label" name="profit_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
+              <div class="detail-row"><span>Buy capital</span><anvil-component type="Label" name="invested_label" prop:text="—" prop:role='["detail-value", "privacy-value"]'></anvil-component></div>
+              <div class="detail-row"><span>Sale proceeds</span><anvil-component type="Label" name="sale_proceeds_label" prop:text="—" prop:role='["detail-value", "privacy-value"]'></anvil-component></div>
+              <div class="detail-row"><span>Investment profit</span><anvil-component type="Label" name="profit_label" prop:text="—" prop:role='["detail-value", "privacy-value"]'></anvil-component></div>
             </div>
           </div>
           </section>
@@ -254,9 +255,9 @@
               <div><div class="portfolio-field-caption">Snapshot</div><anvil-component type="DropDown" name="allocation_quarter_dropdown" prop:role="portfolio-picker"></anvil-component></div>
               <div><div class="portfolio-field-caption">Break down by</div><anvil-component type="DropDown" name="allocation_view_dropdown" prop:role="portfolio-picker"></anvil-component></div>
             </div>
-            <anvil-component type="Label" name="sector_period_label" prop:role="portfolio-help"></anvil-component>
+            <anvil-component type="Label" name="sector_period_label" prop:role='["portfolio-help", "privacy-value"]'></anvil-component>
             <div class="structure-summary">
-              <div><span>Position value</span><anvil-component type="Label" name="allocation_value_label" prop:role="structure-value"></anvil-component></div>
+              <div><span>Position value</span><anvil-component type="Label" name="allocation_value_label" prop:role='["structure-value", "privacy-value"]'></anvil-component></div>
               <div><span>Open holdings</span><anvil-component type="Label" name="allocation_count_label" prop:role="structure-value"></anvil-component></div>
               <div><span>Largest holding</span><anvil-component type="Label" name="allocation_largest_label" prop:role="structure-value"></anvil-component></div>
               <div><span>Top 5 concentration</span><anvil-component type="Label" name="allocation_top5_label" prop:role="structure-value"></anvil-component></div>

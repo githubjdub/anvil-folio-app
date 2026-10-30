@@ -6,17 +6,17 @@
   <section class="tax-term-section">
     <h5>Unrealized · open positions</h5>
     <div class="income-row-metrics">
-      <div><span class="comparison-metric-label">Gains</span><anvil-component type="Label" name="unrealized_gains_label" bind:text="self.money(self.item.get('unrealized_gains'))" bind:role="self.value_role(self.item.get('unrealized_gains'))"></anvil-component></div>
-      <div><span class="comparison-metric-label">Losses</span><anvil-component type="Label" name="unrealized_losses_label" bind:text="self.money(self.item.get('unrealized_losses'))" bind:role="self.value_role(self.item.get('unrealized_losses'))"></anvil-component></div>
-      <div><span class="comparison-metric-label">Net</span><anvil-component type="Label" name="unrealized_net_label" bind:text="self.money(self.item.get('unrealized_net'))" bind:role="self.value_role(self.item.get('unrealized_net'))"></anvil-component></div>
+      <div><span class="comparison-metric-label">Gains</span><anvil-component type="Label" name="unrealized_gains_label" bind:text="self.money(self.item.get('unrealized_gains'))" bind:role="self.value_role(self.item.get('unrealized_gains')) + ['privacy-value']"></anvil-component></div>
+      <div><span class="comparison-metric-label">Losses</span><anvil-component type="Label" name="unrealized_losses_label" bind:text="self.money(self.item.get('unrealized_losses'))" bind:role="self.value_role(self.item.get('unrealized_losses')) + ['privacy-value']"></anvil-component></div>
+      <div><span class="comparison-metric-label">Net</span><anvil-component type="Label" name="unrealized_net_label" bind:text="self.money(self.item.get('unrealized_net'))" bind:role="self.value_role(self.item.get('unrealized_net')) + ['privacy-value']"></anvil-component></div>
     </div>
   </section>
   <section class="tax-term-section">
     <h5>Realized · year-to-date sales</h5>
     <div class="income-row-metrics">
-      <div><span class="comparison-metric-label">Gains</span><anvil-component type="Label" name="realized_gains_label" bind:text="self.money(self.item.get('realized_gains'))" bind:role="self.value_role(self.item.get('realized_gains'))"></anvil-component></div>
-      <div><span class="comparison-metric-label">Losses</span><anvil-component type="Label" name="realized_losses_label" bind:text="self.money(self.item.get('realized_losses'))" bind:role="self.value_role(self.item.get('realized_losses'))"></anvil-component></div>
-      <div><span class="comparison-metric-label">Net</span><anvil-component type="Label" name="realized_net_label" bind:text="self.money(self.item.get('realized_net'))" bind:role="self.value_role(self.item.get('realized_net'))"></anvil-component></div>
+      <div><span class="comparison-metric-label">Gains</span><anvil-component type="Label" name="realized_gains_label" bind:text="self.money(self.item.get('realized_gains'))" bind:role="self.value_role(self.item.get('realized_gains')) + ['privacy-value']"></anvil-component></div>
+      <div><span class="comparison-metric-label">Losses</span><anvil-component type="Label" name="realized_losses_label" bind:text="self.money(self.item.get('realized_losses'))" bind:role="self.value_role(self.item.get('realized_losses')) + ['privacy-value']"></anvil-component></div>
+      <div><span class="comparison-metric-label">Net</span><anvil-component type="Label" name="realized_net_label" bind:text="self.money(self.item.get('realized_net'))" bind:role="self.value_role(self.item.get('realized_net')) + ['privacy-value']"></anvil-component></div>
     </div>
   </section>
   <anvil-component type="Label" name="coverage_label" bind:text="self.coverage_note()" prop:role="portfolio-help"></anvil-component>

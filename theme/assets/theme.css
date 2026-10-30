@@ -1361,7 +1361,60 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
 
 /* Display choice is available from every main page, including public shares. */
 .portfolio-topbar-actions, .account-header-actions, .share-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; min-width: 0; }
-.appearance-control { flex-shrink: 0; }
+.appearance-control { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+.privacy-control { flex-shrink: 0; }
+.anvil-role-privacy-toggle-active > button {
+  border-color: var(--mint-strong); background: var(--mint); color: var(--ink);
+}
+.privacy-notice { display: none; }
+.privacy-inline { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35em; }
+.privacy-block { position: relative; min-width: 0; }
+
+/* Hide the real content, including selection, focusable inputs and tooltips.
+   Keep its layout so switching privacy never edits data or resets a Form. */
+html[data-privacy="on"] .anvil-role-privacy-value {
+  position: relative; visibility: hidden !important;
+  pointer-events: none; user-select: none;
+}
+html[data-privacy="on"] .anvil-role-privacy-value * {
+  visibility: hidden !important;
+}
+html[data-privacy="on"] .anvil-role-privacy-value::after {
+  content: "####"; visibility: visible !important; position: absolute;
+  left: 0; right: 0; top: 50%; transform: translateY(-50%);
+  color: var(--ink); font: inherit; line-height: 1.4; letter-spacing: .08em;
+  text-shadow: none; white-space: nowrap;
+}
+html[data-privacy="on"] .privacy-block > *,
+html[data-privacy="on"] .privacy-block * {
+  visibility: hidden !important; pointer-events: none !important; user-select: none !important;
+}
+html[data-privacy="on"] .privacy-block *::after,
+html[data-privacy="on"] .privacy-block *::before {
+  visibility: hidden !important;
+}
+html[data-privacy="on"] .privacy-block::after {
+  content: "####"; visibility: visible !important; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 24px; border: 1px dashed var(--line); border-radius: 8px;
+  color: var(--muted); background: var(--surface-soft); font-size: 14px; letter-spacing: .08em;
+  pointer-events: none; user-select: none;
+}
+html[data-privacy="on"] .privacy-chart::after {
+  content: "Hidden in privacy mode"; letter-spacing: normal; padding: 16px; text-align: center;
+}
+html[data-privacy="on"] .privacy-notice {
+  display: block; max-width: 1440px; margin: 0 auto 12px; padding: 10px 16px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft);
+  color: var(--muted); font-size: 12px; line-height: 1.6;
+}
+/* Percentage charts remain readable. Hover details may include trade amounts;
+   exports from a chart can also contain those details, so hide their controls. */
+html[data-privacy="on"] .js-plotly-plot .hoverlayer,
+html[data-privacy="on"] .js-plotly-plot .modebar-container,
+html[data-privacy="on"] .js-plotly-plot .modebar {
+  display: none !important;
+}
 .anvil-role-appearance-toggle { margin: 0; }
 .anvil-role-appearance-toggle > button {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
@@ -1381,7 +1434,7 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
   .portfolio-topbar-actions .market-status { margin-bottom: 8px; }
   .account-header-actions { width: 100%; justify-content: flex-start; gap: 12px; }
   .account-header-actions .subscription-nav { width: 100%; }
-  .share-header-actions { gap: 8px; }
+  .share-header-actions { gap: 8px; flex-wrap: wrap; }
 }
 
 /* Separate, readable methodology page. */

@@ -1,11 +1,11 @@
 <article class="retrospective-result-row">
   <div class="retrospective-row-copy">
-    <anvil-component type="Label" name="title_label" bind:text="self.item['title']" prop:role="chart-trade-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <anvil-component type="Label" name="detail_label" bind:text="self.item['detail']" prop:role="chart-trade-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="title_label" bind:text="self.item['title']" bind:role="['chart-trade-title'] + (['privacy-value'] if self.item.get('is_trade', False) else [])" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="detail_label" bind:text="self.item['detail']" prop:role="[&quot;chart-trade-detail&quot;, &quot;privacy-value&quot;]" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <anvil-component type="Label" name="status_label" bind:text="self.item['status']" prop:role="chart-trade-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
   </div>
   <div class="retrospective-row-value">
-    <anvil-component type="Label" name="value_label" bind:text="self.item['value']" prop:role="security-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <anvil-component type="Label" name="subtitle_label" bind:text="self.item['subtitle']" prop:role="security-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="value_label" bind:text="self.item['value']" bind:role="['security-value'] + (['privacy-value'] if self.item.get('is_trade', False) else [])" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="subtitle_label" bind:text="self.item['subtitle']" bind:role="['security-detail'] + (['privacy-value'] if not self.item.get('is_trade', False) else [])" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
   </div>
 </article>

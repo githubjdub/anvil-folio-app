@@ -1,4 +1,4 @@
 <article class="tax-sale-lot-row">
-  <div><anvil-component type="Label" name="symbol_label" bind:text="self.item['symbol']" prop:role="tax-symbol"></anvil-component><anvil-component type="Label" name="details_label" bind:text="self.details()" prop:role="tax-caption"></anvil-component><anvil-component type="Label" name="values_label" bind:text="self.values()" prop:role="tax-caption"></anvil-component></div>
-  <anvil-component type="Label" name="gain_label" bind:text="self.money(self.item['gain'], True)" bind:role="self.value_role(self.item['gain'])"></anvil-component>
+  <div><anvil-component type="Label" name="symbol_label" bind:text="self.item['symbol']" prop:role="tax-symbol"></anvil-component><anvil-component type="Label" name="details_label" bind:text="self.details()" prop:role="[&quot;tax-caption&quot;, &quot;privacy-value&quot;]"></anvil-component><anvil-component type="Label" name="values_label" bind:text="self.values()" prop:role="[&quot;tax-caption&quot;, &quot;privacy-value&quot;]"></anvil-component></div>
+  <anvil-component type="Label" name="gain_label" bind:text="self.money(self.item['gain'], True)" bind:role="self.value_role(self.item['gain']) + ['privacy-value']"></anvil-component>
 </article>

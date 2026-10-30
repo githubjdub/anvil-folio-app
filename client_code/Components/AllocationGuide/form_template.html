@@ -6,11 +6,11 @@
     </header>
     <div class="ag-controls">
       <label class="ag-field-wrap"><span class="ag-field-label">Investment approach</span><anvil-component type="DropDown" name="model_dropdown" prop:include_placeholder="False" prop:role="ag-select" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></label>
-      <label anvil:name="amount_field" class="ag-field-wrap"><span class="ag-field-label">Portfolio amount · USD</span><anvil-component type="TextBox" name="amount_box" prop:role="ag-field" prop:placeholder="100000" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></label>
-      <div anvil:name="compare_total" class="ag-total"><span class="ag-field-label">Current balances · USD</span><anvil-component type="Label" name="total_label" prop:role="ag-total-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+      <label anvil:name="amount_field" class="ag-field-wrap"><span class="ag-field-label">Portfolio amount · USD</span><div class="privacy-block"><anvil-component type="TextBox" name="amount_box" prop:role="ag-field" prop:placeholder="100000" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div></label>
+      <div anvil:name="compare_total" class="ag-total"><span class="ag-field-label">Current balances · USD</span><anvil-component type="Label" name="total_label" prop:role='["ag-total-value", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
     </div>
     <div anvil:name="portfolio_import" class="ag-import">
-      <div><anvil-component type="Label" name="amount_note" prop:role="ag-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="portfolio_hint" prop:role="ag-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+      <div><anvil-component type="Label" name="amount_note" prop:role="ag-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="portfolio_hint" prop:role='["ag-caption", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
       <anvil-component type="m3._Components.Button" name="import_button" prop:text="Import portfolio value" prop:appearance="outlined" prop:role="ag-secondary-button"></anvil-component>
     </div>
     <div class="ag-model-overview">
@@ -27,7 +27,7 @@
     <div anvil:name="table_heading" class="ag-table-heading" aria-hidden="true"><span>Asset class</span><span>Model target</span><span anvil:name="current_heading">Current · USD</span><span anvil:name="gap_heading">Gap to target</span></div>
     <anvil-component type="RepeatingPanel" name="targets_panel" prop:item_template="M3_App_1.Components.AllocationTargetRow" prop:role="ag-target-list" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <div class="ag-calculation-status" role="status" aria-live="polite"><anvil-component type="Label" name="error_label" prop:role="ag-error" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-    <div class="ag-footer-actions"><anvil-component type="Label" name="calculation_note" prop:role="ag-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="m3._Components.Button" name="calculate_button" prop:text="Update targets" prop:appearance="filled" prop:role="ag-primary-button"></anvil-component></div>
+    <div class="ag-footer-actions"><anvil-component type="Label" name="calculation_note" prop:role='["ag-caption", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="m3._Components.Button" name="calculate_button" prop:text="Update targets" prop:appearance="filled" prop:role="ag-primary-button"></anvil-component></div>
     <footer class="ag-source">Source: <a href="https://advisorservices.schwab.com/node/112271" target="_blank" rel="noopener noreferrer">Schwab · What’s your mix? ↗</a> · Checked Oct 29, 2026.<br>Illustrative models, not a personal risk assessment. Choose a mix that fits your goals and risk tolerance. Scenarios are temporary and reset when you open another portfolio.</footer>
   </div>
 </section>

@@ -23,7 +23,7 @@
       <div><div class="portfolio-field-caption">Test from</div><anvil-component type="DatePicker" name="start_picker" prop:role="date-field"></anvil-component></div>
       <div><div class="portfolio-field-caption">Test through</div><anvil-component type="DatePicker" name="end_picker" prop:role="date-field"></anvil-component></div>
     </div>
-    <anvil-component type="m3._Components.TextInput.TextBox" name="capital_box" prop:label="Starting capital · USD" prop:text="10000" prop:type="number" prop:appearance="outlined" prop:role="holding-field"></anvil-component>
+    <div class="privacy-block"><anvil-component type="m3._Components.TextInput.TextBox" name="capital_box" prop:label="Starting capital · USD" prop:text="10000" prop:type="number" prop:appearance="outlined" prop:role="holding-field"></anvil-component></div>
     <anvil-component type="CheckBox" name="include_dividends_checkbox" prop:text="Include dividends · no reinvestment" prop:checked="true"></anvil-component>
     <div class="retrospective-execution-note"><strong>Rules known at the time</strong><p>Compare each completed daily close with the preceding lookback window, excluding that day. A qualifying close schedules a trade at the next session's open; it does not buy or sell at an extreme learned afterward. Opening gaps can change the execution price. Daily data cannot locate the exact second of a price touch.</p><p>Allocate capital equally across the filtered ticker list. Buy once per stock; sell once at the first qualifying exit, then hold any remainder. Unused capital and sale proceeds stay in cash. Dividends accrue on ex-dates as receivables, with no reinvestment.</p></div>
     <anvil-component type="m3._Components.Button" name="run_button" prop:text="Run retrospective test" prop:icon="mi:science" prop:appearance="filled" prop:role="analyze-action"></anvil-component>
@@ -34,14 +34,14 @@
     <h4 class="chart-title">Return on starting capital</h4>
     <anvil-component type="Plot" name="result_plot" prop:height="340px"></anvil-component>
     <div class="comparison-metrics">
-      <div><span class="comparison-metric-label">Starting capital</span><anvil-component type="Label" name="capital_label" prop:role="comparison-value"></anvil-component></div>
-      <div><span class="comparison-metric-label">Ending portfolio value</span><anvil-component type="Label" name="equity_label" prop:role="comparison-value"></anvil-component></div>
-      <div><span class="comparison-metric-label">Profit / loss</span><anvil-component type="Label" name="profit_label" prop:role="comparison-value"></anvil-component></div>
+      <div><span class="comparison-metric-label">Starting capital</span><anvil-component type="Label" name="capital_label" prop:role="[&quot;comparison-value&quot;, &quot;privacy-value&quot;]"></anvil-component></div>
+      <div><span class="comparison-metric-label">Ending portfolio value</span><anvil-component type="Label" name="equity_label" prop:role="[&quot;comparison-value&quot;, &quot;privacy-value&quot;]"></anvil-component></div>
+      <div><span class="comparison-metric-label">Profit / loss</span><anvil-component type="Label" name="profit_label" prop:role="[&quot;comparison-value&quot;, &quot;privacy-value&quot;]"></anvil-component></div>
       <div><span class="comparison-metric-label">Strategy return</span><anvil-component type="Label" name="return_label" prop:role="comparison-value"></anvil-component></div>
       <div><span class="comparison-metric-label">Same stocks · buy and hold</span><anvil-component type="Label" name="buy_hold_label" prop:role="comparison-value"></anvil-component></div>
       <div><span class="comparison-metric-label">SPY · buy and hold</span><anvil-component type="Label" name="benchmark_label" prop:role="comparison-value"></anvil-component></div>
-      <div><span class="comparison-metric-label">Accrued dividends</span><anvil-component type="Label" name="dividend_label" prop:role="comparison-value"></anvil-component></div>
-      <div><span class="comparison-metric-label">Cash + dividend receivables</span><anvil-component type="Label" name="cash_label" prop:role="comparison-value"></anvil-component></div>
+      <div><span class="comparison-metric-label">Accrued dividends</span><anvil-component type="Label" name="dividend_label" prop:role="[&quot;comparison-value&quot;, &quot;privacy-value&quot;]"></anvil-component></div>
+      <div><span class="comparison-metric-label">Cash + dividend receivables</span><anvil-component type="Label" name="cash_label" prop:role="[&quot;comparison-value&quot;, &quot;privacy-value&quot;]"></anvil-component></div>
       <div><span class="comparison-metric-label">Maximum drawdown</span><anvil-component type="Label" name="drawdown_label" prop:role="comparison-value"></anvil-component></div>
     </div>
     <h4>Results by security</h4>

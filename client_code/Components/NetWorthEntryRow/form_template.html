@@ -1,5 +1,5 @@
 <article class="nw-entry-row">
   <div class="nw-entry-name"><anvil-component type="Label" name="name_label" bind:text="self.item['name']" prop:role="nw-entry-name"></anvil-component><anvil-component type="Label" name="detail_label" bind:text="self.entry_detail(self.item)" prop:role="nw-caption"></anvil-component></div>
-  <anvil-component type="Label" name="amount_label" bind:text="self.money(self.item['amount'])" prop:role="nw-row-amount"></anvil-component>
+  <anvil-component type="Label" name="amount_label" bind:text="self.money(self.item['amount'])" prop:role="[&quot;nw-row-amount&quot;, &quot;privacy-value&quot;]"></anvil-component>
   <div class="nw-row-actions"><anvil-component type="Button" name="edit_button" prop:text="Edit" prop:role="nw-quiet-button" bind:tooltip="'Edit ' + self.item['name']"></anvil-component><anvil-component type="Button" name="remove_button" prop:text="Remove" prop:role="nw-quiet-button" bind:tooltip="'Remove ' + self.item['name']"></anvil-component></div>
 </article>

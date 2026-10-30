@@ -1,6 +1,6 @@
 <article class="tax-method-card">
   <anvil-component type="Label" name="method_label" bind:text="self.item['method']" prop:role="tax-symbol"></anvil-component>
-  <anvil-component type="Label" name="note_label" bind:text="self.item['note']" prop:role="tax-caption"></anvil-component>
-  <anvil-component type="Label" name="gain_label" bind:text="self.money(self.item['gain'], True)" bind:role="self.value_role(self.item['gain'])"></anvil-component>
-  <anvil-component type="Label" name="terms_label" bind:text="self.terms()" prop:role="tax-caption"></anvil-component>
+  <anvil-component type="Label" name="note_label" bind:text="self.item['note']" prop:role="[&quot;tax-caption&quot;, &quot;privacy-value&quot;]"></anvil-component>
+  <anvil-component type="Label" name="gain_label" bind:text="self.money(self.item['gain'], True)" bind:role="self.value_role(self.item['gain']) + ['privacy-value']"></anvil-component>
+  <anvil-component type="Label" name="terms_label" bind:text="self.terms()" prop:role="[&quot;tax-caption&quot;, &quot;privacy-value&quot;]"></anvil-component>
 </article>

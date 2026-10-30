@@ -10,13 +10,13 @@ custom_component: true
   <div anvil:name="workspace_region">
     <section class="nw-hero">
       <div class="nw-section-heading"><span class="nw-eyebrow">Assets minus debts</span><span class="nw-currency">USD · Current balances</span></div>
-      <anvil-component type="Label" name="net_label" prop:role="nw-net-value"></anvil-component>
-      <anvil-component type="Label" name="change_label" prop:role="nw-change"></anvil-component>
+      <anvil-component type="Label" name="net_label" prop:role="[&quot;nw-net-value&quot;, &quot;privacy-value&quot;]"></anvil-component>
+      <anvil-component type="Label" name="change_label" prop:role="[&quot;nw-change&quot;, &quot;privacy-value&quot;]"></anvil-component>
       <anvil-component type="Label" name="updated_label" prop:role="nw-caption"></anvil-component>
       <div class="nw-summary-grid">
-        <div><span class="nw-field-label"><span class="nw-dot nw-asset-dot"></span>Total assets</span><anvil-component type="Label" name="assets_label" prop:role="nw-metric"></anvil-component><span class="nw-small">What you own</span></div>
-        <div><span class="nw-field-label"><span class="nw-dot nw-debt-dot"></span>Total debts</span><anvil-component type="Label" name="debts_label" prop:role="nw-metric"></anvil-component><span class="nw-small">What you owe</span></div>
-        <div><span class="nw-field-label">Cash &amp; investments</span><anvil-component type="Label" name="liquid_label" prop:role="nw-metric"></anvil-component><span class="nw-small">Excludes retirement &amp; property</span></div>
+        <div><span class="nw-field-label"><span class="nw-dot nw-asset-dot"></span>Total assets</span><anvil-component type="Label" name="assets_label" prop:role="[&quot;nw-metric&quot;, &quot;privacy-value&quot;]"></anvil-component><span class="nw-small">What you own</span></div>
+        <div><span class="nw-field-label"><span class="nw-dot nw-debt-dot"></span>Total debts</span><anvil-component type="Label" name="debts_label" prop:role="[&quot;nw-metric&quot;, &quot;privacy-value&quot;]"></anvil-component><span class="nw-small">What you owe</span></div>
+        <div><span class="nw-field-label">Cash &amp; investments</span><anvil-component type="Label" name="liquid_label" prop:role="[&quot;nw-metric&quot;, &quot;privacy-value&quot;]"></anvil-component><span class="nw-small">Excludes retirement &amp; property</span></div>
       </div>
     </section>
 
@@ -27,7 +27,7 @@ custom_component: true
         <div class="nw-editor-fields">
           <label class="nw-field"><span class="nw-field-label">Name</span><anvil-component type="TextBox" name="name_box" prop:placeholder="e.g. Emergency savings" prop:role="nw-field" prop:tooltip="A name for this asset or debt, up to 80 characters"></anvil-component></label>
           <label class="nw-field"><span class="nw-field-label">Category</span><anvil-component type="DropDown" name="category_dropdown" prop:role="nw-select" prop:tooltip="Asset or debt category"></anvil-component></label>
-          <label class="nw-field"><span class="nw-field-label">Balance · USD</span><anvil-component type="TextBox" name="amount_box" prop:type="number" prop:placeholder="0.00" prop:role="nw-field" prop:tooltip="Current value or outstanding debt balance. Enter a positive amount or zero."></anvil-component></label>
+          <label class="nw-field"><span class="nw-field-label">Balance · USD</span><div class="privacy-block"><anvil-component type="TextBox" name="amount_box" prop:type="number" prop:placeholder="0.00" prop:role="nw-field" prop:tooltip="Current value or outstanding debt balance. Enter a positive amount or zero."></anvil-component></div></label>
         </div>
         <p class="nw-small">Enter debts as positive amounts; they are subtracted automatically. For property, enter its full value and add the mortgage separately.</p>
         <anvil-component type="Label" name="editor_source_label" prop:text="Future portfolio imports refresh this entry's balance. Your name and asset category are kept." prop:role="nw-caption" prop:visible="false"></anvil-component>
@@ -38,22 +38,22 @@ custom_component: true
         <section class="nw-card nw-ledger"><div class="nw-section-heading"><h5><span class="nw-dot nw-asset-dot"></span>Assets</h5><anvil-component type="Label" name="asset_count_label" prop:role="nw-count"></anvil-component></div><anvil-component type="Label" name="empty_assets_label" prop:text="Add savings, investments, retirement accounts or property to build your picture." prop:role="nw-empty"></anvil-component><anvil-component type="RepeatingPanel" name="assets_panel" prop:item_template="M3_App_1.Components.NetWorthEntryRow" prop:role="nw-list"></anvil-component></section>
         <section class="nw-card nw-ledger"><div class="nw-section-heading"><h5><span class="nw-dot nw-debt-dot"></span>Debts</h5><anvil-component type="Label" name="debt_count_label" prop:role="nw-count"></anvil-component></div><anvil-component type="Label" name="empty_debts_label" prop:text="No debts recorded. Add a mortgage, loan or credit card balance if applicable." prop:role="nw-empty"></anvil-component><anvil-component type="RepeatingPanel" name="debts_panel" prop:item_template="M3_App_1.Components.NetWorthEntryRow" prop:role="nw-list"></anvil-component></section>
       </div>
-      <details class="nw-import"><summary>Bring in a portfolio value</summary><div class="nw-import-body"><div><anvil-component type="Label" name="portfolio_label" prop:role="nw-entry-name"></anvil-component><p class="nw-small">Adds one portfolio import entry, or refreshes its balance if it already exists. Only selected holdings are included. Check for overlap with assets you have already added; cash and other portfolios must be entered separately.</p></div><anvil-component type="Button" name="import_button" prop:text="Use this value" prop:role="nw-secondary-button"></anvil-component></div></details>
+      <details class="nw-import"><summary>Bring in a portfolio value</summary><div class="nw-import-body"><div><anvil-component type="Label" name="portfolio_label" prop:role="[&quot;nw-entry-name&quot;, &quot;privacy-value&quot;]"></anvil-component><p class="nw-small">Adds one portfolio import entry, or refreshes its balance if it already exists. Only selected holdings are included. Check for overlap with assets you have already added; cash and other portfolios must be entered separately.</p></div><anvil-component type="Button" name="import_button" prop:text="Use this value" prop:role="nw-secondary-button"></anvil-component></div></details>
     </section>
 
     <div class="nw-insights">
       <section><span class="nw-field-label">Debt / assets</span><anvil-component type="Label" name="ratio_label" prop:role="nw-insight-value"></anvil-component><anvil-component type="Label" name="ratio_detail_label" prop:role="nw-caption"></anvil-component></section>
-      <section><span class="nw-field-label">Largest asset</span><anvil-component type="Label" name="largest_label" prop:role="nw-insight-name"></anvil-component><anvil-component type="Label" name="largest_detail_label" prop:role="nw-caption"></anvil-component></section>
+      <section><span class="nw-field-label">Largest asset</span><anvil-component type="Label" name="largest_label" prop:role="nw-insight-name"></anvil-component><anvil-component type="Label" name="largest_detail_label" prop:role="[&quot;nw-caption&quot;, &quot;privacy-value&quot;]"></anvil-component></section>
     </div>
 
     <div class="nw-analysis-grid">
       <section class="nw-card nw-history-card">
         <div class="nw-section-heading"><div><span class="nw-eyebrow">The long view</span><h4>Net worth over time</h4></div><anvil-component type="DropDown" name="range_dropdown" prop:role="nw-select" prop:tooltip="Snapshot date range"></anvil-component></div>
         <anvil-component type="Label" name="history_empty_label" prop:role="nw-chart-empty"></anvil-component>
-        <anvil-component type="Plot" name="history_plot" prop:height="280px"></anvil-component>
+        <div class="privacy-block privacy-chart"><anvil-component type="Plot" name="history_plot" prop:height="280px"></anvil-component></div>
         <div class="nw-chart-footer"><anvil-component type="CheckBox" name="show_breakdown_checkbox" prop:text="Show assets &amp; debts" prop:role="nw-caption"></anvil-component><span>Saved snapshots · USD</span></div>
       </section>
-      <section class="nw-card nw-mix-card"><span class="nw-eyebrow">What makes it up</span><h4>Asset mix</h4><anvil-component type="Label" name="mix_empty_label" prop:text="Add an asset balance above to see your mix." prop:role="nw-chart-empty"></anvil-component><anvil-component type="Plot" name="mix_plot" prop:height="290px"></anvil-component><p class="nw-small">Share of recorded assets. Debts are shown separately.</p></section>
+      <section class="nw-card nw-mix-card"><span class="nw-eyebrow">What makes it up</span><h4>Asset mix</h4><anvil-component type="Label" name="mix_empty_label" prop:text="Add an asset balance above to see your mix." prop:role="nw-chart-empty"></anvil-component><div class="privacy-block privacy-chart"><anvil-component type="Plot" name="mix_plot" prop:height="290px"></anvil-component></div><p class="nw-small">Share of recorded assets. Debts are shown separately.</p></section>
     </div>
     <section class="nw-snapshot-bar"><div><h5>Capture your progress</h5><p>Save after updating balances. One snapshot per UTC day; saving again replaces that day.</p></div><anvil-component type="Button" name="snapshot_button" prop:text="Save today's snapshot" prop:role="nw-primary-button"></anvil-component></section>
     <details anvil:name="snapshot_history" class="nw-snapshot-history"><summary>Manage saved snapshots</summary><anvil-component type="RepeatingPanel" name="snapshots_panel" prop:item_template="M3_App_1.Components.NetWorthSnapshotRow" prop:role="nw-list"></anvil-component></details>

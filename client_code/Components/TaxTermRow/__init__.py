@@ -12,7 +12,7 @@ class TaxTermRow(TaxTermRowTemplate):
 
   def value_role(self, value):
     if value is None or value == 0:
-      return "security-value"
+      return ["security-value"]
     return ["security-value", "tax-value-positive" if value > 0 else "tax-value-negative"]
 
   def holding_period(self):

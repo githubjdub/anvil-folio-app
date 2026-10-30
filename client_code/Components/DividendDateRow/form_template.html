@@ -1,7 +1,7 @@
 <article class="simulation-date-row">
   <div class="simulation-date-copy">
     <anvil-component type="Label" name="symbol_label" bind:text="self.item['symbol'] + ' · ex-date ' + self.item['ex_date']" prop:role="security-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <anvil-component type="Label" name="amount_label" bind:text="'${:,.6f} per share'.format(self.item['amount'])" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="amount_label" bind:text="'${:,.6f} per share'.format(self.item['amount'])" prop:role='["portfolio-help", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <anvil-component type="Label" name="payment_status_label" bind:text="self.date_status()" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <anvil-component type="Label" name="note_label" bind:text="self.date_note()" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
   </div>

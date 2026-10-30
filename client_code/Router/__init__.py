@@ -11,10 +11,12 @@ from ..Disclosures import Disclosures
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, username_prompt_open
 from ..appearance import initialize
+from .. import privacy
 
 
 class Router(RouterTemplate):
   def __init__(self, **properties):
+    privacy.initialize()
     initialize()
     super().__init__(**properties)
     self._routed = False

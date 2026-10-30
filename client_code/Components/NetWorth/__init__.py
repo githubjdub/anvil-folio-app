@@ -237,7 +237,7 @@ class NetWorth(NetWorthTemplate):
     self.snapshot_history.visible = bool(self._snapshots)
     total = self._totals
     self.net_label.text = money(total["net_worth"])
-    self.net_label.role = "nw-net-negative" if total["net_worth"] < 0 else "nw-net-value"
+    self.net_label.role = ["nw-net-negative" if total["net_worth"] < 0 else "nw-net-value", "privacy-value"]
     self.assets_label.text = money(total["assets"])
     self.debts_label.text = money(total["debts"])
     self.liquid_label.text = money(total["liquid"])

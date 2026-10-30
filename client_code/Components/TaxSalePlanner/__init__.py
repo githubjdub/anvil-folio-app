@@ -137,7 +137,7 @@ class TaxSalePlanner(TaxSalePlannerTemplate):
       for label, key in ((self.gain_label, "gain"), (self.short_label, "short_term"),
                          (self.long_label, "long_term"), (self.ytd_label, "ytd_net")):
         label.text = money(totals[key], signed=True)
-        label.role = value_role(totals[key])
+        label.role = value_role(totals[key]) + ["privacy-value"]
       self.proceeds_label.text = money(totals["proceeds"])
       self.basis_label.text = money(totals["cost_basis"])
       self.ytd_terms_label.text = "Short-term %s · long-term %s" % (money(totals["ytd_short_term"], True), money(totals["ytd_long_term"], True))

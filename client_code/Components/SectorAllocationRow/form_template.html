@@ -7,6 +7,6 @@
   </div>
   <div class="sector-amounts">
     <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" prop:role="sector-weight"></anvil-component>
-    <anvil-component type="Label" name="value_label" bind:text="self.item['value_text']" prop:role="sector-tickers"></anvil-component>
+    <anvil-component type="Label" name="value_label" bind:text="self.item['value_text']" prop:role='["sector-tickers", "privacy-value"]'></anvil-component>
   </div>
 </div>

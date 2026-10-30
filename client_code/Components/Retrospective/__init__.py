@@ -281,13 +281,13 @@ class Retrospective(RetrospectiveTemplate):
         pending["action"], pending["ticker"], pending["signal_date"]))
     self.result_warnings_label.text = "\n".join(notes)
     self.security_results_panel.items = [{
-      "title": "%s · %s" % (row["ticker"], row["sector"]),
+      "is_trade": False, "title": "%s · %s" % (row["ticker"], row["sector"]),
       "detail": "%s · %s allocated · %s dividends" % (row["company_name"], self._money(row["allocation"]), self._money(row["dividends"])),
       "status": row["status"] + (" · " + row["status_detail"] if row["status_detail"] else ""), "value": self._percent(row["total_return"]),
       "subtitle": "%s ending value" % self._money(row["ending_equity"]),
     } for row in result["securities"]]
     self.trade_results_panel.items = [{
-      "title": "%s · %s · %s shares" % (row["ticker"], row["action"], format(row["shares"], ",.6f").rstrip("0").rstrip(".")),
+      "is_trade": True, "title": "%s · %s · %s shares" % (row["ticker"], row["action"], format(row["shares"], ",.6f").rstrip("0").rstrip(".")),
       "detail": "Signal: %s · Executed: %s open · %s / share" % (self._signal_label(row), row["execution_date"], self._money(row["price"])),
       "status": row["reason"], "value": self._money(row["value"]), "subtitle": "Simulated trade value",
     } for row in result["trades"]]
