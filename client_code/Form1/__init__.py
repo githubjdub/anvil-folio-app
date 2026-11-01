@@ -61,10 +61,17 @@ class Form1(Form1Template):
     self._chart_trade_groups = []
     self._chart_point_groups = [[], []]
     self._charts_expanded = False
-    self._transactions_collapsed = False
+    self._transactions_collapsed = True
+    self.transactions_column.visible = False
+    self.workspace_region.classes["transactions-collapsed"] = True
     self._allocation_snapshots = []
     self._allocation_snapshot = None
     self._security_colors = {}
+    self.holdings_sort_dropdown.items = [
+      ("Largest position", "value"), ("Ticker A–Z", "symbol"),
+      ("Highest return", "return"), ("Lowest return", "return_low"),
+    ]
+    self.holdings_sort_dropdown.selected_value = "value"
     self.allocation_view_dropdown.items = [("Sectors", "sector"), ("Securities", "security")]
     self.allocation_view_dropdown.selected_value = "sector"
     self.allocation_quarter_dropdown.items = [("Latest", "latest")]
@@ -145,6 +152,7 @@ class Form1(Form1Template):
       self.market_status_timer.interval = 60
 
   def _update_readout_context(self):
+    self.portfolio_title_label.text = str(self.portfolio_name_box.text or "").strip() or "Untitled portfolio"
     self._update_retirement_context()
     self._update_simulations_context()
     self._update_net_worth_context()
@@ -154,7 +162,7 @@ class Form1(Form1Template):
         self._history["metadata"]["end_date"], self._history["metrics"]["holding_count"],
         " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
       )
-    name = {"overview": "Overview", "allocation": "Portfolio structure",
+    name = {"overview": "Holdings", "allocation": "Portfolio structure",
             "performance": "Performance", "dividends": "Dividends", "passive": "Passive Income",
             "tax": "Tax Harvester", "simulations": "Simulations", "retirement": "Retirement",
             "notifications": "Notifications", "networth": "Net Worth", "forex": "Forex"}[self._readout_page]
@@ -173,7 +181,7 @@ class Form1(Form1Template):
     elif self._readout_page == "networth":
       self.readout_tab_context.text = "Net Worth · Your assets, debts and progress over time"
     elif self._readout_page == "allocation":
-      self.readout_tab_context.text = "Allocation · Explore Schwab models and your portfolio structure"
+      self.readout_tab_context.text = "Structure · Sector weights, concentration, and allocation planning"
     elif self._readout_page == "forex":
       self.readout_tab_context.text = "Forex · Currency markets, conversions and trade scenarios"
     elif self._analysis_source is not None:
@@ -188,6 +196,7 @@ class Form1(Form1Template):
     has_analysis = self._history is not None
     portfolio_page = self._readout_page not in ("retirement", "simulations", "dividends", "passive", "tax", "notifications", "networth", "forex")
     self.results_section.visible = has_analysis and portfolio_page
+    self.research_summary.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page and self._readout_page != "allocation"
     self.allocation_guide_panel.visible = self._readout_page == "allocation"
     self.hedge_fund_panel.visible = self._readout_page == "performance"
@@ -245,6 +254,7 @@ class Form1(Form1Template):
       return
     if page == "overview":
       self._render_overview()
+      self._render_security_rows()
     elif page == "allocation":
       self._render_sectors()
       self._render_security_rows()
@@ -378,7 +388,7 @@ class Form1(Form1Template):
     self._transactions_collapsed = collapsed
     self.transactions_column.visible = not collapsed
     self.workspace_region.classes["transactions-collapsed"] = collapsed
-    self.toggle_transactions_button.text = "Show transactions" if collapsed else "Collapse transactions"
+    self.toggle_transactions_button.text = "Edit transactions" if collapsed else "Hide transactions"
     self._apply_readout_page(redraw=True)
 
   @handle("toggle_transactions_button", "click")
@@ -386,10 +396,8 @@ class Form1(Form1Template):
     if not self._busy:
       collapsed = not self._transactions_collapsed
       self._set_transactions_collapsed(collapsed)
-      if anvil.js.window.innerWidth <= 980:
-        # On stacked layouts, keep the newly requested workspace in view.
-        target = "readout_workspace" if collapsed else "transactions_workspace"
-        self.dom_nodes[target].scrollIntoView({"block": "start"})
+      target = "readout_workspace" if collapsed else "transactions_workspace"
+      self.dom_nodes[target].scrollIntoView({"block": "start"})
 
   @handle("overview_tab_button", "click")
   def overview_tab_click(self, **event_args):
@@ -893,6 +901,7 @@ class Form1(Form1Template):
       self.timeframe_dropdown, self.benchmark_dropdown,
       self.benchmark_return_dropdown, self.select_all_securities_button,
       self.allocation_view_dropdown, self.allocation_quarter_dropdown,
+      self.holdings_search_box, self.holdings_sort_dropdown, self.clear_holdings_search_button,
       self.comparison_start_picker, self.comparison_end_picker,
       self.transaction_view_dropdown, self.regroup_button,
       self.collapse_all_button, self.expand_all_button, self.collapse_prior_years_button,
@@ -1087,6 +1096,7 @@ class Form1(Form1Template):
       self._display_membership(membership)
 
   def _update_welcome(self):
+    self.portfolio_title_label.text = str(self.portfolio_name_box.text or "").strip() or "Untitled portfolio"
     signed_in = self._user is not None
     self.guest_hero.visible = not signed_in
     self.welcome_region.visible = signed_in
@@ -1212,6 +1222,7 @@ class Form1(Form1Template):
   @handle("portfolio_name_box", "change")
   def portfolio_name_box_change(self, **event_args):
     if not self._initializing and not self._busy:
+      self.portfolio_title_label.text = str(self.portfolio_name_box.text or "").strip() or "Untitled portfolio"
       self._mark_portfolio_dirty()
 
   @handle("as_of_date_picker", "change")
@@ -1361,6 +1372,9 @@ class Form1(Form1Template):
       self._analyzed_transactions = []
       self._allocation_snapshots = []
       self._allocation_snapshot = None
+      self.holdings_search_box.text = ""
+      self.security_panel.items = []
+      self.holdings_empty_label.visible = False
       self._dirty_readout_pages.update(("overview", "allocation", "performance"))
       self._plot_sizes.clear()
       self.allocation_quarter_dropdown.selected_value = "latest"
@@ -1937,7 +1951,7 @@ class Form1(Form1Template):
     })
     self.quarterly_plot.config = {"displayModeBar": False, "responsive": True}
 
-  def _render_sectors(self):
+  def _prepare_allocation_snapshots(self):
     if self._history is None or self._analysis_source is None:
       return
     self._allocation_snapshots = allocation_snapshots(self._analysis_source, self._selected_symbols)
@@ -1948,6 +1962,13 @@ class Form1(Form1Template):
     palette = list(SECTOR_COLORS.values())
     symbols = sorted(row["symbol"] for row in self._analysis_source["selection_data"]["securities"])
     self._security_colors = {symbol: palette[index % len(palette)] for index, symbol in enumerate(symbols)}
+    chosen = self.allocation_quarter_dropdown.selected_value
+    self._allocation_snapshot = next((snapshot for snapshot in self._allocation_snapshots if snapshot["key"] == chosen), None)
+
+  def _render_sectors(self):
+    if self._history is None or self._analysis_source is None:
+      return
+    self._prepare_allocation_snapshots()
     self._render_allocation_history()
     self._render_allocation_snapshot()
 
@@ -1977,7 +1998,7 @@ class Form1(Form1Template):
     self.allocation_legend_label.text = "Securities by weight" if security_view else "Sectors by weight"
     self.sector_empty_label.visible = not bool(slices)
     self.sector_empty_label.text = (
-      "Select a security below to see its allocation." if not self._selected_symbols
+      "Select securities on the Holdings tab to see their allocation." if not self._selected_symbols
       else "No selected open positions at this snapshot. Closed trades and dividends still contribute to performance."
     )
     self.sector_plot.visible = bool(slices)
@@ -2040,7 +2061,23 @@ class Form1(Form1Template):
   @handle("allocation_quarter_dropdown", "change")
   def allocation_snapshot_change(self, **event_args):
     if not self._busy and self._history is not None:
-      self._render_allocation_snapshot()
+      self._prepare_allocation_snapshots()
+      if self._readout_page == "allocation":
+        self._render_allocation_snapshot()
+      else:
+        self._dirty_readout_pages.add("allocation")
+      self._render_security_rows()
+
+  @handle("holdings_search_box", "change")
+  @handle("holdings_sort_dropdown", "change")
+  def holdings_filter_change(self, **event_args):
+    if not self._initializing and not self._busy:
+      self._render_security_rows()
+
+  @handle("clear_holdings_search_button", "click")
+  def clear_holdings_search_click(self, **event_args):
+    if not self._busy:
+      self.holdings_search_box.text = ""
       self._render_security_rows()
 
   @handle("allocation_history_plot", "click")
@@ -2083,6 +2120,9 @@ class Form1(Form1Template):
       count = security["transaction_count"]
       rows.append(dict(security,
         included=included, snapshot_value=value,
+        shares_text=shares_text,
+        sector_text=security["sector"],
+        trades_text="%d trade%s%s" % (count, "" if count == 1 else "s", " · " + position if shares <= 0 else ""),
         color=self._security_colors.get(security["symbol"], chart_theme.MUTED) if self.allocation_view_dropdown.selected_value == "security" else SECTOR_COLORS.get(security["sector"], chart_theme.MUTED),
         detail_text="%s · %s · %d trade%s total" % (security["sector"], position, count, "" if count == 1 else "s"),
         value_text=self._format_currency(value),
@@ -2092,14 +2132,28 @@ class Form1(Form1Template):
         average_buy_text=self._format_average_price(average_buy),
         average_sell_text=self._format_average_price(average_sell),
         weight_percent=value / total_value * 100 if included and total_value else 0,
-        weight_text=("%.1f%% of snapshot" % (value / total_value * 100)
-                     if included and total_value else "0.0% of snapshot" if included else "Excluded"),
+        weight_text=("%.1f%%" % (value / total_value * 100)
+                     if included and total_value else "0.0%" if included else "Excluded"),
       ))
-    self.security_panel.items = sorted(rows, key=lambda row: (-row["snapshot_value"], row["symbol"]))
+    query = str(self.holdings_search_box.text or "").strip().lower()
+    visible_rows = [row for row in rows if not query or query in ("%s %s %s" % (
+      row["symbol"], row["company_name"], row["sector"])).lower()]
+    order = self.holdings_sort_dropdown.selected_value
+    if order == "symbol":
+      visible_rows.sort(key=lambda row: row["symbol"])
+    elif order in ("return", "return_low"):
+      direction = -1 if order == "return" else 1
+      visible_rows.sort(key=lambda row: (row.get("profit_return") is None,
+        direction * (row.get("profit_return") or 0), row["symbol"]))
+    else:
+      visible_rows.sort(key=lambda row: (-row["snapshot_value"], row["symbol"]))
+    self.security_panel.items = visible_rows
+    self.holdings_empty_label.visible = not visible_rows
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.selection_status_label.text = (
-      "%d of %d securities selected · All metrics and charts use this selection." % (len(self._selected_symbols), len(securities))
-      if self._selected_symbols else "No securities selected. Check a security or choose Select all."
+      "Showing %d of %d · %d selected · Snapshot %s. Search filters rows only." % (
+        len(visible_rows), len(securities), len(self._selected_symbols), snapshot_date)
+      if self._selected_symbols else "No securities selected. Check a security or choose Select all; clear search to see hidden rows."
     )
 
   def _format_average_price(self, price):
@@ -2113,6 +2167,8 @@ class Form1(Form1Template):
     if self._history is None:
       return
     self._dirty_readout_pages.update(("overview", "allocation", "performance"))
+    self._render_overview()
+    self._prepare_allocation_snapshots()
     self._render_active_readout()
     self._update_readout_context()
 

@@ -1,4 +1,4 @@
-<section class="portfolio-app">
+<section class="portfolio-app portfolio-research">
   <header class="portfolio-topbar">
     <div class="brand-lockup">
       <div class="brand-mark" aria-hidden="true"><img src="_/theme/folio-mark.svg" alt="" width="40" height="40"></div>
@@ -20,13 +20,9 @@
   <main class="portfolio-shell">
     <section anvil:name="guest_hero" class="portfolio-hero">
       <div>
-        <div class="eyebrow">Portfolio intelligence · 01</div>
-        <h1>Track the position, not the paperwork.</h1>
-        <p class="hero-copy">Enter what you bought or sold and your price per share. Folio tracks daily returns, dividends, and risk alongside major market benchmarks.</p>
-      </div>
-      <div class="hero-note">
-        <span class="hero-note-icon">↗</span>
-        <div><strong>History in perspective</strong><br><span>Daily history and latest prices. The same comparison dates.</span></div>
+        <div class="eyebrow">Your investment workspace</div>
+        <h1>Your portfolio, in focus.</h1>
+        <p class="hero-copy">Holdings, performance, and portfolio structure. A clear view of where you stand.</p>
       </div>
     </section>
 
@@ -46,7 +42,9 @@
       </section>
     </section>
 
-    <section class="panel-card portfolio-library" aria-label="Saved portfolios">
+    <details class="panel-card portfolio-library research-library">
+      <summary>Portfolio &amp; account <span>Open, save, or manage your portfolios</span></summary>
+      <div class="research-library-body">
       <div class="card-heading portfolio-library-heading">
         <div>
           <h2>Your portfolios</h2>
@@ -91,7 +89,16 @@
       <div anvil:name="portfolio_status_region" class="portfolio-save-status" role="status" aria-live="polite">
         <anvil-component type="Label" name="portfolio_status_label" prop:text="Not saved yet. Save your transactions and analysis settings without syncing prices." prop:role="portfolio-help"></anvil-component>
       </div>
-    </section>
+      </div>
+    </details>
+
+        <div class="section-intro results-intro">
+
+          <div class="readout-heading-copy"><div class="eyebrow">Portfolio research</div><div role="heading" aria-level="2"><anvil-component type="Label" name="portfolio_title_label" prop:text="My portfolio" prop:role="research-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div><p>USD · US-listed stocks &amp; ETFs</p></div>
+          <anvil-component type="m3._Components.Button" name="share_performance_button" prop:text="Share" prop:appearance="filled" prop:icon="mi:share" prop:role="share-action"></anvil-component>
+          <anvil-component type="m3._Components.Button" name="toggle_transactions_button" prop:text="Edit transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component>
+        <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
+        </div>
 
     <section anvil:name="workspace_region" class="workspace-grid">
       <div anvil:name="transactions_column" anvil:dom-node="transactions_workspace" class="input-column">
@@ -152,12 +159,7 @@
 
       <div anvil:dom-node="readout_workspace" class="results-column">
         <div class="readout-workspace">
-        <div class="section-intro results-intro">
-          <div class="section-index accent-index">02</div>
-          <div class="readout-heading-copy"><h2>Your readout</h2><p>Performance, income, and risk in one view.</p></div>
-          <anvil-component type="m3._Components.Button" name="share_performance_button" prop:text="Share" prop:appearance="filled" prop:icon="mi:share" prop:role="share-action"></anvil-component>
-          <anvil-component type="m3._Components.Button" name="toggle_transactions_button" prop:text="Collapse transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component>
-        </div>
+
 
         <details class="panel-card settings-card">
           <summary>Analysis settings <span>As-of date &amp; risk-free rate</span></summary>
@@ -176,16 +178,25 @@
         <div anvil:name="status_region" class="status-region is-hidden">
           <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role='["status-label", "privacy-value"]'></anvil-component>
         </div>
-        <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync history &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
         <anvil-component type="M3_App_1.Components.ShareComposer" name="share_composer"></anvil-component>
+
+        <section anvil:name="research_summary" class="research-summary" aria-label="Portfolio summary">
+          <div class="readout-meta"><span class="live-pulse"></span><span>Analysis through</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="365 days · 2 open holdings" prop:role="period-label"></anvil-component></div>
+          <div class="metric-grid research-metrics">
+            <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role='["metric-value", "privacy-value"]'></anvil-component><div class="metric-sub">Open positions at the latest available price</div></div>
+            <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Investment profit ÷ total buy capital</div></div>
+            <div class="metric-card"><div class="metric-label">Annualized return</div><anvil-component type="Label" name="annualized_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Time-weighted · completed sessions</div></div>
+            <div class="metric-card metric-card-dark"><div class="metric-label">Dividends earned</div><anvil-component type="Label" name="dividends_label" prop:text="—" prop:role='["metric-value", "privacy-value"]'></anvil-component><div class="metric-sub">Held as cash · before tax</div></div>
+          </div>
+        </section>
 
         <nav anvil:name="readout_navigation" class="readout-navigation" aria-label="Readout pages">
           <div class="readout-nav-group" role="group" aria-label="Portfolio">
             <span class="readout-group-label">Portfolio</span>
             <div class="readout-group-buttons">
-              <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Overview" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Holdings" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
               <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Allocation" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Structure" prop:appearance="text" prop:role="readout-tab"></anvil-component>
             </div>
           </div>
           <div class="readout-nav-group" role="group" aria-label="Income and tax">
@@ -221,26 +232,35 @@
         <div anvil:dom-node="readout_scroller" class="readout-scroll-region" tabindex="0" role="region" aria-label="Readout content">
         <section anvil:name="empty_results" class="empty-results">
           <div class="empty-orbit"><span>✦</span></div>
-          <h3>Sync your first position</h3>
-          <p>Log your transactions, then sync history to see performance and risk against the S&P 500.</p>
+          <h3>Build your portfolio view</h3>
+          <p>Choose Edit transactions to add your trades, or sync the loaded sample to explore holdings, performance, and risk.</p>
           <div class="empty-line"><span></span><span></span><span></span></div>
         </section>
 
-        <section anvil:name="allocation_guide_panel" class="readout-page" aria-label="Allocation planning">
-          <anvil-component type="M3_App_1.Components.AllocationGuide" name="allocation_guide"></anvil-component>
-        </section>
-
         <section anvil:name="results_section" class="results-section">
-          <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="365 days · 2 open holdings" prop:role="period-label"></anvil-component></div>
           <section anvil:name="overview_panel" class="readout-page" aria-label="Portfolio overview">
-          <div class="metric-grid">
-            <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role='["metric-value", "privacy-value"]'></anvil-component><div class="metric-sub">Open positions at the latest available price</div></div>
-            <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Investment profit ÷ total buy capital</div></div>
-            <div class="metric-card"><div class="metric-label">Annualized return</div><anvil-component type="Label" name="annualized_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Time-weighted · completed sessions</div></div>
-            <div class="metric-card metric-card-dark"><div class="metric-label">Dividends earned</div><anvil-component type="Label" name="dividends_label" prop:text="—" prop:role='["metric-value", "privacy-value"]'></anvil-component><div class="metric-sub">Held as cash · before tax</div></div>
-          </div>
+          <section class="detail-card holdings-research-card" aria-label="Holdings research">
+            <div class="security-breakdown-heading"><h3>Portfolio holdings</h3><anvil-component type="m3._Components.Button" name="select_all_securities_button" prop:text="Select all" prop:appearance="text"></anvil-component></div>
+            <p class="security-selection-help">Explore your positions by snapshot. Check securities to include them in portfolio metrics and charts.</p>
+            <div class="holdings-filters">
+              <div class="holdings-search-field"><div class="portfolio-field-caption">Find a holding</div><anvil-component type="TextBox" name="holdings_search_box" prop:placeholder="Search ticker, company, or sector" prop:role="research-search" prop:tooltip="Filter visible holdings without changing your portfolio selection"></anvil-component></div>
+              <div><div class="portfolio-field-caption">Snapshot</div><anvil-component type="DropDown" name="allocation_quarter_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+              <div><div class="portfolio-field-caption">Sort by</div><anvil-component type="DropDown" name="holdings_sort_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+              <anvil-component type="m3._Components.Button" name="clear_holdings_search_button" prop:text="Clear search" prop:appearance="text" prop:role="chart-tool"></anvil-component>
+            </div>
+            <anvil-component type="Label" name="selection_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
+            <div class="holdings-table" role="table" aria-label="Portfolio holdings">
+              <div class="holdings-table-header" role="row"><span role="columnheader">Security / company</span><span role="columnheader">Weight</span><span role="columnheader">Shares</span><span role="columnheader">Value</span><span role="columnheader">Total P&amp;L</span><span role="columnheader">Return on buys</span><span role="columnheader">Avg buy</span><span role="columnheader">Avg sell</span></div>
+              <anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component>
+            </div>
+            <anvil-component type="Label" name="holdings_empty_label" prop:text="No holdings match your search. Try another ticker, company, or sector." prop:role="research-empty" prop:visible="False"></anvil-component>
+            <details class="readout-notes"><summary>Composition notes</summary>
+            <p class="fine-print">Open positions at the selected price mark, weighted by market value; sold positions and dividend cash are excluded. Today's quote-based snapshot is provisional. Current sector classifications are used for every snapshot. Funds / ETFs are grouped separately, without looking through their holdings.</p>
+            <p class="fine-print">For each security, total P&amp;L is position value plus sale proceeds and dividends minus all buy costs through the snapshot. Return on buys is P&amp;L divided by those buy costs. These figures include closed trades. Average buy and sell prices cover all trades on each side through that date, on the snapshot's split-adjusted share basis; they are not the cost basis of the remaining shares. Performance charts use time-weighted returns over their own selected period.</p>
+            </details>
+          </section>
           <div class="detail-card">
-            <div class="detail-heading"><h3>Portfolio anatomy</h3><span>Inputs included</span></div>
+            <div class="detail-heading"><h3>Capital &amp; cash flow</h3><span>Inputs included</span></div>
             <div class="detail-rows">
               <div class="detail-row"><span>Buy capital</span><anvil-component type="Label" name="invested_label" prop:text="—" prop:role='["detail-value", "privacy-value"]'></anvil-component></div>
               <div class="detail-row"><span>Sale proceeds</span><anvil-component type="Label" name="sale_proceeds_label" prop:text="—" prop:role='["detail-value", "privacy-value"]'></anvil-component></div>
@@ -252,7 +272,7 @@
           <section class="detail-card sector-card" aria-label="Portfolio composition">
             <div class="detail-heading"><h3>Portfolio structure</h3><span>Closing positions</span></div>
             <div class="structure-controls">
-              <div><div class="portfolio-field-caption">Snapshot</div><anvil-component type="DropDown" name="allocation_quarter_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+
               <div><div class="portfolio-field-caption">Break down by</div><anvil-component type="DropDown" name="allocation_view_dropdown" prop:role="portfolio-picker"></anvil-component></div>
             </div>
             <anvil-component type="Label" name="sector_period_label" prop:role='["portfolio-help", "privacy-value"]'></anvil-component>
@@ -263,19 +283,11 @@
               <div><span>Top 5 concentration</span><anvil-component type="Label" name="allocation_top5_label" prop:role="structure-value"></anvil-component></div>
             </div>
             <anvil-component type="Label" name="sector_empty_label" prop:text="No open holdings to chart. Add a buy transaction and sync history to see your sector allocation." prop:role="portfolio-help"></anvil-component>
+            <anvil-component type="Label" name="sector_status_label" prop:role="portfolio-help"></anvil-component>
             <div class="structure-chart-grid">
               <anvil-component type="Plot" name="sector_plot" prop:height="350px"></anvil-component>
               <div class="structure-legend"><anvil-component type="Label" name="allocation_legend_label" prop:role="structure-legend-title"></anvil-component><anvil-component type="RepeatingPanel" name="sector_panel" prop:item_template="M3_App_1.Components.SectorAllocationRow"></anvil-component></div>
             </div>
-            <div class="security-breakdown-heading"><h4>Securities in this analysis</h4><anvil-component type="m3._Components.Button" name="select_all_securities_button" prop:text="Select all" prop:appearance="text"></anvil-component></div>
-            <p class="security-selection-help">Position values, P&amp;L and average trade prices below follow the selected snapshot. P&amp;L includes sales and dividends; average prices are weighted by shares and adjusted for splits. Uncheck a security to recalculate your portfolio charts and totals instantly.</p>
-            <anvil-component type="Label" name="selection_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
-            <anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component>
-            <anvil-component type="Label" name="sector_status_label" prop:role="portfolio-help"></anvil-component>
-            <details class="readout-notes"><summary>Composition notes</summary>
-            <p class="fine-print">Open positions at the selected price mark, weighted by market value; sold positions and dividend cash are excluded. Today's quote-based snapshot is provisional. Current sector classifications are used for every snapshot. Funds / ETFs are grouped separately, without looking through their holdings.</p>
-            <p class="fine-print">For each security, total P&amp;L is position value plus sale proceeds and dividends minus all buy costs through the snapshot. Return on buys is P&amp;L divided by those buy costs. These figures include closed trades. Average buy and sell prices cover all trades on each side through that date, on the snapshot's split-adjusted share basis; they are not the cost basis of the remaining shares. Performance charts use time-weighted returns over their own selected period.</p>
-            </details>
           </section>
           <section class="detail-card allocation-history-card" aria-label="Quarterly sector allocation">
             <div class="detail-heading"><h3>Sector allocation over time</h3><span>Quarterly</span></div>
@@ -362,6 +374,10 @@
           </section>
           </section>
         </section>
+        <section anvil:name="allocation_guide_panel" class="readout-page" aria-label="Allocation planning">
+          <anvil-component type="M3_App_1.Components.AllocationGuide" name="allocation_guide"></anvil-component>
+        </section>
+
         <section anvil:name="hedge_fund_panel" class="readout-page detail-card hedge-fund-subsection" aria-label="Hedge fund comparisons"><anvil-component type="M3_App_1.Components.HedgeFundComparison" name="hedge_fund_comparison"></anvil-component></section>
         <section anvil:name="net_worth_panel" class="readout-page" aria-label="Net worth balance sheet">
           <anvil-component type="M3_App_1.Components.NetWorth" name="net_worth_form"></anvil-component>

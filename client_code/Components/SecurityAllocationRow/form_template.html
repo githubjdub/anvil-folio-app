@@ -1,30 +1,43 @@
-<div class="security-allocation-row">
-  <span anvil:name="swatch" class="security-swatch" aria-hidden="true"></span>
-  <div class="security-description">
-    <anvil-component type="CheckBox" name="include_checkbox" writeback:checked="self.item['included']" bind:text="self.item['symbol']" prop:role="security-choice" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <anvil-component type="Label" name="company_label" bind:text="self.item['company_name']" prop:role="security-company" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <anvil-component type="Label" name="detail_label" bind:text="self.item['detail_text']" prop:role='["security-detail", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+<div class="security-allocation-row holdings-table-row" role="row">
+  <div class="holdings-identity" role="cell">
+    <span anvil:name="swatch" class="security-swatch" aria-hidden="true"></span>
+    <div class="security-description">
+      <anvil-component type="CheckBox" name="include_checkbox" writeback:checked="self.item['included']" bind:text="self.item['symbol']" prop:role="security-choice" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+      <anvil-component type="Label" name="company_label" bind:text="self.item['company_name']" prop:role="security-company" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+      <div class="holdings-identity-meta">
+        <anvil-component type="Label" name="sector_label" bind:text="self.item.get('sector_text', self.item.get('sector', 'Unclassified'))" prop:role="security-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+        <anvil-component type="Label" name="trades_label" bind:text="self.item.get('trades_text', '')" prop:role="security-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+      </div>
+    </div>
+  </div>
+  <div class="holdings-cell holdings-weight" role="cell">
+    <span class="holdings-cell-caption">Weight</span>
+    <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" prop:role="security-weight" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <div class="allocation-weight-track" aria-hidden="true"><span anvil:name="weight_fill" class="allocation-weight-fill"></span></div>
   </div>
-  <div class="security-amounts">
-    <anvil-component type="Label" name="value_label" bind:text="self.item['value_text']" prop:role='["security-value", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" prop:role="security-weight" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  <div class="holdings-cell" role="cell">
+    <span class="holdings-cell-caption">Shares</span>
+    <anvil-component type="Label" name="shares_label" bind:text="self.item.get('shares_text', '—')" prop:role='["security-stat-value", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
   </div>
-  <div anvil:name="performance_metrics" class="security-performance-metrics">
-    <div class="security-performance-stat security-profit-stat">
-      <span class="security-stat-caption">Total P&amp;L</span>
+  <div class="holdings-cell holdings-market-value" role="cell">
+    <span class="holdings-cell-caption">Market value</span>
+    <anvil-component type="Label" name="value_label" bind:text="self.item['value_text']" prop:role='["security-value", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <div anvil:name="performance_metrics" class="security-performance-metrics" role="presentation">
+    <div class="holdings-cell security-performance-stat security-profit-stat" role="cell">
+      <span class="holdings-cell-caption">Total P&amp;L</span>
       <anvil-component type="Label" name="profit_label" bind:text="self.item.get('profit_text', '—')" prop:role='["security-stat-value", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     </div>
-    <div class="security-performance-stat security-profit-stat">
-      <span class="security-stat-caption">Return on buys</span>
+    <div class="holdings-cell security-performance-stat security-profit-stat" role="cell">
+      <span class="holdings-cell-caption">Return on buys</span>
       <anvil-component type="Label" name="profit_return_label" bind:text="self.item.get('profit_return_text', '—')" prop:role="security-stat-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     </div>
-    <div class="security-performance-stat">
-      <span class="security-stat-caption">Avg buy / share</span>
+    <div class="holdings-cell security-performance-stat" role="cell">
+      <span class="holdings-cell-caption">Avg buy / share</span>
       <anvil-component type="Label" name="average_buy_label" bind:text="self.item.get('average_buy_text', '—')" prop:role='["security-stat-value", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     </div>
-    <div class="security-performance-stat">
-      <span class="security-stat-caption">Avg sell / share</span>
+    <div class="holdings-cell security-performance-stat" role="cell">
+      <span class="holdings-cell-caption">Avg sell / share</span>
       <anvil-component type="Label" name="average_sell_label" bind:text="self.item.get('average_sell_text', '—')" prop:role='["security-stat-value", "privacy-value"]' prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     </div>
   </div>
