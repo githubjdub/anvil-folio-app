@@ -1363,7 +1363,7 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
 .portfolio-topbar-actions, .account-header-actions, .share-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; min-width: 0; }
 .appearance-control { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
 .privacy-control { flex-shrink: 0; }
-.anvil-role-privacy-toggle-active > button {
+.anvil-role-appearance-toggle.anvil-role-privacy-toggle-active > button {
   border-color: var(--mint-strong); background: var(--mint); color: var(--ink);
 }
 .privacy-notice { display: none; }
