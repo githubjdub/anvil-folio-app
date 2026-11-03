@@ -4,93 +4,122 @@ db_schema:
     client: none
     columns:
     - admin_ui: {}
+      client_hidden: null
       name: fund_key
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: as_of_date
       type: date
     - admin_ui: {}
+      client_hidden: null
       name: fingerprint
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: model
       type: simpleObject
     - admin_ui: {}
+      client_hidden: null
       name: updated_at
       type: datetime
+    indexes: []
     server: full
     title: Hedge Fund Models
   hedge_fund_snapshots:
     client: none
     columns:
     - admin_ui: {}
+      client_hidden: null
       name: fund_key
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: quarter
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: accession
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: source_url
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: period_end
       type: date
     - admin_ui: {}
+      client_hidden: null
       name: filed_at
       type: date
     - admin_ui: {}
+      client_hidden: null
       name: fetched_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: holdings
       type: simpleObject
     - admin_ui: {}
+      client_hidden: null
       name: coverage
       type: simpleObject
+    indexes: []
     server: full
     title: Hedge Fund Filings
   hedge_funds:
     client: none
     columns:
     - admin_ui: {}
+      client_hidden: null
       name: fund_key
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: name
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: manager
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: cik
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: source_url
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: hedgefollow_url
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: last_error
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: update_job_id
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: updated_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: last_checked_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: update_started_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: tracked
       type: bool
+    indexes: []
     server: full
     title: Hedge Funds
   insider_watches:
@@ -98,39 +127,118 @@ db_schema:
     columns:
     - admin_ui: {}
       client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      client_hidden: null
+      name: symbol
+      type: string
+    - admin_ui: {}
+      client_hidden: null
+      name: activity
+      type: string
+    - admin_ui: {}
+      client_hidden: null
+      name: active
+      type: bool
+    - admin_ui: {}
+      client_hidden: null
+      name: deleted
+      type: bool
+    - admin_ui: {}
+      client_hidden: null
+      name: created_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: null
+      name: since_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: null
+      name: last_checked_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: null
+      name: last_error
+      type: string
+    - admin_ui: {}
+      client_hidden: true
       name: poll_next_since
       type: datetime
+    indexes: []
+    server: full
+    title: Insider Alert Watchlist
+  net_worth_entries:
+    client: none
+    columns:
     - admin_ui: {}
       client_hidden: true
       name: owner
       target: users
       type: link_single
     - admin_ui: {}
-      name: symbol
+      client_hidden: null
+      name: name
       type: string
     - admin_ui: {}
-      name: activity
+      client_hidden: null
+      name: category
       type: string
     - admin_ui: {}
-      name: active
-      type: bool
-    - admin_ui: {}
-      name: deleted
-      type: bool
-    - admin_ui: {}
-      name: created_at
-      type: datetime
-    - admin_ui: {}
-      name: since_at
-      type: datetime
-    - admin_ui: {}
-      name: last_checked_at
-      type: datetime
-    - admin_ui: {}
-      name: last_error
+      client_hidden: null
+      name: kind
       type: string
+    - admin_ui: {}
+      client_hidden: null
+      name: amount
+      type: number
+    - admin_ui: {}
+      client_hidden: null
+      name: updated_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: null
+      name: as_of
+      type: date
+    - admin_ui: {}
+      client_hidden: true
+      name: source_key
+      type: string
+    indexes: []
     server: full
-    title: Insider Alert Watchlist
+    title: Net Worth Entries
+  net_worth_snapshots:
+    client: none
+    columns:
+    - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      client_hidden: null
+      name: snapshot_date
+      type: date
+    - admin_ui: {}
+      client_hidden: null
+      name: assets
+      type: number
+    - admin_ui: {}
+      client_hidden: null
+      name: debts
+      type: number
+    - admin_ui: {}
+      client_hidden: null
+      name: net_worth
+      type: number
+    - admin_ui: {}
+      client_hidden: null
+      name: updated_at
+      type: datetime
+    indexes: []
+    server: full
+    title: Net Worth Snapshots
   notification_deliveries:
     client: none
     columns:
@@ -140,35 +248,46 @@ db_schema:
       target: users
       type: link_single
     - admin_ui: {}
+      client_hidden: null
       name: channel
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: scheduled_date
       type: date
     - admin_ui: {}
+      client_hidden: null
       name: created_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: status
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: attempts
       type: number
     - admin_ui: {}
+      client_hidden: null
       name: next_attempt_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: claimed_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: attempt_id
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: last_error
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: provider_id
       type: string
+    indexes: []
     server: full
     title: Notification Deliveries
   notification_messages:
@@ -189,39 +308,51 @@ db_schema:
       name: event_id
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: symbol
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: action
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: title
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: body
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: transaction_date
       type: date
     - admin_ui: {}
+      client_hidden: null
       name: filed_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: created_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: shares
       type: number
     - admin_ui: {}
+      client_hidden: null
       name: price
       type: number
     - admin_ui: {}
+      client_hidden: null
       name: value
       type: number
     - admin_ui: {}
+      client_hidden: null
       name: filing_url
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: read_at
       type: datetime
     - admin_ui: {}
@@ -230,14 +361,17 @@ db_schema:
       target: notification_deliveries
       type: link_single
     - admin_ui: {}
+      client_hidden: null
       name: delivered_at
       type: datetime
+    indexes: []
     server: full
     title: Notification Inbox
   notification_settings:
     client: none
     columns:
     - admin_ui: {}
+      client_hidden: null
       name: delivery_since_at
       type: datetime
     - admin_ui: {}
@@ -246,38 +380,50 @@ db_schema:
       target: users
       type: link_single
     - admin_ui: {}
+      client_hidden: null
       name: enabled
       type: bool
     - admin_ui: {}
+      client_hidden: null
       name: channel
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: delivery_time
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: timezone
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: phone
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: sms_consent_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: created_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: updated_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: last_scheduled_date
       type: date
     - admin_ui: {}
+      client_hidden: null
       name: delivery_status
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: delivery_error
       type: string
+    indexes: []
     server: full
     title: Notification Preferences
   performance_shares:
@@ -289,23 +435,30 @@ db_schema:
       target: users
       type: link_single
     - admin_ui: {}
+      client_hidden: null
       name: token
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: title
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: visibility
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: created_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: revoked
       type: bool
     - admin_ui: {}
+      client_hidden: null
       name: snapshot
       type: simpleObject
+    indexes: []
     server: full
     title: Performance Shares
   portfolios:
@@ -317,95 +470,102 @@ db_schema:
       target: users
       type: link_single
     - admin_ui: {}
+      client_hidden: null
       name: name
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: transactions
       type: simpleObject
     - admin_ui: {}
+      client_hidden: null
       name: as_of_date
       type: date
     - admin_ui: {}
+      client_hidden: null
       name: risk_free_rate
       type: number
     - admin_ui: {}
+      client_hidden: null
       name: updated_at
       type: datetime
     - admin_ui: {}
       client_hidden: true
       name: last_used_at
       type: datetime
+    indexes: []
     server: full
     title: Portfolios
   site_visits:
     client: none
     columns:
     - admin_ui: {}
+      client_hidden: null
       name: started_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: last_seen_at
       type: datetime
     - admin_ui: {}
+      client_hidden: null
       name: page_views
       type: number
     - admin_ui: {}
+      client_hidden: null
       name: pages
       type: simpleObject
     - admin_ui: {}
+      client_hidden: null
       name: country_code
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: country_name
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: is_creator
       type: bool
+    - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      client_hidden: true
+      name: tab_activity
+      type: simpleObject
+    indexes: []
     server: full
     title: Site Visits
   stripe_events:
     client: none
     columns:
     - admin_ui: {}
+      client_hidden: null
       name: event_id
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: processed_at
       type: datetime
+    indexes: []
     server: full
     title: Stripe Events
   users:
     client: none
     columns:
     - admin_ui: {}
+      client_hidden: null
       name: email
       type: string
     - admin_ui: {}
-      name: username
-      type: string
-    - admin_ui: {}
-      name: display_name
-      type: string
-    - admin_ui: {}
-      client_hidden: true
-      name: display_name_updated_at
-      type: datetime
-    - admin_ui: {}
-      client_hidden: true
-      name: stripe_customer_id
-      type: string
-    - admin_ui: {}
-      client_hidden: true
-      name: stripe_state
-      type: simpleObject
-    - admin_ui: {}
-      client_hidden: true
-      name: username_key
-      type: string
-    - admin_ui: {}
+      client_hidden: null
       name: enabled
       type: bool
     - admin_ui: {}
+      client_hidden: null
       name: signed_up
       type: datetime
     - admin_ui: {}
@@ -413,6 +573,7 @@ db_schema:
       name: password_hash
       type: string
     - admin_ui: {}
+      client_hidden: null
       name: confirmed_email
       type: bool
     - admin_ui: {}
@@ -420,6 +581,7 @@ db_schema:
       name: remembered_logins
       type: simpleObject
     - admin_ui: {}
+      client_hidden: null
       name: last_login
       type: datetime
     - admin_ui: {}
@@ -447,6 +609,31 @@ db_schema:
       name: membership_updated_by
       target: users
       type: link_single
+    - admin_ui: {}
+      client_hidden: null
+      name: username
+      type: string
+    - admin_ui: {}
+      client_hidden: true
+      name: username_key
+      type: string
+    - admin_ui: {}
+      client_hidden: null
+      name: display_name
+      type: string
+    - admin_ui: {}
+      client_hidden: true
+      name: display_name_updated_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: stripe_customer_id
+      type: string
+    - admin_ui: {}
+      client_hidden: true
+      name: stripe_state
+      type: simpleObject
+    indexes: []
     server: full
     title: Users
 dependencies:
