@@ -4,6 +4,7 @@
     <anvil-component type="Label" name="sector_label" bind:text="self.item['sector']" prop:role="sector-name"></anvil-component>
     <anvil-component type="Label" name="tickers_label" bind:text="self.item['tickers_text']" prop:role="sector-tickers"></anvil-component>
     <div class="allocation-weight-track" aria-hidden="true"><span anvil:name="weight_fill" class="allocation-weight-fill"></span></div>
+    <anvil-component type="Label" name="change_label" bind:text="self.item['change_text']" prop:role="allocation-change"></anvil-component>
   </div>
   <div class="sector-amounts">
     <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" prop:role="sector-weight"></anvil-component>

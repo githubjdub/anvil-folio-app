@@ -50,15 +50,19 @@ class _ClassificationLinks(HTMLParser):
       parsed = urllib.parse.urlsplit(href)
     except ValueError:
       return
-    if parsed.netloc and parsed.netloc not in ("finviz.com", "www.finviz.com"):
+    if parsed.netloc and parsed.hostname not in ("finviz.com", "www.finviz.com"):
       return
-    if parsed.path.rsplit("/", 1)[-1] not in ("screener", "screener.ashx"):
+    # Finviz now separates the stock and ETF screeners. Keep the legacy
+    # routes for cached pages, without treating other page links as metadata.
+    if parsed.path.strip("/") not in (
+      "screener", "screener.ashx", "screener/stocks", "screener/etf",
+    ):
       return
     for filters in urllib.parse.parse_qs(parsed.query).get("f", []):
       for item in filters.split(","):
         if item.startswith("sec_") and item[4:] in _SECTORS:
           self.sectors.add(_SECTORS[item[4:]])
-        if item == "ind_exchangetradedfund":
+        if item in ("ind_exchangetradedfund", "etf_sectype_exchangetradedfund"):
           self.is_fund = True
 
 
