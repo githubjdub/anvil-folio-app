@@ -2188,3 +2188,138 @@ input.anvil-role-fx-input:focus, .anvil-role-fx-select select:focus { border-col
   .creator-holding-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
   .creator-holding-identity { grid-column: 1 / -1; }
 }
+
+/* Portfolio research: a compact summary, section navigation, and comparable holdings. */
+.portfolio-research .portfolio-topbar { min-height: 72px; padding: 12px max(24px, calc((100vw - 1480px) / 2)); border-bottom: 1px solid var(--line); }
+.portfolio-research .portfolio-shell { width: min(1480px, calc(100% - 64px)); padding: 28px 0 48px; }
+.portfolio-research .portfolio-hero, .portfolio-research .portfolio-welcome { margin-bottom: 22px; }
+.portfolio-research .portfolio-hero h1, .portfolio-research .anvil-role-portfolio-welcome-heading { max-width: none; font-size: clamp(26px, 3vw, 36px); line-height: 1.2; letter-spacing: -.035em; margin: 0; }
+.portfolio-research .hero-copy { max-width: none; font-size: 14px; line-height: 1.6; margin: 9px 0 0; }
+.portfolio-research .eyebrow { margin-bottom: 6px; font-size: 10px; letter-spacing: .12em; }
+.portfolio-research .research-library { padding: 0; margin: 0 0 26px; border-radius: 10px; box-shadow: none; }
+.research-library > summary { cursor: pointer; padding: 15px 18px; font-size: 13px; font-weight: 650; color: var(--ink); }
+.research-library > summary > span { margin-left: 16px; color: var(--muted); font-weight: 400; font-size: 12px; }
+.research-library > summary:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: 3px; }
+.research-library-body { padding: 20px; border-top: 1px solid var(--line); }
+.portfolio-research .results-intro { align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+.portfolio-research .readout-heading-copy { flex: 1 1 300px; }
+.portfolio-research .anvil-role-research-title { font-size: clamp(24px, 3vw, 34px); font-weight: 750; letter-spacing: -.04em; line-height: 1.2; color: var(--ink); overflow-wrap: anywhere; }
+.portfolio-research .results-intro .anvil-role-analyze-action { width: auto; margin: 0; }
+.portfolio-research .results-intro button { min-height: 42px; height: auto; white-space: nowrap; }
+.portfolio-research .workspace-grid, .portfolio-research .workspace-grid.transactions-collapsed { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.portfolio-research .transaction-workspace { position: static; max-height: none; }
+.portfolio-research .transaction-scroll-region { overflow: visible; padding: 0; }
+.portfolio-research .input-column, .portfolio-research .results-column { scroll-margin-top: 20px; }
+.portfolio-research .transaction-workspace > .section-intro { margin: 0 0 12px; }
+.portfolio-research .holdings-card { box-shadow: none; border-radius: 10px; }
+.portfolio-research .readout-workspace { padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.portfolio-research .readout-workspace > .settings-card { padding: 11px 15px; margin: 0 0 12px; border-radius: 8px; background: var(--paper); }
+.portfolio-research .settings-card > summary { font-size: 12px; }
+.portfolio-research .settings-card > summary > span { display: inline; margin-left: 12px; font-size: 12px; }
+.portfolio-research .analysis-settings-body { max-width: 850px; }
+.portfolio-research .readout-workspace > .status-region { margin: 0 0 16px; font-size: 12px; }
+.portfolio-research .research-summary { margin: 8px 0 20px; }
+.portfolio-research .readout-meta { margin: 0 0 12px; letter-spacing: .02em; }
+.portfolio-research .research-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--paper); }
+.portfolio-research .research-metrics .metric-card { min-height: 128px; padding: 20px 22px; border: 0; border-right: 1px solid var(--line); border-radius: 0; background: transparent; }
+.portfolio-research .research-metrics .metric-card:last-child { border-right: 0; }
+.portfolio-research .research-metrics .metric-card-main { background: var(--surface-soft); }
+.portfolio-research .research-metrics .metric-label { font-size: 11px; letter-spacing: .045em; }
+.portfolio-research .research-metrics .anvil-role-metric-value { font-size: clamp(24px, 2.4vw, 32px); line-height: 1.25; margin-top: 8px; letter-spacing: -.035em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.portfolio-research .research-metrics .metric-sub { font-size: 11px; line-height: 1.5; margin-top: 7px; }
+.portfolio-research .readout-navigation { display: flex; align-items: stretch; gap: 0; padding: 0; margin: 0 0 10px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; overflow-x: auto; scrollbar-width: thin; }
+.portfolio-research .readout-nav-group { display: flex; flex: 0 0 auto; padding: 0; border: 0; }
+.portfolio-research .readout-nav-group + .readout-nav-group { border-left: 1px solid var(--line); padding-left: 8px; margin-left: 8px; }
+.portfolio-research .readout-group-label { display: none; }
+.portfolio-research .readout-group-buttons { display: flex; gap: 2px; }
+.portfolio-research .readout-navigation button { width: auto; min-height: 46px; height: auto; padding: 12px 14px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; font-size: 13px; line-height: 1.4; font-weight: 600; white-space: nowrap; background: transparent; box-shadow: none; }
+.portfolio-research .readout-navigation button.anvil-role-readout-tab-active,
+.portfolio-research .readout-navigation .anvil-role-readout-tab-active > button { color: var(--mint-strong); background: var(--mint); border-bottom-color: var(--mint-strong); box-shadow: none; }
+.portfolio-research .readout-navigation button:hover:not(:disabled) { color: var(--ink); background: var(--surface-soft); }
+.portfolio-research .readout-tab-with-badge { flex-wrap: nowrap; gap: 0; }
+.portfolio-research .readout-tab-with-badge > :not(.feature-beta-badge) { flex: 0 0 auto; }
+.portfolio-research .readout-tab-with-badge .feature-beta-badge { margin: 0 7px 0 -5px; font-size: 8px; }
+.portfolio-research .notification-tab-wrap button { padding-right: 44px; }
+.portfolio-research .notification-tab-badge { right: 12px; top: 12px; }
+.portfolio-research .anvil-role-readout-tab-context { margin: 0 0 16px; font-size: 12px; }
+.portfolio-research .readout-disclosures { margin: 0 0 8px; }
+.portfolio-research .readout-page .detail-card { padding: 22px; margin-top: 20px; border-radius: 10px; box-shadow: none; }
+.portfolio-research .readout-page .detail-card:first-child { margin-top: 0; }
+.portfolio-research .readout-workspace .detail-heading { margin-bottom: 16px; }
+.portfolio-research .readout-workspace .detail-heading h3, .portfolio-research .security-breakdown-heading h3 { font-size: 18px; margin: 0; letter-spacing: -.025em; }
+.portfolio-research .readout-workspace .anvil-role-portfolio-help, .portfolio-research .security-selection-help { font-size: 12px; line-height: 1.6; }
+.portfolio-research .structure-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.portfolio-research .structure-summary > div { padding: 14px; border-radius: 8px; }
+.portfolio-research .structure-summary .anvil-role-structure-value { font-size: 23px; }
+.portfolio-research .capital-summary .detail-rows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.portfolio-research .capital-summary .detail-row { display: block; border: 0; padding: 16px 0 0; }
+.portfolio-research .capital-summary .anvil-role-detail-value { display: block; font-size: 22px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.portfolio-research .readout-notes { margin-top: 18px; }
+.portfolio-research .readout-notes .fine-print { font-size: 12px; line-height: 1.7; }
+.portfolio-research .holdings-filters { display: grid; grid-template-columns: minmax(200px, 1.7fr) minmax(150px, 1fr) minmax(150px, 1fr) auto; gap: 12px; align-items: end; padding: 16px 0; }
+.portfolio-research .holdings-filters > div { min-width: 0; }
+.portfolio-research .holdings-filters .portfolio-field-caption { font-size: 11px; margin-bottom: 5px; }
+.portfolio-research input.anvil-role-research-search { width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--ink); font-size: 13px; box-sizing: border-box; }
+.portfolio-research input.anvil-role-research-search:focus { border-color: var(--mint-strong); outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.portfolio-research .holdings-filters .anvil-role-portfolio-picker select { min-height: 42px; font-size: 13px; }
+.portfolio-research .anvil-role-research-empty { padding: 24px 16px; margin: 0; border: 1px dashed var(--line); border-radius: 8px; color: var(--muted); text-align: center; font-size: 13px; }
+
+/* RepeatingPanel rows share a column grid on desktop and expose captions on mobile. */
+.portfolio-research .holdings-table { container: portfolio-holdings / inline-size; --holdings-columns: minmax(200px, 2.4fr) minmax(70px, .8fr) minmax(72px, .85fr) minmax(100px, 1.2fr) minmax(100px, 1.2fr) minmax(90px, 1fr) minmax(80px, .9fr) minmax(80px, .9fr); }
+.portfolio-research .holdings-table-header { display: none; }
+.portfolio-research .holdings-table .holdings-table-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding: 20px 12px; border-top: 1px solid var(--line); align-items: start; }
+.portfolio-research .holdings-table .holdings-table-row:hover { background: var(--surface-soft); }
+.portfolio-research .holdings-identity { display: flex; align-items: flex-start; gap: 10px; min-width: 0; grid-column: 1 / -1; }
+.portfolio-research .holdings-identity .security-description { grid-column: auto; min-width: 0; }
+.portfolio-research .holdings-identity .security-swatch { margin-top: 12px; }
+.portfolio-research .holdings-identity-meta { margin-top: 3px; }
+.portfolio-research .holdings-table .anvil-role-security-choice { font-size: 14px; font-weight: 700; color: var(--ink); }
+.portfolio-research .holdings-table .anvil-role-security-company { font-size: 12px; line-height: 1.45; margin-top: 2px; overflow-wrap: anywhere; }
+.portfolio-research .holdings-table .anvil-role-security-detail { font-size: 10px; line-height: 1.5; color: var(--muted); }
+.portfolio-research .holdings-cell { min-width: 0; text-align: right; }
+.portfolio-research .holdings-cell-caption { display: block; margin-bottom: 5px; font-size: 10px; color: var(--muted); }
+.portfolio-research .holdings-table .anvil-role-security-value,
+.portfolio-research .holdings-table .anvil-role-security-weight,
+.portfolio-research .holdings-table .anvil-role-security-stat-value { font-size: 13px; line-height: 1.5; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.portfolio-research .holdings-table .security-performance-metrics { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 14px 0 0; margin: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; }
+.portfolio-research .holdings-table .security-performance-metrics.is-positive .security-profit-stat .anvil-role-security-stat-value { color: var(--mint-strong); }
+.portfolio-research .holdings-table .security-performance-metrics.is-negative .security-profit-stat .anvil-role-security-stat-value { color: var(--negative); }
+.portfolio-research .holdings-table .allocation-weight-track { max-width: 90px; margin-left: auto; height: 3px; }
+@container portfolio-holdings (min-width: 1050px) {
+  .portfolio-research .holdings-table-header { display: grid; grid-template-columns: var(--holdings-columns); gap: 12px; align-items: center; padding: 12px; background: var(--surface-soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 10px; font-weight: 650; letter-spacing: .025em; text-align: right; }
+  .portfolio-research .holdings-table-header > :first-child { text-align: left; }
+  .portfolio-research .holdings-table .holdings-table-row { grid-template-columns: var(--holdings-columns); gap: 12px; padding: 16px 12px; }
+  .portfolio-research .holdings-identity { grid-column: auto; }
+  .portfolio-research .holdings-table .security-performance-metrics { display: contents; }
+  .portfolio-research .holdings-cell-caption { display: none; }
+  .portfolio-research .holdings-cell { padding-top: 7px; }
+}
+@media (max-width: 1000px) {
+  .portfolio-research .portfolio-shell { width: calc(100% - 40px); }
+  .portfolio-research .holdings-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .portfolio-research .holdings-search-field { grid-column: 1 / -1; }
+  .portfolio-research .holdings-filters > .anvil-role-chart-tool { justify-self: start; }
+  .portfolio-research .research-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .portfolio-research .research-metrics .metric-card:nth-child(2) { border-right: 0; }
+  .portfolio-research .research-metrics .metric-card:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+}
+@media (max-width: 620px) {
+  .portfolio-research .portfolio-topbar { padding: 12px 16px; gap: 14px; }
+  .portfolio-research .portfolio-topbar-actions { width: 100%; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .portfolio-research .portfolio-shell { width: calc(100% - 28px); padding-top: 22px; }
+  .portfolio-research .research-library > summary > span { display: block; margin: 5px 0 0 18px; }
+  .portfolio-research .research-library-body { padding: 16px; }
+  .portfolio-research .readout-heading-copy { flex-basis: 100%; }
+  .portfolio-research .readout-page .detail-card { padding: 16px; }
+  .portfolio-research .research-metrics .metric-card { min-height: 126px; padding: 16px 14px; }
+  .portfolio-research .research-metrics .anvil-role-metric-value { font-size: 24px; }
+  .portfolio-research .settings-card > summary > span { display: block; margin: 5px 0 0 18px; }
+  .portfolio-research .structure-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .portfolio-research .structure-summary > div { display: block; }
+  .portfolio-research .structure-summary .anvil-role-structure-value { max-width: none; margin-top: 8px; font-size: 20px; }
+  .portfolio-research .capital-summary .detail-rows { grid-template-columns: 1fr; gap: 0; }
+  .portfolio-research .capital-summary .detail-row { display: flex; align-items: center; padding-top: 14px; }
+  .portfolio-research .capital-summary .anvil-role-detail-value { margin: 0; font-size: 18px; }
+  .portfolio-research .holdings-filters { gap: 10px; }
+  .portfolio-research .holdings-table .holdings-table-row { padding-left: 0; padding-right: 0; }
+}

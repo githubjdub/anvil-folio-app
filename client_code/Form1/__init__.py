@@ -308,6 +308,7 @@ class Form1(Form1Template):
       return
     self._appearance_mode = chart_theme.MODE
     self._dirty_readout_pages.update(("overview", "allocation", "performance"))
+    self._render_overview()
     self._render_active_readout()
     if self._readout_page == "simulations":
       self.simulations_form.apply_appearance()
@@ -1098,8 +1099,8 @@ class Form1(Form1Template):
   def _update_welcome(self):
     self.portfolio_title_label.text = str(self.portfolio_name_box.text or "").strip() or "Untitled portfolio"
     signed_in = self._user is not None
-    self.guest_hero.visible = not signed_in
-    self.welcome_region.visible = signed_in
+    self.guest_hero.visible = not signed_in and self._history is None
+    self.welcome_region.visible = signed_in and self._history is None
     self.welcome_heading_label.text = (
       "Welcome back, %s." % self._username if signed_in and self._username else "Welcome back."
     )
@@ -2099,7 +2100,7 @@ class Form1(Form1Template):
     snapshot_date = allocation.get("date", allocation.get("as_of"))
     dates = self._analysis_source["selection_data"]["dates"]
     index = dates.index(snapshot_date) if snapshot_date in dates else None
-    rows = []
+    rows: list = []
     for security in securities:
       included = security["symbol"] in self._selected_symbols
       position_day = security["days"][index] if index is not None else {}
@@ -2122,11 +2123,11 @@ class Form1(Form1Template):
         included=included, snapshot_value=value,
         shares_text=shares_text,
         sector_text=security["sector"],
-        trades_text="%d trade%s%s" % (count, "" if count == 1 else "s", " · " + position if shares <= 0 else ""),
+        trades_text="%d trade%s total%s" % (count, "" if count == 1 else "s", " · " + position if shares <= 0 else ""),
         color=self._security_colors.get(security["symbol"], chart_theme.MUTED) if self.allocation_view_dropdown.selected_value == "security" else SECTOR_COLORS.get(security["sector"], chart_theme.MUTED),
         detail_text="%s · %s · %d trade%s total" % (security["sector"], position, count, "" if count == 1 else "s"),
         value_text=self._format_currency(value),
-        profit=profit,
+        profit=profit, profit_return=profit_return,
         profit_text=("—" if profit is None else ("+" if profit > 0 else "-" if profit < 0 else "") + self._format_currency(abs(profit))),
         profit_return_text="—" if profit_return is None else self._format_percent(profit_return),
         average_buy_text=self._format_average_price(average_buy),
