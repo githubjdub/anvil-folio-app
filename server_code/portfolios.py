@@ -12,7 +12,6 @@ import anvil
 import anvil.server
 import anvil.users
 from anvil.tables import app_tables, RowDeleted, in_transaction
-import anvil.tables.query as q
 from .memberships import membership_for
 
 
@@ -123,7 +122,7 @@ def _analysis_values(fingerprint, media, computed_at):
 
 def _staged_analysis():
   # REPL and other server-originated calls have no browser session.
-  return anvil.server.session.get("latest_portfolio_analysis") if anvil.server.get_session_id() else None
+  return anvil.server.session.get("latest_portfolio_analysis") if anvil.server.context.client.type == "browser" else None
 
 
 @in_transaction
@@ -143,9 +142,9 @@ def remember_analysis(transactions, as_of_date, risk_free_rate, analysis, portfo
   media = anvil.BlobMedia("application/gzip", compressed, name="portfolio-analysis.json.gz")
   computed_at = datetime.now()
   user = anvil.users.get_user()
-  if anvil.server.get_session_id():
+  if anvil.server.context.client.type == "browser":
     session: Any = anvil.server.session
-    session["latest_portfolio_analysis"] = (fingerprint, media, computed_at, user.get_id() if user is not None else None)
+    session["latest_portfolio_analysis"] = (fingerprint, compressed, computed_at, user.get_id() if user is not None else None)
   if portfolio_id is not None:
     _store_analysis_if_unchanged(portfolio_id, _current_user(), fingerprint, media, computed_at)
 
@@ -170,9 +169,44 @@ def _portfolio_timestamp(value):
   return value.timestamp() if value is not None else float("-inf")
 
 
+@in_transaction
+def _update_directory(portfolio, user):
+  """Small materialized rows keep legacy-table lists free of large documents."""
+  count = portfolio["transaction_count"]
+  if count is None:
+    count = len(portfolio["transactions"] or [])
+    portfolio.update(transaction_count=count)
+  values: dict[str, Any] = {"name": portfolio["name"], "transaction_count": count,
+            "updated_at": portfolio["updated_at"], "last_used_at": portfolio["last_used_at"]}
+  entry = app_tables.portfolio_directory.get(owner=user, portfolio_id=portfolio.get_id())
+  if entry is None:
+    return app_tables.portfolio_directory.add_row(owner=user, portfolio_id=portfolio.get_id(), **values)
+  entry.update(**values)
+  return entry
+
+
+@in_transaction
+def _directory_for(user):
+  entries = list(app_tables.portfolio_directory.search(owner=user))
+  source = app_tables.portfolios.search(owner=user)
+  # Existing and creator-imported portfolios are indexed once on first use.
+  if len(entries) != len(source):
+    portfolios = list(source)
+    actual_ids = {portfolio.get_id() for portfolio in portfolios}
+    known_ids = {entry["portfolio_id"] for entry in entries}
+    for entry in entries:
+      if entry["portfolio_id"] not in actual_ids:
+        entry.delete()
+    for portfolio in portfolios:
+      if portfolio.get_id() not in known_ids:
+        _update_directory(portfolio, user)
+    entries = list(app_tables.portfolio_directory.search(owner=user))
+  return entries
+
+
 def _portfolios_for(user):
   return sorted(
-    app_tables.portfolios.search(q.fetch_only("name", "updated_at", "last_used_at", "transaction_count"), owner=user),
+    _directory_for(user),
     key=lambda portfolio: _portfolio_timestamp(portfolio["updated_at"]),
     reverse=True,
   )
@@ -186,12 +220,13 @@ def list_portfolios():
 @anvil.server.callable(require_user=True)
 def get_last_portfolio():
   user = _current_user()
-  portfolio = max(
-    app_tables.portfolios.search(q.fetch_only("name", "updated_at", "last_used_at"), owner=user),
+  entry = max(
+    _directory_for(user),
     key=lambda row: (row["last_used_at"] is not None,
                      _portfolio_timestamp(row["last_used_at"] or row["updated_at"])),
     default=None,
   )
+  portfolio = _owned_portfolio(entry["portfolio_id"], user) if entry is not None else None
   return {"ok": True, "portfolio": portfolio, "analysis": _saved_analysis(portfolio)}
 
 
@@ -202,14 +237,15 @@ def load_portfolio(portfolio_id):
   if portfolio is None:
     return {"ok": False, "message": "This portfolio is no longer available to your account."}
   portfolio.update(last_used_at=datetime.now())
+  _update_directory(portfolio, user)
   return {"ok": True, "portfolio": portfolio, "analysis": _saved_analysis(portfolio)}
 
 
 @anvil.server.callable(require_user=True)
 def get_portfolio_workspace():
   """One small bootstrap response; analyses are fetched only when opened."""
-  from .account_profiles import get_my_profile
-  from .creator_portfolios import get_creator_access
+  from account_profiles import get_my_profile
+  from creator_portfolios import get_creator_access
   user = _current_user()
   portfolios = _portfolios_for(user)
   membership = membership_for(user)
@@ -237,8 +273,10 @@ def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate)
   now = datetime.now()
   fingerprint = _analysis_fingerprint(values["transactions"], values["as_of_date"], values["risk_free_rate"])
   staged = _staged_analysis()
-  if staged and len(staged) == 4 and staged[0] == fingerprint and staged[3] in (None, user.get_id()):
-    values.update(**_analysis_values(staged[0], staged[1], staged[2]))
+  if (staged and len(staged) == 4 and staged[0] == fingerprint
+      and isinstance(staged[1], bytes) and staged[3] in (None, user.get_id())):
+    media = anvil.BlobMedia("application/gzip", staged[1], name="portfolio-analysis.json.gz")
+    values.update(**_analysis_values(staged[0], media, staged[2]))
   elif portfolio is not None and portfolio["analysis_fingerprint"] != fingerprint:
     values.update(analysis_cache=None, analysis_fingerprint=None, analysis_updated_at=None)
   values.update(updated_at=now, last_used_at=now)
@@ -250,6 +288,7 @@ def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate)
     portfolio = app_tables.portfolios.add_row(owner=user, **values)
   else:
     portfolio.update(**values)
+  _update_directory(portfolio, user)
   return {"ok": True, "portfolio": portfolio}
 
 

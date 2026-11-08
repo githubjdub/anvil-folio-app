@@ -581,7 +581,7 @@ def analyze_portfolio_history(transactions, as_of_date, risk_free_rate, portfoli
     original_transactions = transactions
     transactions, as_of, rate = _validate(transactions, as_of_date, risk_free_rate)
     if portfolio_id is not None:
-      from .portfolios import _current_user, _owned_portfolio
+      from portfolios import _current_user, _owned_portfolio
       if _owned_portfolio(portfolio_id, _current_user()) is None:
         return {"ok": False, "message": "This portfolio is no longer available to your account."}
     start = min(transaction["trade_date"] for transaction in transactions)
@@ -611,7 +611,7 @@ def analyze_portfolio_history(transactions, as_of_date, risk_free_rate, portfoli
     for security in analysis["selection_data"]["securities"]:
       security["sector"] = classifications.get(security["symbol"], "Unclassified")
     analysis["benchmarks"] = _build_benchmarks(analysis, histories, failures)
-    from .portfolios import remember_analysis
+    from portfolios import remember_analysis
     remember_analysis(original_transactions, as_of, rate * 100, analysis, portfolio_id)
     return analysis
   except AnalysisInputError as error:

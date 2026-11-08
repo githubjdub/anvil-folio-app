@@ -461,6 +461,37 @@ db_schema:
     indexes: []
     server: full
     title: Performance Shares
+  portfolio_directory:
+    client: none
+    columns:
+    - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      client_hidden: null
+      name: portfolio_id
+      type: string
+    - admin_ui: {}
+      client_hidden: null
+      name: name
+      type: string
+    - admin_ui: {}
+      client_hidden: null
+      name: transaction_count
+      type: number
+    - admin_ui: {}
+      client_hidden: null
+      name: updated_at
+      type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: last_used_at
+      type: datetime
+    indexes: []
+    server: full
+    title: Portfolio Directory
   portfolios:
     client: none
     columns:

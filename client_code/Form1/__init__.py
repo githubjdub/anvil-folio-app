@@ -875,7 +875,7 @@ class Form1(Form1Template):
     )
     current_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
     self.saved_portfolios_dropdown.selected_value = next(
-      (portfolio for portfolio in portfolios if portfolio.get_id() == current_id), None
+      (portfolio for portfolio in portfolios if portfolio["portfolio_id"] == current_id), None
     )
     self._update_controls()
 
@@ -1203,7 +1203,7 @@ class Form1(Form1Template):
       return
     self._set_busy(True)
     try:
-      result = anvil.server.call("load_portfolio", portfolio.get_id())
+      result = anvil.server.call("load_portfolio", portfolio["portfolio_id"])
       if not result["ok"]:
         self._set_portfolio_status(result["message"], is_error=True)
         return
@@ -1237,12 +1237,15 @@ class Form1(Form1Template):
     self._readout_page = "overview"
     self._show_results(False)
     self._set_transactions_collapsed(False)
-    self.saved_portfolios_dropdown.selected_value = portfolio
+    self.saved_portfolios_dropdown.selected_value = next(
+      (entry for _, entry in self.saved_portfolios_dropdown.items if entry["portfolio_id"] == portfolio.get_id()), None
+    )
     self._update_simulations_context()
     self._set_status("Saved transactions loaded — sync to fetch daily market history.")
     if analysis is not None:
       self.as_of_date_picker.date = portfolio["as_of_date"]
       self._apply_analysis(analysis, self._read_transactions())
+      self._set_transactions_collapsed(True)
       self._set_status("Saved analysis restored through %s. Sync history to refresh prices." % analysis["metadata"]["end_date"])
     self._update_controls()
 
