@@ -18,7 +18,7 @@ from anvil.tables import app_tables, RowDeleted
 
 def membership_for(user):
   """Project safe, current access details without exposing the Users row."""
-  configured_tier = "premium" if user["membership_tier"] == "premium" else "free"
+  configured_tier = user["membership_tier"] if user["membership_tier"] in ("premium", "pro") else "free"
   raw_source = user["membership_source"]
   source = raw_source if raw_source in ("creator", "subscription") else None
   expires_at = user["membership_expires_at"]
@@ -31,7 +31,7 @@ def membership_for(user):
   expired = expires_at is not None and expires_at <= now
   eligible = (source in ("creator", "subscription")
               and (expires_at is not None or source == "creator"))
-  is_premium = enabled and configured_tier == "premium" and eligible and not expired
+  is_premium = enabled and configured_tier in ("premium", "pro") and eligible and not expired
   expires_on = (expires_at - timedelta(microseconds=1)).date() if expires_at is not None else None
   if not enabled:
     detail = "This account is disabled."
@@ -42,8 +42,8 @@ def membership_for(user):
     detail = "Plus access expired. Your account is now Free."
   else:
     detail = "Free membership."
-  return {"tier": "premium" if is_premium else "free",
-          "label": "Plus" if is_premium else "Free", "is_premium": is_premium,
+  return {"tier": configured_tier if is_premium else "free",
+          "label": "Pro" if is_premium and configured_tier == "pro" else "Plus" if is_premium else "Free", "is_premium": is_premium,
           "source": source, "expires_at": expires_at, "configured_tier": configured_tier,
           "expires_on": expires_on, "detail": detail.replace("Premium", "Plus"),
           "portfolio_limit": 3 if is_premium else 1}

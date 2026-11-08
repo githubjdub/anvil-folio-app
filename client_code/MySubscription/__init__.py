@@ -48,6 +48,11 @@ class MySubscription(MySubscriptionTemplate):
     self.billing_status_label.text = details['billing_status_label']
     self.renewal_label.text = details['renewal_label']
     self.billing_detail_label.text = details['billing_detail']
+    verification = details['verification']
+    self.verification_status_label.text = verification['label']
+    self.verification_detail_label.text = ('Included with your plan. A separate Verified subscription, if present, is managed in Stripe.' if verification['included'] else
+      ('Ends ' if verification['canceling'] else 'Renews ') + verification['period_end'].strftime('%b %d, %Y (UTC)') if verification['verified'] and verification['period_end'] else
+      'Optional $1 USD/month membership badge. Get it from Profile settings.')
     self._billing_eligible = catalog['billing_portal_available'] and details['can_manage_billing']
     self.billing_portal_button.text = 'Manage billing' if catalog['billing_portal_available'] else 'Payments being set up'
     self.account_region.visible = True

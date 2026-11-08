@@ -143,7 +143,7 @@ class Form1(Form1Template):
 
   def _update_readout_context(self):
     self._update_retirement_context()
-    self._update_simulations_context()
+    self._update_tax_estimator_context()
     if self._history is not None:
       self.period_label.text = "%s · %d selected open holdings%s" % (
         self._history["metadata"]["end_date"], self._history["metrics"]["holding_count"],
@@ -151,10 +151,10 @@ class Form1(Form1Template):
       )
     name = {"overview": "Overview", "allocation": "Portfolio structure",
             "performance": "Performance", "dividends": "Dividends", "passive": "Passive Income",
-            "tax": "Tax Harvester", "simulations": "Simulations", "retirement": "Retirement",
+            "tax": "Tax Harvester", "tax_estimator": "Tax Estimator", "retirement": "Retirement",
             "notifications": "Notifications"}[self._readout_page]
-    if self._readout_page == "simulations":
-      self.readout_tab_context.text = "Simulations · Compare reinvestment, cash and a fixed-rate account"
+    if self._readout_page == "tax_estimator":
+      self.readout_tab_context.text = "Tax Estimator · Hypothetical buys, sells and location-based tax estimates"
     elif self._readout_page in ("dividends", "passive", "tax"):
       self.readout_tab_context.text = {
         "dividends": "Dividends · Upcoming dates and payment history",
@@ -175,7 +175,7 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    portfolio_page = self._readout_page not in ("retirement", "simulations", "dividends", "passive", "tax", "notifications")
+    portfolio_page = self._readout_page not in ("retirement", "tax_estimator", "dividends", "passive", "tax", "notifications")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
     self.hedge_fund_panel.visible = self._readout_page == "performance"
@@ -184,7 +184,7 @@ class Form1(Form1Template):
       ("allocation", self.allocation_panel, self.allocation_tab_button),
       ("performance", self.performance_panel, self.performance_tab_button),
       ("retirement", self.retirement_panel, self.retirement_tab_button),
-      ("simulations", self.simulations_panel, self.simulations_tab_button),
+      ("tax_estimator", self.tax_estimator_panel, self.tax_estimator_tab_button),
       ("notifications", self.notifications_panel, self.notifications_tab_button),
     ):
       active = name == self._readout_page
@@ -205,8 +205,8 @@ class Form1(Form1Template):
       self._resize_readout_charts()
       if self._readout_page == "notifications":
         self.notifications_form.ensure_loaded()
-      elif self._readout_page == "simulations":
-        self.simulations_form.redraw()
+      elif self._readout_page == "tax_estimator":
+        self.tax_estimator_form.redraw()
       elif self._readout_page == "performance":
         self.hedge_fund_comparison.redraw()
       elif self._readout_page in ("dividends", "passive", "tax"):
@@ -272,8 +272,8 @@ class Form1(Form1Template):
     self._appearance_mode = chart_theme.MODE
     self._dirty_readout_pages.update(("overview", "allocation", "performance"))
     self._render_active_readout()
-    if self._readout_page == "simulations":
-      self.simulations_form.apply_appearance()
+    if self._readout_page == "tax_estimator":
+      self.tax_estimator_form.apply_appearance()
     elif self._readout_page == "performance":
       self.hedge_fund_comparison.apply_appearance()
     elif self._readout_page in ("dividends", "passive", "tax"):
@@ -287,7 +287,7 @@ class Form1(Form1Template):
 
   def _select_readout_page(self, page):
     if (self._busy or page == self._readout_page or
-        page not in ("overview", "allocation", "performance", "simulations", "retirement", "dividends", "passive", "tax", "notifications")):
+        page not in ("overview", "allocation", "performance", "tax_estimator", "retirement", "dividends", "passive", "tax", "notifications")):
       return
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
@@ -390,7 +390,7 @@ class Form1(Form1Template):
   def retirement_busy_change(self, busy, **event_args):
     self._set_busy(busy)
 
-  def _update_simulations_context(self):
+  def _update_tax_estimator_context(self):
     transactions = []
     as_of = None
     if self._history is not None and self._selected_symbols:
@@ -400,7 +400,7 @@ class Form1(Form1Template):
                       for row in self._analyzed_transactions
                       if self._security_key(row) in self._selected_symbols]
       as_of = self._history["metadata"]["end_date"]
-    self.simulations_form.set_portfolio_context(transactions, as_of)
+    self.tax_estimator_form.set_portfolio_context(transactions, as_of)
     self.income_form.set_portfolio_context(transactions, as_of)
 
   @handle("dividends_tab_button", "click")
@@ -465,12 +465,12 @@ class Form1(Form1Template):
   def income_busy_change(self, busy, **event_args):
     self._set_busy(busy)
 
-  @handle("simulations_tab_button", "click")
-  def simulations_tab_click(self, **event_args):
-    self._select_readout_page("simulations")
+  @handle("tax_estimator_tab_button", "click")
+  def tax_estimator_tab_click(self, **event_args):
+    self._select_readout_page("tax_estimator")
 
-  @handle("simulations_form", "x-simulations-busy")
-  def simulations_busy_change(self, busy, **event_args):
+  @handle("tax_estimator_form", "x-tax-estimator-busy")
+  def tax_estimator_busy_change(self, busy, **event_args):
     self._set_busy(busy)
 
   def _security_key(self, transaction):
@@ -826,7 +826,7 @@ class Form1(Form1Template):
       self.collapse_all_button, self.expand_all_button, self.collapse_prior_years_button,
       self.overview_tab_button, self.allocation_tab_button,
       self.performance_tab_button, self.retirement_tab_button,
-      self.simulations_tab_button, self.dividends_tab_button, self.passive_tab_button,
+      self.tax_estimator_tab_button, self.dividends_tab_button, self.passive_tab_button,
       self.tax_tab_button, self.notifications_tab_button, self.toggle_transactions_button,
       self.creator_tab_button, self.creator_setup_button,
       self.toggle_image_import_button, self.holdings_image_loader,
@@ -851,7 +851,7 @@ class Form1(Form1Template):
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy, can_classify=self._user is not None)
-    self.simulations_form.raise_event("x-set-editable", editable=not self._busy)
+    self.tax_estimator_form.raise_event("x-set-editable", editable=not self._busy)
     self.income_form.raise_event("x-set-editable", editable=not self._busy)
     self.notifications_form.set_editable(editable=not self._busy)
     self.retirement_form.raise_event("x-set-editable", editable=not self._busy)
@@ -1080,7 +1080,7 @@ class Form1(Form1Template):
     self._restore_on_resume = False
     self._current_portfolio = None
     self._clear_image_import()
-    self.simulations_form.reset_workspace()
+    self.tax_estimator_form.reset_workspace()
     self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
     self.portfolio_name_box.text = ""
@@ -1220,7 +1220,7 @@ class Form1(Form1Template):
   def _apply_portfolio(self, portfolio, analysis=None):
     self._collapsed_transaction_years.clear()
     self._clear_image_import()
-    self.simulations_form.reset_workspace()
+    self.tax_estimator_form.reset_workspace()
     self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
     self._current_portfolio = portfolio
@@ -1244,7 +1244,7 @@ class Form1(Form1Template):
     self.saved_portfolios_dropdown.selected_value = next(
       (entry for _, entry in self.saved_portfolios_dropdown.items if entry["portfolio_id"] == portfolio.get_id()), None
     )
-    self._update_simulations_context()
+    self._update_tax_estimator_context()
     self._set_status("Saved transactions loaded — sync to fetch daily market history.")
     if analysis is not None:
       self.as_of_date_picker.date = portfolio["as_of_date"]

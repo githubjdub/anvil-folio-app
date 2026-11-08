@@ -25,7 +25,7 @@ _creator: Any = creator_portfolios
 _PAGES = {
   "dashboard": "Portfolio workspace", "overview": "Overview",
   "allocation": "Portfolio structure", "performance": "Performance",
-  "simulations": "Simulations", "retrospective": "Retrospective (archived)", "methods": "Methods", "shared": "Shared performance",
+  "simulations": "Simulations (archived)", "tax_estimator": "Tax Estimator", "retrospective": "Retrospective (archived)", "methods": "Methods", "shared": "Shared performance",
   "retirement": "Retirement", "dividends": "Dividends", "passive": "Passive Income",
   "tax": "Tax Harvester", "notifications": "Notifications", "income": "Income (previous navigation)", "disclosures": "Disclosures",
   "subscribe": "Plans", "subscription": "My subscription", "profile": "Profile",

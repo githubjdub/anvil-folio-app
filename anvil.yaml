@@ -169,6 +169,18 @@ db_schema:
     indexes: []
     server: full
     title: Insider Alert Watchlist
+  investor_profiles:
+    client: none
+    columns:
+    - {client_hidden: true, name: owner, target: users, type: link_single}
+    - {client_hidden: true, name: primary_portfolio_id, type: string}
+    - {name: avatar, type: media}
+    - {name: ranking_opt_in, type: bool}
+    - {client_hidden: true, name: metrics, type: simpleObject}
+    - {name: updated_at, type: datetime}
+    indexes: []
+    server: full
+    title: Investor Profiles
   net_worth_entries:
     client: none
     columns:
@@ -543,6 +555,15 @@ db_schema:
     indexes: []
     server: full
     title: Portfolios
+  profile_rankings:
+    client: none
+    columns:
+    - {name: quarter, type: string}
+    - {client_hidden: true, name: participants, type: simpleObject}
+    - {name: generated_at, type: datetime}
+    indexes: []
+    server: full
+    title: Profile Rankings
   security_sectors:
     client: none
     columns:
@@ -703,6 +724,7 @@ db_schema:
       client_hidden: true
       name: stripe_state
       type: simpleObject
+    - {client_hidden: true, name: verification_state, type: simpleObject}
     indexes: []
     server: full
     title: Users
@@ -733,6 +755,11 @@ runtime_options:
   server_spec: {base: python310-minimal}
   version: 3
 scheduled_tasks:
+- job_id: folio-profile-rankings
+  task_name: refresh_profile_rankings
+  time_spec:
+    at: {minute: 40}
+    every: hour
 - job_id: folio-insider-notifications
   task_name: process_insider_notifications
   time_spec: {every: minute, n: 5}

@@ -1,3 +1,4 @@
+"""Archived DRIP comparison Form. Preserved for reference; not mounted in navigation."""
 from datetime import date
 import anvil.server
 from anvil import *

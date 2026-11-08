@@ -134,6 +134,8 @@ def _store_analysis_if_unchanged(portfolio_id, user, fingerprint, media, compute
   expected = _analysis_fingerprint(portfolio["transactions"], portfolio["as_of_date"], portfolio["risk_free_rate"])
   if expected == fingerprint:
     portfolio.update(**_analysis_values(fingerprint, media, computed_at))
+    from investor_profiles import refresh_investor_metrics
+    refresh_investor_metrics(portfolio, user)
 
 
 def remember_analysis(transactions, as_of_date, risk_free_rate, analysis, portfolio_id=None):
@@ -290,6 +292,8 @@ def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate)
   else:
     portfolio.update(**values)
   _update_directory(portfolio, user)
+  from investor_profiles import refresh_investor_metrics
+  refresh_investor_metrics(portfolio, user)
   return {"ok": True, "portfolio": portfolio}
 
 

@@ -20,6 +20,7 @@ def get_subscription_catalog():
 
 @anvil.server.callable(require_user=True)
 def get_my_subscription():
+  from investor_profiles import verification_for
   user = _memberships._signed_in_user()
   membership = memberships.membership_for(user)
   state = user['stripe_state'] or {}
@@ -29,9 +30,9 @@ def get_my_subscription():
   canceling = state.get('cancel_at_period_end', False)
   return {
     'email': user['email'], 'username': user['username'], 'member_since': user['signed_up'],
-    'membership': membership, 'portfolio_count': len(app_tables.portfolios.search(owner=user)),
-    'status_label': 'Active Plus' if membership['is_premium'] else 'Free',
-    'access_type_label': 'Plus membership' if membership['is_premium'] else 'Free membership',
+    'membership': membership, 'verification': verification_for(user), 'portfolio_count': len(app_tables.portfolios.search(owner=user)),
+    'status_label': 'Active ' + membership['label'] if membership['is_premium'] else 'Free',
+    'access_type_label': membership['label'] + ' membership',
     'billing_status_label': (status or 'No recurring subscription').replace('_', ' ').capitalize(),
     'billing_detail': ('Your subscription is scheduled to end after the current billing period.' if canceling else
                        'Manage payment methods, invoices, and cancellation securely in Stripe.' if recurring else
@@ -39,6 +40,20 @@ def get_my_subscription():
     'renewal_label': ('Ends ' if canceling else 'Renews ') + end.strftime('%b %d, %Y (UTC)') if end and recurring else 'No scheduled renewal',
     'can_manage_billing': bool(user['stripe_customer_id']),
   }
+
+
+@anvil.server.callable(require_user=True)
+def start_verification_checkout():
+  user = _memberships._signed_in_user()
+  config = _billing.configuration()
+  if config is None:
+    return {'ok': False, 'message': 'Payments are being set up. No payment has been taken.'}
+  if not user['username']:
+    return {'ok': False, 'message': 'Choose your username before subscribing.'}
+  try:
+    return _billing.verification_checkout(user, config)
+  except _billing.BillingSetupError as error:
+    return {'ok': False, 'message': str(error)}
 
 
 @anvil.server.callable(require_user=True)

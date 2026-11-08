@@ -133,7 +133,7 @@ def build_tax_report(clean, histories, as_of):
                  if lot["cost_basis"] is not None else None)
         proceeds = _finite(sold * price) if price is not None else None
         gain = _finite(proceeds - basis) if proceeds is not None and basis is not None else None
-        realized.append({"symbol": symbol, "lot_id": lot["id"], "acquired_date": lot["acquired_date"],
+        realized.append({"symbol": symbol, "lot_id": lot["id"], "sale_row": trade["row"], "acquired_date": lot["acquired_date"],
           "sale_date": day.isoformat(), "shares": sold, "cost_basis": basis, "proceeds": proceeds,
           "gain": gain, "term": _term(lot["acquired"], day),
           "basis_estimated": lot["basis_estimated"], "proceeds_estimated": estimated,

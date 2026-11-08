@@ -29,6 +29,7 @@ def _profile_user():
 
 @anvil.server.callable(require_user=True)
 def get_my_profile():
+  from investor_profiles import profile_summary_for
   user = _profile_user()
   changed = user["display_name_updated_at"]
   if changed is not None and changed.tzinfo is None:
@@ -36,7 +37,7 @@ def get_my_profile():
   next_change = changed + timedelta(days=7) if changed else None
   return {"username": user["username"], "email": user["email"],
           "display_name": user["display_name"] or user["username"] or "",
-          "member_since": user["signed_up"],
+          "member_since": user["signed_up"], "investor": profile_summary_for(user),
           "next_display_name_change_at": next_change,
           "can_change_display_name": next_change is None or datetime.now(timezone.utc) >= next_change}
 

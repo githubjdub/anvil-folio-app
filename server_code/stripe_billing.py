@@ -154,8 +154,38 @@ def _plus_item(subscription, price_id):
                if item.get('price', {}).get('id') == price_id and item.get('quantity') == 1), None)
 
 
-@in_transaction
+def _verification_item(subscription):
+  if subscription.get('metadata', {}).get('folio_product') != 'verified':
+    return None
+  items = subscription.get('items', {}).get('data', [])
+  if len(items) != 1:
+    return None
+  item = items[0]
+  price = item.get('price') or {}
+  recurring = price.get('recurring') or {}
+  return item if (item.get('quantity') == 1 and price.get('currency') == 'usd'
+    and price.get('unit_amount') == 100 and recurring.get('interval') == 'month'
+    and recurring.get('interval_count') == 1 and recurring.get('usage_type') == 'licensed') else None
+
+
 def reconcile_customer(customer_id, config, event_id=None):
+  cancel_id = _reconcile_customer(customer_id, config, event_id)
+  if cancel_id:
+    # A confirmed Plus subscription includes the badge. Stop future standalone
+    # renewals; this does not refund an already paid month or cancel Plus.
+    _stripe(config, 'POST', 'subscriptions/' + cancel_id, {'cancel_at_period_end': 'true'})
+  if event_id:
+    _record_event(event_id)
+
+
+@in_transaction
+def _record_event(event_id):
+  if app_tables.stripe_events.get(event_id=event_id) is None:
+    app_tables.stripe_events.add_row(event_id=event_id, processed_at=datetime.now(timezone.utc))
+
+
+@in_transaction
+def _reconcile_customer(customer_id, config, event_id=None):
   if event_id and app_tables.stripe_events.get(event_id=event_id):
     return
   user = app_tables.users.get(stripe_customer_id=customer_id)
@@ -181,9 +211,82 @@ def reconcile_customer(customer_id, config, event_id=None):
     elif user['membership_source'] == 'subscription':
       values.update(membership_tier='free', membership_expires_at=None,
                     membership_updated_at=datetime.now(timezone.utc))
+    badges = [s for s in subscriptions if _verification_item(s)]
+    paid_badges = [s for s in badges if s['status'] in ('active', 'trialing')]
+    badge = max(paid_badges or badges, key=lambda s: s.get('created', 0), default=None)
+    badge_state = dict(user['verification_state'] or {})
+    badge_item = _verification_item(badge) if badge else None
+    badge_state.update(subscription_id=badge['id'] if badge else None,
+      status=badge['status'] if badge else None,
+      period_end=badge_item.get('current_period_end') if badge_item else None,
+      cancel_at_period_end=bool(badge and badge.get('cancel_at_period_end')))
+    values['verification_state'] = badge_state
     user.update(**values)
-  if event_id:
-    app_tables.stripe_events.add_row(event_id=event_id, processed_at=datetime.now(timezone.utc))
+    from memberships import membership_for
+    included = membership_for(user)['is_premium']
+    cancel_id = badge['id'] if (included and badge and badge['status'] in ('active', 'trialing')
+                                 and not badge.get('cancel_at_period_end')) else None
+  else:
+    cancel_id = None
+  return cancel_id
+
+
+@in_transaction
+def _badge_checkout_state(user_id, expected_attempt=None, **updates):
+  user = _account(user_id)
+  state = dict(user['verification_state'] or {})
+  if expected_attempt is not None and state.get('attempt') != expected_attempt:
+    return state
+  state.update(updates)
+  if not state.get('attempt'):
+    state['attempt'] = uuid.uuid4().hex
+  user['verification_state'] = state
+  return state
+
+
+def verification_checkout(user, config):
+  from investor_profiles import verification_for
+  if verification_for(user)['verified']:
+    return {'ok': False, 'message': 'Verified is already active or included with your plan.'}
+  user_id = user.get_id()
+  customer_id, _ = _reserve_attempt(user_id)
+  if not customer_id:
+    key = hashlib.sha256((config['STRIPE_APP_URL'] + user_id).encode()).hexdigest()
+    customer = _stripe(config, 'POST', 'customers', {'email': user['email'], 'metadata[account_id]': user_id}, 'customer-' + key)
+    customer_id = customer['id']
+    _store_customer(user_id, customer_id)
+  existing = _subscriptions(config, customer_id)
+  if any(_plus_item(s, config['STRIPE_PLUS_PRICE_ID']) and s['status'] in ('active', 'trialing') for s in existing):
+    return {'ok': False, 'message': 'Verified is included with Plus. Refresh your membership after checkout is confirmed.'}
+  if any(_verification_item(s) and s['status'] not in ('canceled', 'incomplete_expired') for s in existing):
+    return {'ok': False, 'message': 'A Verified subscription already exists. Manage it in My subscription.'}
+  state = _badge_checkout_state(user_id)
+  if state.get('checkout_id'):
+    previous = _stripe(config, 'GET', 'checkout/sessions/' + state['checkout_id'])
+    if previous['status'] == 'open' and previous.get('url'):
+      return {'ok': True, 'url': previous['url']}
+    if previous['status'] == 'complete':
+      reconcile_customer(customer_id, config)
+      # Even after cancellation a completed Checkout must not prevent rejoining.
+      if any(_verification_item(s) and s['status'] not in ('canceled', 'incomplete_expired')
+             for s in _subscriptions(config, customer_id)):
+        return {'ok': False, 'message': 'Your checkout is being confirmed. Refresh your subscription details shortly.'}
+    state = _badge_checkout_state(user_id, expected_attempt=state['attempt'], attempt=uuid.uuid4().hex, checkout_id=None)
+  root = config['STRIPE_APP_URL']
+  parameters = {
+    'customer': customer_id, 'mode': 'subscription', 'line_items[0][quantity]': 1,
+    'line_items[0][price_data][currency]': 'usd', 'line_items[0][price_data][unit_amount]': 100,
+    'line_items[0][price_data][recurring][interval]': 'month',
+    'line_items[0][price_data][product_data][name]': 'Folio Verified membership',
+    'line_items[0][price_data][product_data][description]': 'Paid profile badge; not identity or investment-performance verification.',
+    'client_reference_id': user_id, 'subscription_data[metadata][account_id]': user_id,
+    'subscription_data[metadata][folio_product]': 'verified',
+    'success_url': root + '/#?page=subscription&checkout=success',
+    'cancel_url': root + '/#?page=subscription&checkout=canceled',
+  }
+  session = _stripe(config, 'POST', 'checkout/sessions', parameters, 'verified-checkout-' + state['attempt'])
+  _badge_checkout_state(user_id, expected_attempt=state['attempt'], checkout_id=session['id'])
+  return {'ok': True, 'url': session['url']}
 
 
 def checkout(user, config):

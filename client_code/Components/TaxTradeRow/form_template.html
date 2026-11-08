@@ -1,0 +1,9 @@
+<div class="tax-trade-row">
+  <div><span class="tax-field-caption">Ticker</span><anvil-component type="TextBox" name="ticker_box" writeback:text="self.item['ticker']" prop:placeholder="e.g. AAPL" prop:tooltip="Security ticker" prop:role="tax-field"></anvil-component></div>
+  <div><span class="tax-field-caption">Action</span><anvil-component type="DropDown" name="action_dropdown" writeback:selected_value="self.item['action']" prop:tooltip="Buy or sell" prop:role="tax-choice"></anvil-component></div>
+  <div><span class="tax-field-caption">Trade date</span><anvil-component type="DatePicker" name="date_picker" writeback:date="self.item['date']" prop:tooltip="Hypothetical trade date" prop:role="tax-date"></anvil-component></div>
+  <div><span class="tax-field-caption">Shares</span><anvil-component type="TextBox" name="shares_box" writeback:text="self.item['shares']" prop:tooltip="Share count" prop:role="tax-field"></anvil-component></div>
+  <div><span class="tax-field-caption">Price / share ($)</span><anvil-component type="TextBox" name="price_box" writeback:text="self.item['trade_price']" prop:tooltip="Hypothetical USD price per share" prop:role="tax-field"></anvil-component></div>
+  <div><span class="tax-field-caption">Fees ($)</span><anvil-component type="TextBox" name="fee_box" writeback:text="self.item['fee']" prop:tooltip="Total trade fees in USD" prop:role="tax-field"></anvil-component></div>
+  <anvil-component type="Button" name="remove_button" prop:text="Remove" prop:role="subscription-button" prop:tooltip="Remove hypothetical trade"></anvil-component>
+</div>
