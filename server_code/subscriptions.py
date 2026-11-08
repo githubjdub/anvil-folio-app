@@ -24,9 +24,13 @@ def get_my_subscription():
   user = _memberships._signed_in_user()
   membership = memberships.membership_for(user)
   state = user['stripe_state'] or {}
+  recurring_statuses = ('active', 'trialing', 'past_due', 'unpaid', 'paused', 'incomplete')
+  badge_state = user['verification_state'] or {}
+  if state.get('status') not in recurring_statuses and badge_state.get('subscription_id'):
+    state = badge_state
   status = state.get('status')
   end = datetime.fromtimestamp(state['period_end'], timezone.utc) if state.get('period_end') else None
-  recurring = status in ('active', 'trialing', 'past_due', 'unpaid', 'paused', 'incomplete')
+  recurring = status in recurring_statuses
   canceling = state.get('cancel_at_period_end', False)
   return {
     'email': user['email'], 'username': user['username'], 'member_since': user['signed_up'],

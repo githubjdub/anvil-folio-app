@@ -105,6 +105,10 @@ def liability(settings, short, long):
   ordinary_tax = _bracket_tax(ordinary, ORDINARY[status], [.1,.12,.22,.24,.32,.35,.37])
   capital_tax = (_bracket_tax(ordinary + preferred, CAPITAL[status], [0,.15,.2])
                  - _bracket_tax(ordinary, CAPITAL[status], [0,.15,.2]))
+  # The Qualified Dividends/Capital Gain Tax Worksheet uses the smaller of
+  # its preferential computation and regular tax on all taxable income.
+  regular_tax = _bracket_tax(ordinary + preferred, ORDINARY[status], [.1,.12,.22,.24,.32,.35,.37])
+  capital_tax = min(capital_tax, max(0.0, regular_tax - ordinary_tax))
   magi = settings['magi'] + st + lt - deduction
   investment = max(0.0, settings['other_investment_income'] + st + lt - deduction)
   niit = .038 * min(investment, max(0.0, magi - NIIT[status]))

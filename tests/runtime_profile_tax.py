@@ -1,6 +1,7 @@
 """Exercise in the disposable agent database: anvil repl - < this file."""
 from datetime import date, datetime, timedelta, timezone
 import copy
+import base64
 import hashlib
 import hmac
 import json
@@ -15,6 +16,7 @@ import investor_profiles as profiles
 import memberships
 import portfolios
 import stripe_billing as billing
+import subscriptions
 import tax_estimator as estimator
 import tax_rules
 
@@ -96,6 +98,15 @@ def make_analysis(return_value):
 
 
 try:
+  preview = make_analysis(.1)
+  assert abs(profiles.metrics_from_analysis(preview, date(2026,11,8), 'fixture', 'Fixture')['quarter_returns']['2026-Q3'] - .1) < 1e-8
+  preview['metadata']['provisional_date'] = '2026-09-30'
+  assert profiles.metrics_from_analysis(preview, date(2026,9,30), 'fixture', 'Fixture')['return'] is None
+  preview['metadata'].pop('provisional_date')
+  preview['series'][1]['return_observed'] = False
+  assert profiles.metrics_from_analysis(preview, date(2026,11,8), 'fixture', 'Fixture')['return'] is None
+  cohort = [index / 10000 for index in range(3000)]
+  assert profiles._percentile(.2, cohort)['count'] == 3000
   for i in range(5):
     user = app_tables.users.add_row(email='folio-fixture-%s-%s@example.invalid' % (tag,i), enabled=True,
       username='fixture_' + tag + str(i), username_key='fixture_' + tag + str(i), signed_up=datetime.now(timezone.utc))
@@ -119,7 +130,14 @@ try:
   assert not profiles.set_investor_profile(portfolio_rows[1].get_id(), True)['ok'], 'Cross-account primary accepted'
   assert not profiles.set_investor_profile('not-an-id', True)['ok']
   assert not profiles.set_profile_avatar(anvil.BlobMedia('image/svg+xml', b'<svg/>', name='bad.svg'))['ok']
+  png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+afo4AAAAASUVORK5CYII=')
+  assert profiles.set_profile_avatar(anvil.BlobMedia('image/png', png, name='photo.png'))['ok']
+  assert profiles.profile_summary_for(users[0])['avatar'].get_bytes() == png
   assert profiles.set_profile_avatar(None)['ok']
+  second = portfolios.save_portfolio(None, 'Secondary fixture', txns, date(2026,11,8), 0)['portfolio']
+  assert profiles.set_investor_profile(second.get_id(), True)['ok']
+  assert profiles.profile_summary_for(users[0])['metrics']['return'] is None
+  assert profiles.set_investor_profile(portfolio_rows[0].get_id(), True)['ok']
   profiles.refresh_profile_rankings()
   own = profiles.profile_summary_for(users[0])
   assert own['ranking']['quartile'] == 1 and own['ranking']['rank'] == 1, own['ranking']
@@ -141,7 +159,7 @@ try:
     raise AssertionError('Anonymous profile access succeeded')
   except anvil.users.AuthenticationFailed:
     pass
-  print('PASS: saved profile stats/holdings, private ownership, cached navigation, Pro inclusion, rankings/ties, immediate opt-out, auth and invalid avatar')
+  print('PASS: saved profile stats/holdings, quarter coverage, private ownership, primary selection, cached navigation, Pro inclusion, 3,000-entry percentile, rankings/ties, opt-out, auth, photo save/remove and invalid avatar')
 
   user_id = users[4].get_id()
   anvil.users.get_user = lambda: app_tables.users.get_by_id(user_id)
@@ -167,6 +185,9 @@ try:
   billing.reconcile_customer(customer_id, config, event_id)
   assert profiles.verification_for(anvil.users.get_user())['verified']
   assert memberships.membership_for(anvil.users.get_user())['portfolio_limit'] == 1
+  subscription_details = subscriptions.get_my_subscription()
+  assert subscription_details['billing_status_label'] == 'Active'
+  assert subscription_details['renewal_label'].startswith('Renews ')
   billing.reconcile_customer(customer_id, config, event_id)
   assert len(app_tables.stripe_events.search(event_id=event_id)) == 1
   assert not billing.verification_checkout(anvil.users.get_user(), config)['ok']

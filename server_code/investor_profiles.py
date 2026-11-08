@@ -184,6 +184,7 @@ def set_investor_profile(primary_portfolio_id, ranking_opt_in):
   user = _profile_user()
   if type(ranking_opt_in) is not bool:
     return {'ok': False, 'message': 'Choose whether to join the rankings.'}
+  owned = None
   if primary_portfolio_id is not None:
     try:
       owned = _owned_portfolio(primary_portfolio_id, user)
@@ -196,6 +197,8 @@ def set_investor_profile(primary_portfolio_id, ranking_opt_in):
     profile.update(metrics=None)
   profile.update(primary_portfolio_id=primary_portfolio_id, ranking_opt_in=ranking_opt_in,
                  updated_at=datetime.now(timezone.utc))
+  if owned is not None:
+    refresh_investor_metrics(owned, user)
   # Withdrawing consent removes this account from the current snapshot immediately.
   if not ranking_opt_in:
     snapshot = app_tables.profile_rankings.get(quarter=previous_quarter()[2])

@@ -28,6 +28,10 @@ class TaxRulesTests(unittest.TestCase):
     result = compare_tax(assumptions(ordinary_income=45000), 0, 0, 0, 10000)
     self.assertAlmostEqual(result['change']['federal'], 832.5)
 
+  def test_preferential_computation_does_not_exceed_regular_tax(self):
+    result = compare_tax(assumptions(ordinary_income=50000), 0, 0, 0, 100)
+    self.assertAlmostEqual(result['change']['federal'], 12)
+
   def test_joint_gain_crosses_fifteen_percent_band(self):
     result = compare_tax(assumptions(filing_status='joint', ordinary_income=610000, magi=610000), 0, 0, 0, 10000)
     self.assertAlmostEqual(result['change']['federal'], 1815)
