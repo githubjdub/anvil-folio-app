@@ -104,7 +104,7 @@
         <section class="panel-card holdings-card">
           <div class="card-heading">
             <div><h3>Transactions</h3><p>Use US-listed stocks and ETFs quoted in USD.</p></div>
-            <anvil-component type="m3._Components.Button" name="sample_button" prop:text="Load sample" prop:appearance="text" prop:icon="mi:science" prop:role="quiet-action"></anvil-component>
+            <anvil-component type="m3._Components.Button" name="sample_button" prop:text="Try a sample" prop:appearance="text" prop:icon="mi:science" prop:role="quiet-action"></anvil-component>
           </div>
           <section class="holdings-image-import" aria-label="Import holdings from a file">
             <div class="image-import-heading"><div><h4>Bring your holdings with you</h4><p>Read a broker PDF, screenshot, or photo, then review the positions.</p></div><div class="image-import-toggle"><anvil-component type="m3._Components.Button" name="toggle_image_import_button" prop:text="Import file" prop:appearance="outlined" prop:icon="mi:upload_file" prop:role="import-toggle" prop:font_size="13" prop:icon_size="18"></anvil-component><span class="feature-beta-badge" title="Work in progress">Beta</span></div></div>
@@ -139,10 +139,11 @@
             <anvil-component type="m3._Components.Button" name="expand_all_button" prop:text="Expand all" prop:appearance="text"></anvil-component>
           </div>
           <anvil-component type="Label" name="transaction_view_help" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
+          <div anvil:name="transactions_empty_region" class="transactions-empty-state"><div class="transactions-empty-mark" aria-hidden="true">+</div><h4>Your portfolio starts here</h4><p>Add a stock or ETF and enter your first buy or sell. Your portfolio will contain only the securities you add.</p></div>
           <anvil-component type="RepeatingPanel" name="holdings_panel" prop:item_template="M3_App_1.HoldingRow" prop:role="holdings-list"></anvil-component>
           <anvil-component type="RepeatingPanel" name="transaction_years_panel" prop:item_template="M3_App_1.Components.TransactionYearGroup" prop:role="transaction-year-list" prop:visible="false"></anvil-component>
           <div class="add-holding-row">
-            <anvil-component type="m3._Components.Button" name="add_button" prop:text="Add transaction" prop:appearance="outlined" prop:icon="mi:add" prop:role="add-holding-action"></anvil-component>
+            <anvil-component type="m3._Components.Button" name="add_button" prop:text="Add A Security!" prop:appearance="outlined" prop:icon="mi:add" prop:role="add-holding-action"></anvil-component>
           </div>
         </section>
         </div>
@@ -218,13 +219,13 @@
         <div anvil:dom-node="readout_scroller" class="readout-scroll-region" tabindex="0" role="region" aria-label="Readout content">
         <section anvil:name="empty_results" class="empty-results">
           <div class="empty-orbit"><span>✦</span></div>
-          <h3>Sync your first position</h3>
-          <p>Log your transactions, then sync history to see performance and risk against the S&P 500.</p>
+          <h3>Add A Security!</h3>
+          <p>Start with your own stock or ETF. Enter its transaction, then sync history to see your portfolio's performance and risk.</p>
           <div class="empty-line"><span></span><span></span><span></span></div>
         </section>
 
         <section anvil:name="results_section" class="results-section">
-          <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="365 days · 2 open holdings" prop:role="period-label"></anvil-component></div>
+          <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="Sync history to see your portfolio" prop:role="period-label"></anvil-component></div>
           <section anvil:name="overview_panel" class="readout-page" aria-label="Portfolio overview">
           <div class="metric-grid">
             <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Open positions at the latest available price</div></div>
@@ -277,7 +278,7 @@
           <section class="detail-card allocation-securities-card" aria-label="Securities in this analysis">
             <div class="security-breakdown-heading"><h4>Portfolio holdings</h4><anvil-component type="m3._Components.Button" name="select_all_securities_button" prop:text="Select all" prop:appearance="text"></anvil-component></div>
             <div class="holdings-filter"><anvil-component type="TextBox" name="allocation_search_box" prop:placeholder="Filter ticker, company, or sector" prop:role="portfolio-input" prop:tooltip="Filter holdings by ticker, company name, or sector"></anvil-component><anvil-component type="DropDown" name="allocation_position_dropdown" prop:role="portfolio-picker" prop:tooltip="Filter open or closed positions"></anvil-component></div>
-            <p class="security-selection-help">Position values, P&amp;L and average trade prices below follow the selected snapshot. P&amp;L includes sales and dividends; average prices are weighted by shares and adjusted for splits. Uncheck a security to recalculate your portfolio charts and totals instantly.</p>
+            <p class="security-selection-help">Position values, P&amp;L and average trade prices follow the selected snapshot. Uncheck a security to recalculate your charts and totals instantly. Sign in to customize a sector; your choices are saved to your account and used across your portfolios.</p>
             <anvil-component type="Label" name="selection_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
             <div class="holdings-table-scroll" tabindex="0" role="region" aria-label="Portfolio holdings table; scroll horizontally for all columns"><div class="holdings-table-heading" aria-hidden="true"><span></span><span>Stock / company / sector</span><span>Shares held</span><span>Value / weight</span><span>P&amp;L / return / average trade prices</span></div><anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component></div>
             <anvil-component type="Label" name="allocation_filter_empty_label" prop:visible="False" prop:text="No holdings match these filters. Clear the search or choose All positions." prop:role="portfolio-help"></anvil-component>

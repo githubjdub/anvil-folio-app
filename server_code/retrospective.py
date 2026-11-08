@@ -9,7 +9,7 @@ import anvil.server
 from .portfolio_analytics import AnalysisInputError, _as_date, _fetch_history, _normalise_ticker, _finite_number, _EXCHANGES
 from .retrospective_prompts import parse_retrospective_prompt
 from .retrospective_engine import run_backtest, RetrospectiveInputError
-from .sectors import _lookup_sector, _SECTORS
+from .sectors import classify_securities, _SECTORS
 
 
 SECTORS = set(_SECTORS.values()) | {"Funds / ETFs", "Unclassified"}
@@ -84,8 +84,7 @@ def run_retrospective_analysis(tickers, rules, start_date, end_date, capital, se
     fetch_symbols = list(dict.fromkeys(symbols + ["SPY"]))
     with ThreadPoolExecutor(max_workers=4) as pool:
       histories = dict(zip(fetch_symbols, pool.map(lambda symbol: _fetch_history(symbol, warmup, now), fetch_symbols)))
-    with ThreadPoolExecutor(max_workers=4) as pool:
-      labels = dict(zip(symbols, pool.map(lambda symbol: _lookup_sector(symbol, histories[symbol].get("instrument_type")), symbols)))
+    labels = classify_securities(symbols, histories)
     chosen = {symbol: histories[symbol] for symbol in symbols if sector is None or labels[symbol] == sector}
     if not chosen:
       raise AnalysisInputError("None of these tickers currently match %s. Edit your ticker list or choose All sectors." % sector)
@@ -102,7 +101,7 @@ def run_retrospective_analysis(tickers, rules, start_date, end_date, capital, se
     if excluded:
       result["warnings"].append("Sector filter excluded: %s." % ", ".join(excluded))
     if sector is not None:
-      result["warnings"].append("Sector membership uses current Finviz labels for the tickers you supplied. This is not a historical full-sector universe; current selections can introduce survivorship bias.")
+      result["warnings"].append("Sector membership uses the Folio catalog and your saved sector choices for the tickers you supplied. These are current labels, not historical sector membership; current selections can introduce survivorship bias.")
     result["warnings"].append("Hypothetical daily simulation: no intraday or exact-second fills. One entry and at most one exit per security; fractional shares, zero fees/taxes/slippage, and no dividend reinvestment.")
     return result
   except (AnalysisInputError, RetrospectiveInputError) as error:

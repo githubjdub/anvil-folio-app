@@ -543,6 +543,29 @@ db_schema:
     indexes: []
     server: full
     title: Portfolios
+  security_sectors:
+    client: none
+    columns:
+    - admin_ui: {}
+      client_hidden: true
+      name: owner
+      target: users
+      type: link_single
+    - admin_ui: {}
+      client_hidden: null
+      name: symbol
+      type: string
+    - admin_ui: {}
+      client_hidden: null
+      name: sector
+      type: string
+    - admin_ui: {}
+      client_hidden: null
+      name: updated_at
+      type: datetime
+    indexes: []
+    server: full
+    title: Security Sector Choices
   site_visits:
     client: none
     columns:

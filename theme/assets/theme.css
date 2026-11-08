@@ -195,6 +195,13 @@ button.anvil-role-share-tool { min-height: 36px; margin: 0; padding: 6px 10px; f
 .anvil-role-holding-field .anvil-m3-textinput { width: 100%; }
 .anvil-role-holding-field input { font-size: 12px; }
 .add-holding-row { display: flex; justify-content: center; padding-top: 15px; border-top: 1px dashed var(--line); }
+.transactions-empty-state { margin: 16px 0; padding: 26px 18px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; background: var(--surface-soft); }
+.transactions-empty-mark { display: grid; place-items: center; width: 44px; height: 44px; margin: 0 auto 12px; border-radius: 12px; background: var(--mint); color: var(--mint-strong); font-size: 25px; }
+.transactions-empty-state h4 { color: var(--ink); font-size: 16px; margin: 0 0 8px; }
+.transactions-empty-state p { color: var(--muted); font-size: 12px; line-height: 1.7; max-width: 32em; margin: 0 auto; }
+.anvil-role-security-sector-picker { max-width: 250px; width: 100%; margin-top: 6px; }
+.anvil-role-security-sector-picker select { width: 100%; min-height: 31px; border: 1px solid var(--line); border-radius: 5px; padding: 4px 7px; background: var(--paper); color: var(--ink); font-family: inherit; font-size: 11px; }
+.anvil-role-security-sector-picker select:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: 2px; }
 
 .date-grid { display: grid; grid-template-columns: 1fr 22px 1fr; align-items: end; gap: 9px; }
 .field-stack { min-width: 0; }

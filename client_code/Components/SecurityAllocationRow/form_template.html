@@ -4,6 +4,7 @@
     <anvil-component type="CheckBox" name="include_checkbox" writeback:checked="self.item['included']" bind:text="self.item['symbol']" prop:role="security-choice" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <anvil-component type="Label" name="company_label" bind:text="self.item['company_name']" prop:role="security-company" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <anvil-component type="Label" name="detail_label" bind:text="self.item['detail_text']" prop:role="security-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="DropDown" name="sector_dropdown" prop:enabled="False" prop:role="security-sector-picker" prop:tooltip="Sign in to save your own sector classification" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <div class="allocation-weight-track" aria-hidden="true"><span anvil:name="weight_fill" class="allocation-weight-fill"></span></div>
   </div>
   <div class="security-shares"><anvil-component type="Label" name="shares_label" bind:text="self.item['shares_text']" prop:role="security-share-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>

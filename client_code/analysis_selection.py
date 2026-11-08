@@ -41,6 +41,18 @@ def _sector_allocation(source, securities):
   return allocation
 
 
+def update_sector_classification(source, symbol, sector, override):
+  """Update presentation groups without changing prices or return paths."""
+  securities = source["selection_data"]["securities"]
+  for security in securities:
+    if security["symbol"] == symbol:
+      security["sector"] = sector
+      security["sector_override"] = override
+  source["sector_allocation"] = _sector_allocation(source["sector_allocation"], securities)
+  source["sector_allocation"]["classification_source"] = "Folio catalog and account choices"
+  source["sector_allocation"]["classification_as_of"] = date.today().isoformat()
+
+
 def analyze_selection(source, selected_symbols):
   """Return an analysis without requesting quotes or altering transactions.
 

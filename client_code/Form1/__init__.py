@@ -7,7 +7,7 @@ import anvil.js
 from ._anvil_designer import Form1Template
 from anvil import *
 from .. import chart_theme
-from ..analysis_selection import analyze_selection
+from ..analysis_selection import analyze_selection, update_sector_classification
 from ..chart_trades import build_trade_markers
 from ..portfolio_periods import quarterly_returns, allocation_snapshots
 from ..allocation_breakdown import allocation_groups
@@ -109,7 +109,9 @@ class Form1(Form1Template):
     self.benchmark_return_dropdown.selected_value = "total"
     self.custom_period_region.visible = False
     self._set_dates()
-    self._load_sample_transactions()
+    self.portfolio_name_box.text = ""
+    self._refresh_transactions()
+    self._set_status("Add your first security to start building your portfolio.")
     self._show_results(False)
     self._refresh_account()
     if self._user is not None:
@@ -692,6 +694,8 @@ class Form1(Form1Template):
     self._set_status("Imported positions ready — sync history to calculate the updated readout.")
 
   def _refresh_transactions(self):
+    self.transactions_empty_region.visible = not bool(self.transactions)
+    self.add_button.text = "Add A Security!" if not self.transactions else "Add security / transaction"
     view = self.transaction_view_dropdown.selected_value
     grouped = view == "security"
     by_year = view == "year"
@@ -723,8 +727,8 @@ class Form1(Form1Template):
     # Sync and portfolio replacement already supplied the authoritative rows.
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=False)
     self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=False)
-    self.holdings_panel.visible = not by_year
-    self.transaction_years_panel.visible = by_year
+    self.holdings_panel.visible = bool(self.transactions) and not by_year
+    self.transaction_years_panel.visible = bool(self.transactions) and by_year
     if by_year:
       self.holdings_panel.items = []
       self.transaction_years_panel.items = group_transactions_by_year(
@@ -846,7 +850,7 @@ class Form1(Form1Template):
     )
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
-    self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
+    self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy, can_classify=self._user is not None)
     self.simulations_form.raise_event("x-set-editable", editable=not self._busy)
     self.income_form.raise_event("x-set-editable", editable=not self._busy)
     self.notifications_form.set_editable(editable=not self._busy)
@@ -1080,7 +1084,7 @@ class Form1(Form1Template):
     self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
     self.portfolio_name_box.text = ""
-    self.transactions = [self._new_transaction()]
+    self.transactions = []
     self._refresh_transactions()
     self._set_dates()
     self.risk_free_box.text = "4.50"
@@ -1089,7 +1093,7 @@ class Form1(Form1Template):
     self._readout_page = "overview"
     self._show_results(False)
     self._set_transactions_collapsed(False)
-    self._set_status("Add transactions, then save your portfolio or sync prices.")
+    self._set_status("Add A Security! Enter its transaction, then save your portfolio or sync prices.")
     self._set_portfolio_status("New portfolio — enter a name before saving.")
     self._update_controls()
 
@@ -1939,8 +1943,8 @@ class Form1(Form1Template):
     self.sector_plot.config = {"displayModeBar": False, "responsive": True}
     unknown = [row["symbol"] for row in holdings if row["sector"] == "Unclassified"]
     self.sector_status_label.text = (
-      "Sector data unavailable for %s. Their values remain included under Unclassified." % ", ".join(unknown)
-      if unknown else "Sector classifications checked %s." % self._history["sector_allocation"]["classification_as_of"]
+      "Choose a sector in the holdings table for %s. Their values remain included under Unclassified." % ", ".join(unknown)
+      if unknown else "Folio classifications · Sector choices can be customized in the holdings table."
     )
     self._render_allocation_map(allocation)
 
@@ -2062,6 +2066,7 @@ class Form1(Form1Template):
         position = "Closed position" if buy_cost > 0 else "No trades by this snapshot"
       count = security["transaction_count"]
       rows.append(dict(security,
+        sector_options=self._analysis_source.get("sector_options", sorted(SECTOR_COLORS)),
         shares_text=shares_text, is_open=shares > 0,
         included=included, snapshot_value=value,
         color=self._security_colors.get(security["symbol"], chart_theme.MUTED) if self.allocation_view_dropdown.selected_value == "security" else SECTOR_COLORS.get(security["sector"], chart_theme.MUTED),
@@ -2083,7 +2088,7 @@ class Form1(Form1Template):
                 and (position == "all" or row["is_open"] == (position == "open"))]
     self.security_panel.items = sorted(filtered, key=lambda row: (-row["snapshot_value"], row["symbol"]))
     self.allocation_filter_empty_label.visible = bool(rows) and not filtered
-    self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
+    self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy, can_classify=self._user is not None)
     self.selection_status_label.text = (
       "%d of %d securities selected · All metrics and charts use this selection." % (len(self._selected_symbols), len(securities))
       if self._selected_symbols else "No securities selected. Check a security or choose Select all."
@@ -2096,6 +2101,24 @@ class Form1(Form1Template):
   def allocation_filter_change(self, **event_args):
     if not self._busy:
       self._render_security_rows()
+
+  @handle("security_panel", "x-sector-changed")
+  def security_sector_change(self, symbol, sector, **event_args):
+    if self._busy or self._analysis_source is None or self._user is None:
+      return
+    self._set_busy(True)
+    try:
+      result = anvil.server.call("set_security_sector", symbol, sector)
+      if not result["ok"]:
+        self._set_status(result["message"], is_error=True)
+        self._render_security_rows()
+        return
+      update_sector_classification(self._analysis_source, symbol, result["sector"], result["sector_override"])
+      self._history = analyze_selection(self._analysis_source, self._selected_symbols)
+      self._render_readout()
+      self._set_status("%s sector saved as %s. Charts updated." % (symbol, result["sector"]))
+    finally:
+      self._set_busy(False)
 
   def _format_average_price(self, price):
     if price is None:

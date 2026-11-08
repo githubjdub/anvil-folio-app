@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 from typing import Any
 
 import anvil.server
-from .sectors import build_sector_allocation, classify_securities
+from .sectors import refresh_analysis_classifications
 
 
 _EXCHANGES = {"NASDAQ", "NYSE", "NYSEARCA", "AMEX", "BATS", "NYSEAMERICAN"}
@@ -600,16 +600,9 @@ def analyze_portfolio_history(transactions, as_of_date, risk_free_rate, portfoli
     histories = {symbol: result[0] for symbol, result in fetched.items() if result[0] is not None}
     failures = {symbol: result[1] for symbol, result in fetched.items() if result[1] is not None}
     analysis = _build_analysis(transactions, as_of, rate, histories, now=now)
-    classifications = classify_securities(
-      [security["symbol"] for security in analysis["selection_data"]["securities"]],
-      histories,
-    )
-    analysis["sector_allocation"] = build_sector_allocation(
-      analysis.pop("open_holdings"), analysis["metadata"]["end_date"], histories,
-      classifications=classifications,
-    )
     for security in analysis["selection_data"]["securities"]:
-      security["sector"] = classifications.get(security["symbol"], "Unclassified")
+      security["instrument_type"] = histories[security["symbol"]].get("instrument_type")
+    refresh_analysis_classifications(analysis)
     analysis["benchmarks"] = _build_benchmarks(analysis, histories, failures)
     from portfolios import remember_analysis
     remember_analysis(original_transactions, as_of, rate * 100, analysis, portfolio_id)

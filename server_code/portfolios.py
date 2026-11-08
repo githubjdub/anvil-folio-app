@@ -112,7 +112,8 @@ def _saved_analysis(portfolio):
   expected = _analysis_fingerprint(portfolio["transactions"], portfolio["as_of_date"], portfolio["risk_free_rate"])
   if portfolio["analysis_fingerprint"] != expected:
     return None
-  return json.loads(gzip.decompress(portfolio["analysis_cache"].get_bytes()))
+  from sectors import refresh_analysis_classifications
+  return refresh_analysis_classifications(json.loads(gzip.decompress(portfolio["analysis_cache"].get_bytes())))
 
 
 def _analysis_values(fingerprint, media, computed_at):
