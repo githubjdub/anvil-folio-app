@@ -243,7 +243,7 @@
           </section>
           <section anvil:name="allocation_panel" class="readout-page allocation-page" aria-label="Portfolio structure">
           <section class="detail-card sector-card" aria-label="Portfolio composition">
-            <div class="detail-heading allocation-heading"><div><div class="allocation-eyebrow">Portfolio insights</div><h3>Where your money is invested</h3><p>Explore your sectors, position sizes, and concentration.</p></div><span class="allocation-badge">Market-value weighted</span></div>
+            <div class="detail-heading allocation-heading"><div><div class="allocation-eyebrow">Portfolio insights</div><h3>Portfolio structure</h3><p>Sector exposure, position sizes, and concentration.</p></div><span class="allocation-badge">Market-value weighted</span></div>
             <div class="structure-controls">
               <div><div class="portfolio-field-caption">Snapshot</div><anvil-component type="DropDown" name="allocation_quarter_dropdown" prop:role="portfolio-picker"></anvil-component></div>
               <div><div class="portfolio-field-caption">Break down by</div><anvil-component type="DropDown" name="allocation_view_dropdown" prop:role="portfolio-picker"></anvil-component></div>
@@ -255,7 +255,7 @@
               <div><span>Largest holding</span><anvil-component type="Label" name="allocation_largest_label" prop:role="structure-value"></anvil-component></div>
               <div><span>Top 5 concentration</span><anvil-component type="Label" name="allocation_top5_label" prop:role="structure-value"></anvil-component></div>
               <div><span>Equity sectors</span><anvil-component type="Label" name="allocation_sector_count_label" prop:role="structure-value"></anvil-component></div>
-              <div><span>Largest equity sector</span><anvil-component type="Label" name="allocation_largest_sector_label" prop:role="structure-value structure-sector-value"></anvil-component></div>
+              <div><span>Largest equity sector</span><anvil-component type="Label" name="allocation_largest_sector_label" prop:role="structure-sector-value"></anvil-component></div>
             </div>
             <anvil-component type="Label" name="sector_empty_label" prop:text="No open holdings to chart. Add a buy transaction and sync history to see your sector allocation." prop:role="portfolio-help"></anvil-component>
             <div class="structure-chart-grid">
@@ -265,7 +265,7 @@
             <div class="allocation-source-note"><anvil-component type="Label" name="sector_status_label" prop:role="portfolio-help"></anvil-component><p>Cash is excluded. Funds / ETFs are a separate group; their underlying sectors are not estimated.</p></div>
           </section>
           <section class="detail-card allocation-history-card" aria-label="Allocation history">
-            <div class="detail-heading"><h3><anvil-component type="Label" name="allocation_history_title_label" prop:text="Sector allocation over time" prop:role="allocation-chart-title"></anvil-component></h3><span>Quarterly snapshots</span></div>
+            <div class="detail-heading"><div role="heading" aria-level="3"><anvil-component type="Label" name="allocation_history_title_label" prop:text="Sector allocation over time" prop:role="allocation-chart-title"></anvil-component></div><span>Quarterly snapshots</span></div>
             <anvil-component type="Label" name="allocation_history_status_label" prop:role="portfolio-help"></anvil-component>
             <anvil-component type="Plot" name="allocation_history_plot" prop:height="380px"></anvil-component>
           </section>
@@ -275,10 +275,12 @@
             <anvil-component type="Plot" name="allocation_map_plot" prop:height="380px"></anvil-component>
           </section>
           <section class="detail-card allocation-securities-card" aria-label="Securities in this analysis">
-            <div class="security-breakdown-heading"><h4>Securities in this analysis</h4><anvil-component type="m3._Components.Button" name="select_all_securities_button" prop:text="Select all" prop:appearance="text"></anvil-component></div>
+            <div class="security-breakdown-heading"><h4>Portfolio holdings</h4><anvil-component type="m3._Components.Button" name="select_all_securities_button" prop:text="Select all" prop:appearance="text"></anvil-component></div>
+            <div class="holdings-filter"><anvil-component type="TextBox" name="allocation_search_box" prop:placeholder="Filter ticker, company, or sector" prop:role="portfolio-input" prop:tooltip="Filter holdings by ticker, company name, or sector"></anvil-component><anvil-component type="DropDown" name="allocation_position_dropdown" prop:role="portfolio-picker" prop:tooltip="Filter open or closed positions"></anvil-component></div>
             <p class="security-selection-help">Position values, P&amp;L and average trade prices below follow the selected snapshot. P&amp;L includes sales and dividends; average prices are weighted by shares and adjusted for splits. Uncheck a security to recalculate your portfolio charts and totals instantly.</p>
             <anvil-component type="Label" name="selection_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
-            <anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component>
+            <div class="holdings-table-scroll" tabindex="0" role="region" aria-label="Portfolio holdings table; scroll horizontally for all columns"><div class="holdings-table-heading" aria-hidden="true"><span></span><span>Stock / company / sector</span><span>Shares held</span><span>Value / weight</span><span>P&amp;L / return / average trade prices</span></div><anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component></div>
+            <anvil-component type="Label" name="allocation_filter_empty_label" prop:visible="False" prop:text="No holdings match these filters. Clear the search or choose All positions." prop:role="portfolio-help"></anvil-component>
             <details class="readout-notes"><summary>Composition notes</summary>
             <p class="fine-print">Open positions at the selected price mark, weighted by market value; sold positions and dividend cash are excluded. Today's quote-based snapshot is provisional. Current sector classifications are used for every snapshot. Funds / ETFs are grouped separately, without looking through their holdings.</p>
             <p class="fine-print">For each security, total P&amp;L is position value plus sale proceeds and dividends minus all buy costs through the snapshot. Return on buys is P&amp;L divided by those buy costs. These figures include closed trades. Average buy and sell prices cover all trades on each side through that date, on the snapshot's split-adjusted share basis; they are not the cost basis of the remaining shares. Performance charts use time-weighted returns over their own selected period.</p>

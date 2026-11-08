@@ -252,7 +252,8 @@ def stripe_webhook(**params):
   config = configuration()
   if config is None:
     return anvil.server.HttpResponse(503, 'Billing is not configured.')
-  body = anvil.server.request.body
+  media = anvil.server.request.body
+  body = media.get_bytes() if media is not None else b""
   if len(body) > 2_000_000:
     return anvil.server.HttpResponse(413, 'Payload too large.')
   signature = next((value for name, value in anvil.server.request.headers.items()

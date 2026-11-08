@@ -6,6 +6,7 @@
     <anvil-component type="Label" name="detail_label" bind:text="self.item['detail_text']" prop:role="security-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <div class="allocation-weight-track" aria-hidden="true"><span anvil:name="weight_fill" class="allocation-weight-fill"></span></div>
   </div>
+  <div class="security-shares"><anvil-component type="Label" name="shares_label" bind:text="self.item['shares_text']" prop:role="security-share-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
   <div class="security-amounts">
     <anvil-component type="Label" name="value_label" bind:text="self.item['value_text']" prop:role="security-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" prop:role="security-weight" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>

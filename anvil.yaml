@@ -493,6 +493,22 @@ db_schema:
       client_hidden: true
       name: last_used_at
       type: datetime
+    - admin_ui: {}
+      client_hidden: null
+      name: transaction_count
+      type: number
+    - admin_ui: {}
+      client_hidden: true
+      name: analysis_cache
+      type: media
+    - admin_ui: {}
+      client_hidden: true
+      name: analysis_fingerprint
+      type: string
+    - admin_ui: {}
+      client_hidden: true
+      name: analysis_updated_at
+      type: datetime
     indexes: []
     server: full
     title: Portfolios

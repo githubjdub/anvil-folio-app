@@ -22,6 +22,7 @@ class Router(RouterTemplate):
     self._username_account_id = None
     self._editor_form = None
     self._discarded_editor = None
+    self._profile_form = None
     self._hash_listener = anvil.js.report_exceptions(self.hash_changed)
 
   @handle("", "show")
@@ -58,6 +59,9 @@ class Router(RouterTemplate):
     account_id = user.get_id() if user is not None else None
     if account_id is None:
       self._username_account_id = None
+      self._profile_form = None
+    elif isinstance(self._profile_form, ProfileHome) and self._profile_form.account_id != account_id:
+      self._profile_form = None
     if (account_id is not None and account_id != self._username_account_id
         and self._route_key()[0] != "disclosures" and not username_prompt_open()):
       ready = ensure_username()
@@ -97,7 +101,13 @@ class Router(RouterTemplate):
         elif isinstance(active, Subscribe):
           active.plan_comparison.refresh_plan()
         return
-      destination = form_type()
+      if page == "profile" and isinstance(self._profile_form, ProfileHome):
+        destination = self._profile_form
+        destination._refresh()
+      else:
+        destination = form_type()
+      if isinstance(destination, ProfileHome):
+        self._profile_form = destination
       if generation == self._route_generation and self._route_key() == route:
         open_form(destination)
         record_page(page)

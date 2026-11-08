@@ -4,6 +4,7 @@ import anvil.tz
 from ._anvil_designer import ProfileHomeTemplate
 from anvil import *
 from ..account_profile import sign_in, ensure_username
+from ..workspace_cache import account_workspace, invalidate_workspace
 
 
 class ProfileHome(ProfileHomeTemplate):
@@ -30,13 +31,14 @@ class ProfileHome(ProfileHomeTemplate):
       self.account_id = None
       return
     account_id = user.get_id()
-    profile = anvil.server.call('get_my_profile')
-    usage = anvil.server.call('get_portfolio_usage')
-    portfolios = anvil.server.call('list_portfolios')
+    workspace = account_workspace()
     current = anvil.users.get_user()
-    if current is None or current.get_id() != account_id:
+    if workspace is None or current is None or current.get_id() != account_id:
       self._refresh()
       return
+    profile = workspace['profile']
+    usage = workspace['usage']
+    portfolios = workspace['portfolios']
     self.account_id = account_id
     # A route can open beneath username setup for an older account.
     username = profile['username'] or ''
@@ -123,6 +125,7 @@ class ProfileHome(ProfileHomeTemplate):
       if user is None or user.get_id() != account_id or get_open_form() is not self:
         return
       if result['ok'] or result.get('next_display_name_change_at'):
+        invalidate_workspace()
         self._refresh()
       user = anvil.users.get_user()
       if user is None or user.get_id() != account_id or get_open_form() is not self:
@@ -151,6 +154,7 @@ class ProfileHome(ProfileHomeTemplate):
   def signout_click(self, **event_args):
     if not self._busy:
       anvil.users.logout(invalidate_client_objects=True)
+      invalidate_workspace()
       set_url_hash({'page': 'portfolio'})
 
   @handle('signin_button', 'click')

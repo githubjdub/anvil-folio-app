@@ -575,10 +575,15 @@ def _build_benchmarks(analysis, histories, failures):
 
 
 @anvil.server.callable
-def analyze_portfolio_history(transactions, as_of_date, risk_free_rate):
+def analyze_portfolio_history(transactions, as_of_date, risk_free_rate, portfolio_id=None):
   """Analyze daily history and the latest available current-session prices."""
   try:
+    original_transactions = transactions
     transactions, as_of, rate = _validate(transactions, as_of_date, risk_free_rate)
+    if portfolio_id is not None:
+      from .portfolios import _current_user, _owned_portfolio
+      if _owned_portfolio(portfolio_id, _current_user()) is None:
+        return {"ok": False, "message": "This portfolio is no longer available to your account."}
     start = min(transaction["trade_date"] for transaction in transactions)
     required = {transaction["symbol"] for transaction in transactions} | {"^SP500TR", "^GSPC"}
     symbols = sorted(required | {entry[1] for entry in _OPTIONAL_BENCHMARKS})
@@ -606,6 +611,8 @@ def analyze_portfolio_history(transactions, as_of_date, risk_free_rate):
     for security in analysis["selection_data"]["securities"]:
       security["sector"] = classifications.get(security["symbol"], "Unclassified")
     analysis["benchmarks"] = _build_benchmarks(analysis, histories, failures)
+    from .portfolios import remember_analysis
+    remember_analysis(original_transactions, as_of, rate * 100, analysis, portfolio_id)
     return analysis
   except AnalysisInputError as error:
     return {"ok": False, "message": str(error)}

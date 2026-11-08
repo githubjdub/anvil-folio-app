@@ -16,6 +16,7 @@ from ..Components.TransactionYearGroup import TransactionYearGroup
 from ..transaction_groups import group_transactions_by_year
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, sign_in
+from ..workspace_cache import account_workspace, invalidate_workspace
 
 
 SECTOR_COLORS = chart_theme.SECTOR_COLORS
@@ -70,6 +71,8 @@ class Form1(Form1Template):
     self.allocation_view_dropdown.selected_value = "sector"
     self.allocation_quarter_dropdown.items = [("Latest", "latest")]
     self.allocation_quarter_dropdown.selected_value = "latest"
+    self.allocation_position_dropdown.items = [("All positions", "all"), ("Open positions", "open"), ("Closed positions", "closed")]
+    self.allocation_position_dropdown.selected_value = "all"
     self.chart_trade_region.visible = False
     self._market_status_loading = False
     self._readout_page = "overview"
@@ -861,8 +864,9 @@ class Form1(Form1Template):
     elif not busy and self._readout_page == "notifications":
       self.notifications_form.ensure_loaded()
 
-  def _refresh_portfolios(self):
-    portfolios = anvil.server.call("list_portfolios") if self._user is not None else []
+  def _refresh_portfolios(self, portfolios=None):
+    if portfolios is None:
+      portfolios = anvil.server.call("list_portfolios") if self._user is not None else []
     self.saved_portfolios_dropdown.items = [
       (portfolio["name"], portfolio) for portfolio in portfolios
     ]
@@ -883,13 +887,15 @@ class Form1(Form1Template):
       self._set_notification_unread_count(0)
     self.notifications_form.set_account_context(self.account_id)
     self._username = ""
+    workspace = None
     if self._user is not None:
       # A saved profile can be newer than the Users row cached in this browser.
-      profile = anvil.server.call("get_my_profile")
+      workspace = account_workspace()
       current_user = anvil.users.get_user()
-      if current_user is None or current_user.get_id() != self.account_id:
+      if workspace is None or current_user is None or current_user.get_id() != self.account_id:
         self._refresh_account()
         return
+      profile = workspace["profile"]
       self._username = profile["username"] or ""
     self.subscription_button.visible = self._user is not None
     self.account_button.text = "Sign out" if self._user is not None else "Sign in / Create account"
@@ -898,8 +904,11 @@ class Form1(Form1Template):
       if self._user is not None
       else "Sign in to save and reopen portfolios on any device. Saved portfolios are accessible to you and the platform creator."
     )
-    self._refresh_membership()
-    creator = anvil.server.call("get_creator_access") if self._user is not None else {"enabled": False, "email": None}
+    if workspace is not None:
+      self._display_membership(workspace["membership"])
+    else:
+      self._refresh_membership()
+    creator = workspace["creator"] if workspace is not None else {"enabled": False, "email": None}
     self._creator_enabled = bool(creator["enabled"])
     self._creator_reference = creator.get("setup_reference")
     self.creator_setup_button.visible = self._creator_reference is not None
@@ -911,7 +920,7 @@ class Form1(Form1Template):
     self.hedge_fund_comparison.set_creator_access(self._creator_enabled)
     self._set_creator_open(False)
     self._apply_readout_page()
-    self._refresh_portfolios()
+    self._refresh_portfolios(workspace["portfolios"] if workspace is not None else [])
 
     self._refresh_notification_unread_count()
 
@@ -952,7 +961,7 @@ class Form1(Form1Template):
       if not result["ok"]:
         self._set_portfolio_status(result["message"], is_error=True)
         return False
-      self._apply_portfolio(result["portfolio"])
+      self._apply_portfolio(result["portfolio"], result.get("analysis"))
       return True
     finally:
       self._set_busy(False)
@@ -989,6 +998,7 @@ class Form1(Form1Template):
     self._set_busy(True)
     try:
       self._refresh_membership()
+      invalidate_workspace()
     finally:
       self._set_busy(False)
 
@@ -1027,7 +1037,7 @@ class Form1(Form1Template):
     if not self._confirm_discard():
       self._set_portfolio_status("Welcome back. Your unsaved work is still here; open a saved portfolio whenever you're ready.")
       return
-    self._apply_portfolio(portfolio)
+    self._apply_portfolio(portfolio, result.get("analysis"))
     self._set_portfolio_status('Welcome back — reopened "%s".' % portfolio["name"])
 
   def _ensure_signed_in(self):
@@ -1180,6 +1190,7 @@ class Form1(Form1Template):
       self._current_portfolio = result["portfolio"]
       self.portfolio_name_box.text = self._current_portfolio["name"]
       self._portfolio_dirty = False
+      invalidate_workspace()
       self._set_portfolio_status('Saved "%s" to your account.' % self._current_portfolio["name"])
       self._refresh_portfolios()
     finally:
@@ -1197,12 +1208,12 @@ class Form1(Form1Template):
         self._set_portfolio_status(result["message"], is_error=True)
         return
       portfolio = result["portfolio"]
-      self._apply_portfolio(portfolio)
+      self._apply_portfolio(portfolio, result.get("analysis"))
       self._set_portfolio_status('Opened "%s". Changes are saved when you click Save changes.' % portfolio["name"])
     finally:
       self._set_busy(False)
 
-  def _apply_portfolio(self, portfolio):
+  def _apply_portfolio(self, portfolio, analysis=None):
     self._collapsed_transaction_years.clear()
     self._clear_image_import()
     self.simulations_form.reset_workspace()
@@ -1229,6 +1240,10 @@ class Form1(Form1Template):
     self.saved_portfolios_dropdown.selected_value = portfolio
     self._update_simulations_context()
     self._set_status("Saved transactions loaded — sync to fetch daily market history.")
+    if analysis is not None:
+      self.as_of_date_picker.date = portfolio["as_of_date"]
+      self._apply_analysis(analysis, self._read_transactions())
+      self._set_status("Saved analysis restored through %s. Sync history to refresh prices." % analysis["metadata"]["end_date"])
     self._update_controls()
 
   def _set_dates(self):
@@ -2044,6 +2059,7 @@ class Form1(Form1Template):
         position = "Closed position" if buy_cost > 0 else "No trades by this snapshot"
       count = security["transaction_count"]
       rows.append(dict(security,
+        shares_text=shares_text, is_open=shares > 0,
         included=included, snapshot_value=value,
         color=self._security_colors.get(security["symbol"], chart_theme.MUTED) if self.allocation_view_dropdown.selected_value == "security" else SECTOR_COLORS.get(security["sector"], chart_theme.MUTED),
         detail_text="%s · %s · %d trade%s total" % (security["sector"], position, count, "" if count == 1 else "s"),
@@ -2057,12 +2073,26 @@ class Form1(Form1Template):
         weight_text=("%.1f%% of snapshot" % (value / total_value * 100)
                      if included and total_value else "0.0% of snapshot" if included else "Excluded"),
       ))
-    self.security_panel.items = sorted(rows, key=lambda row: (-row["snapshot_value"], row["symbol"]))
+    query = str(self.allocation_search_box.text or "").strip().lower()
+    position = self.allocation_position_dropdown.selected_value or "all"
+    filtered = [row for row in rows
+                if (not query or query in ("%s %s %s" % (row["symbol"], row.get("company_name") or "", row["sector"])).lower())
+                and (position == "all" or row["is_open"] == (position == "open"))]
+    self.security_panel.items = sorted(filtered, key=lambda row: (-row["snapshot_value"], row["symbol"]))
+    self.allocation_filter_empty_label.visible = bool(rows) and not filtered
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.selection_status_label.text = (
       "%d of %d securities selected · All metrics and charts use this selection." % (len(self._selected_symbols), len(securities))
       if self._selected_symbols else "No securities selected. Check a security or choose Select all."
     )
+    if query or position != "all":
+      self.selection_status_label.text += " Showing %d of %d holdings; filters do not change your selection." % (len(filtered), len(rows))
+
+  @handle("allocation_search_box", "change")
+  @handle("allocation_position_dropdown", "change")
+  def allocation_filter_change(self, **event_args):
+    if not self._busy:
+      self._render_security_rows()
 
   def _format_average_price(self, price):
     if price is None:
@@ -2180,25 +2210,12 @@ class Form1(Form1Template):
         "action": row["action"], "shares": row["shares"],
         "trade_price": row["trade_price"],
       } for row in transactions]
-      result = anvil.server.call("analyze_portfolio_history", document, as_of_date, risk_free_rate / 100)
+      portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+      result = anvil.server.call("analyze_portfolio_history", document, as_of_date, risk_free_rate / 100, portfolio_id)
       if not result["ok"]:
         self._set_status(result["message"], is_error=True)
         return
-      self._analysis_source = result
-      self._selected_symbols = set(row["symbol"] for row in result["selection_data"]["securities"])
-      self._history = analyze_selection(result, self._selected_symbols)
-      self._analyzed_transactions = list(transactions)
-      for transaction, synced in zip(transactions, result["rows"]):
-        transaction.update(synced)
-        price = synced["current_price"]
-        transaction["quote_text"] = "No current holding" if price is None else "USD %s" % self._format_currency(price)
-        transaction["dividend_text"] = "Latest session price synced" if result["metadata"].get("provisional_date") else "Daily history synced"
-      self._refresh_transactions()
-      self.comparison_start_picker.date = self._date_from_iso(result["series"][0]["date"])
-      self.comparison_end_picker.date = self._date_from_iso(result["series"][-1]["date"])
-      self._show_results(True)
-      self._update_benchmark_options()
-      self._render_readout()
+      self._apply_analysis(result, transactions)
       if result["metadata"].get("provisional_date"):
         timestamp = result["metadata"]["quoted_at"].replace("T", " ").replace("+00:00", " UTC")
         message = "Latest regular-session prices synced · oldest portfolio quote %s. Today's values are provisional; daily risk uses completed sessions." % timestamp
@@ -2210,3 +2227,20 @@ class Form1(Form1Template):
       self._set_status(message)
     finally:
       self._set_busy(False)
+
+  def _apply_analysis(self, result, transactions):
+    self._analysis_source = result
+    self._selected_symbols = set(row["symbol"] for row in result["selection_data"]["securities"])
+    self._history = analyze_selection(result, self._selected_symbols)
+    self._analyzed_transactions = list(transactions)
+    for transaction, synced in zip(transactions, result["rows"]):
+      transaction.update(synced)
+      price = synced["current_price"]
+      transaction["quote_text"] = "No current holding" if price is None else "USD %s" % self._format_currency(price)
+      transaction["dividend_text"] = "Latest session price synced" if result["metadata"].get("provisional_date") else "Daily history synced"
+    self._refresh_transactions()
+    self.comparison_start_picker.date = self._date_from_iso(result["series"][0]["date"])
+    self.comparison_end_picker.date = self._date_from_iso(result["series"][-1]["date"])
+    self._show_results(True)
+    self._update_benchmark_options()
+    self._render_readout()

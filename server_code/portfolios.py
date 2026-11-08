@@ -2,11 +2,17 @@ import anvil.secrets
 """Private, account-owned portfolio documents. Prices are refreshed on analysis."""
 
 from datetime import date, datetime
+import gzip
+import hashlib
+import json
 import math
+from typing import Any
 
+import anvil
 import anvil.server
 import anvil.users
 from anvil.tables import app_tables, RowDeleted, in_transaction
+import anvil.tables.query as q
 from .memberships import membership_for
 
 
@@ -84,7 +90,64 @@ def _validate_inputs(name, transactions, as_of_date, risk_free_rate):
     "transactions": clean_transactions,
     "as_of_date": as_of_date,
     "risk_free_rate": rate,
+    "transaction_count": len(clean_transactions),
   }
+
+
+def _analysis_fingerprint(transactions, as_of_date, risk_free_rate):
+  """Match only editable inputs; fetched prices never become part of identity."""
+  document = [{
+    "ticker": str(row["ticker"]).strip().upper(),
+    "trade_date": str(row["trade_date"]), "action": row["action"],
+    "shares": float(row["shares"]),
+    "trade_price": float(row["trade_price"]) if row.get("trade_price") is not None else None,
+  } for row in transactions]
+  serialized = json.dumps(["sector-history-v2", document, str(as_of_date), round(float(risk_free_rate), 10)],
+                          separators=(",", ":"), sort_keys=True, allow_nan=False)
+  return hashlib.sha256(serialized.encode()).hexdigest()
+
+
+def _saved_analysis(portfolio):
+  if portfolio is None or not portfolio["analysis_cache"]:
+    return None
+  expected = _analysis_fingerprint(portfolio["transactions"], portfolio["as_of_date"], portfolio["risk_free_rate"])
+  if portfolio["analysis_fingerprint"] != expected:
+    return None
+  return json.loads(gzip.decompress(portfolio["analysis_cache"].get_bytes()))
+
+
+def _analysis_values(fingerprint, media, computed_at):
+  return {"analysis_cache": media, "analysis_fingerprint": fingerprint,
+          "analysis_updated_at": computed_at}
+
+
+def _staged_analysis():
+  # REPL and other server-originated calls have no browser session.
+  return anvil.server.session.get("latest_portfolio_analysis") if anvil.server.get_session_id() else None
+
+
+@in_transaction
+def _store_analysis_if_unchanged(portfolio_id, user, fingerprint, media, computed_at):
+  portfolio = _owned_portfolio(portfolio_id, user)
+  if portfolio is None:
+    return
+  expected = _analysis_fingerprint(portfolio["transactions"], portfolio["as_of_date"], portfolio["risk_free_rate"])
+  if expected == fingerprint:
+    portfolio.update(**_analysis_values(fingerprint, media, computed_at))
+
+
+def remember_analysis(transactions, as_of_date, risk_free_rate, analysis, portfolio_id=None):
+  """Stage one server-computed result so a subsequent Save can reuse it."""
+  fingerprint = _analysis_fingerprint(transactions, as_of_date, risk_free_rate)
+  compressed = gzip.compress(json.dumps(analysis, separators=(",", ":"), allow_nan=False).encode(), compresslevel=5)
+  media = anvil.BlobMedia("application/gzip", compressed, name="portfolio-analysis.json.gz")
+  computed_at = datetime.now()
+  user = anvil.users.get_user()
+  if anvil.server.get_session_id():
+    session: Any = anvil.server.session
+    session["latest_portfolio_analysis"] = (fingerprint, media, computed_at, user.get_id() if user is not None else None)
+  if portfolio_id is not None:
+    _store_analysis_if_unchanged(portfolio_id, _current_user(), fingerprint, media, computed_at)
 
 
 def _owned_portfolio(portfolio_id, user):
@@ -109,7 +172,7 @@ def _portfolio_timestamp(value):
 
 def _portfolios_for(user):
   return sorted(
-    app_tables.portfolios.search(owner=user),
+    app_tables.portfolios.search(q.fetch_only("name", "updated_at", "last_used_at", "transaction_count"), owner=user),
     key=lambda portfolio: _portfolio_timestamp(portfolio["updated_at"]),
     reverse=True,
   )
@@ -124,12 +187,12 @@ def list_portfolios():
 def get_last_portfolio():
   user = _current_user()
   portfolio = max(
-    app_tables.portfolios.search(owner=user),
+    app_tables.portfolios.search(q.fetch_only("name", "updated_at", "last_used_at"), owner=user),
     key=lambda row: (row["last_used_at"] is not None,
                      _portfolio_timestamp(row["last_used_at"] or row["updated_at"])),
     default=None,
   )
-  return {"ok": True, "portfolio": portfolio}
+  return {"ok": True, "portfolio": portfolio, "analysis": _saved_analysis(portfolio)}
 
 
 @anvil.server.callable(require_user=True)
@@ -139,7 +202,21 @@ def load_portfolio(portfolio_id):
   if portfolio is None:
     return {"ok": False, "message": "This portfolio is no longer available to your account."}
   portfolio.update(last_used_at=datetime.now())
-  return {"ok": True, "portfolio": portfolio}
+  return {"ok": True, "portfolio": portfolio, "analysis": _saved_analysis(portfolio)}
+
+
+@anvil.server.callable(require_user=True)
+def get_portfolio_workspace():
+  """One small bootstrap response; analyses are fetched only when opened."""
+  from .account_profiles import get_my_profile
+  from .creator_portfolios import get_creator_access
+  user = _current_user()
+  portfolios = _portfolios_for(user)
+  membership = membership_for(user)
+  return {"profile": get_my_profile(), "membership": membership,
+          "creator": get_creator_access(), "portfolios": portfolios,
+          "usage": {"count": len(portfolios), "limit": membership["portfolio_limit"],
+                    "plan": membership["label"], "can_create": len(portfolios) < membership["portfolio_limit"]}}
 
 
 @anvil.server.callable(require_user=True)
@@ -158,6 +235,12 @@ def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate)
     return {"ok": False, "message": str(error)}
 
   now = datetime.now()
+  fingerprint = _analysis_fingerprint(values["transactions"], values["as_of_date"], values["risk_free_rate"])
+  staged = _staged_analysis()
+  if staged and len(staged) == 4 and staged[0] == fingerprint and staged[3] in (None, user.get_id()):
+    values.update(**_analysis_values(staged[0], staged[1], staged[2]))
+  elif portfolio is not None and portfolio["analysis_fingerprint"] != fingerprint:
+    values.update(analysis_cache=None, analysis_fingerprint=None, analysis_updated_at=None)
   values.update(updated_at=now, last_used_at=now)
   if portfolio is None:
     membership = membership_for(user)

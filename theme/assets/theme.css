@@ -1678,6 +1678,72 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
 .notification-coverage summary { cursor: pointer; font-size: 12px; font-weight: 650; }
 .notification-coverage summary:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: 4px; border-radius: 2px; }
 .notification-coverage p { font-size: 12px; line-height: 1.75; max-width: 850px; }
+
+/* Portfolio research: compact summaries, consistent sector colours and holdings. */
+.allocation-page { container-type: inline-size; container-name: allocation; }
+.allocation-page .detail-card { border-radius: 12px; box-shadow: none; overflow: hidden; }
+.allocation-page .allocation-heading { align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+.allocation-eyebrow { font-size: 10px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; color: var(--blue); margin-bottom: 8px; }
+.allocation-heading p { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 6px 0 0; }
+.readout-workspace .allocation-heading .allocation-badge { font-size: 10px; letter-spacing: .02em; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-soft); color: var(--muted); white-space: nowrap; }
+.allocation-page .structure-controls { gap: 14px; padding: 14px; margin: 18px 0 12px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 8px; }
+.allocation-page .portfolio-field-caption { font-size: 11px; margin-bottom: 5px; }
+.allocation-page .allocation-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 18px 0 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.allocation-page .allocation-summary > div { background: var(--paper); border: 0; border-radius: 0; padding: 16px; border-bottom: 1px solid var(--line); }
+.allocation-page .allocation-summary > div:nth-child(n + 4) { border-bottom: 0; }
+.allocation-page .allocation-summary > div:not(:nth-child(3n)) { border-right: 1px solid var(--line); }
+.allocation-page .allocation-summary > div > span { font-size: 11px; line-height: 1.4; }
+.allocation-page .anvil-role-structure-value { font-size: 23px; margin: 7px 0 0; font-variant-numeric: tabular-nums; }
+.anvil-role-structure-sector-value { display: block; font-size: 16px; color: var(--ink); line-height: 1.5; font-weight: 700; margin-top: 7px; }
+.allocation-page .structure-chart-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 285px), 1fr)); gap: 24px; margin: 20px 0; align-items: start; }
+.allocation-donut { min-width: 0; }
+.allocation-chart-caption { margin: -4px 0 0; text-align: center; font-size: 11px; color: var(--muted); }
+.allocation-legend-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 6px; }
+.allocation-legend-heading > span { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.anvil-role-allocation-caption { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 0 0 8px; }
+.allocation-page .sector-allocation-row { padding: 12px 0; gap: 10px; align-items: flex-start; }
+.allocation-page .sector-swatch { border-radius: 3px; width: 9px; height: 9px; flex-basis: 9px; margin-top: 7px; }
+.allocation-page .anvil-role-sector-name, .allocation-page .anvil-role-sector-weight { font-size: 13px; line-height: 1.5; }
+.allocation-page .anvil-role-sector-tickers { font-size: 11px; line-height: 1.5; }
+.allocation-page .sector-amounts { min-width: 82px; font-variant-numeric: tabular-nums; }
+.allocation-page .allocation-weight-track { height: 5px; margin-top: 7px; background: var(--surface-raised); }
+.anvil-role-allocation-change { font-size: 10px; color: var(--blue); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.allocation-source-note { border-left: 3px solid var(--blue); padding: 8px 12px; background: var(--surface-soft); border-radius: 0 6px 6px 0; }
+.allocation-source-note p, .allocation-page .allocation-source-note .anvil-role-portfolio-help { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.anvil-role-allocation-chart-title { font-size: 18px; font-weight: 700; line-height: 1.4; color: var(--ink); margin: 0; }
+.allocation-page .allocation-history-card .detail-heading, .allocation-page .allocation-map-card .detail-heading { margin-bottom: 10px; }
+.allocation-page .allocation-history-card .anvil-role-portfolio-help, .allocation-map-help { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 0 0 12px; }
+.allocation-page .security-breakdown-heading { margin-top: 0; }
+.holdings-filter { display: grid; grid-template-columns: minmax(0, 1fr) minmax(145px, .45fr); gap: 12px; padding: 14px 0; }
+.holdings-filter > * { min-width: 0; width: 100%; }
+.allocation-page .security-selection-help, .allocation-page .anvil-role-portfolio-help { font-size: 12px; line-height: 1.7; }
+.holdings-table-scroll { overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--line); border-radius: 8px; margin-top: 12px; }
+.holdings-table-scroll:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.holdings-table-heading, .allocation-page .security-allocation-row { display: grid; grid-template-columns: 9px minmax(220px, 1.5fr) 90px 130px minmax(400px, 2fr); min-width: 990px; gap: 12px; padding: 14px; align-items: center; }
+.holdings-table-heading { font-size: 10px; font-weight: 700; color: var(--muted); background: var(--surface-soft); letter-spacing: .025em; }
+.holdings-table-heading > :nth-child(3), .holdings-table-heading > :nth-child(4) { text-align: right; }
+.allocation-page .security-allocation-row { border-top: 1px solid var(--line); background: var(--paper); }
+.allocation-page .security-allocation-row:hover { background: var(--surface-soft); }
+.allocation-page .security-allocation-row .security-swatch { border-radius: 3px; margin-top: 0; }
+.allocation-page .security-amounts { grid-column: auto; display: block; padding: 0; text-align: right; }
+.allocation-page .security-performance-metrics { grid-column: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0 0 0 12px; margin: 0; background: transparent; border-radius: 0; border-left: 1px solid var(--line); text-align: right; }
+.allocation-page .security-stat-caption { font-size: 10px; margin-bottom: 4px; }
+.allocation-page .anvil-role-security-stat-value, .allocation-page .anvil-role-security-value { font-size: 12px; }
+.allocation-page .anvil-role-security-company { font-size: 12px; }
+.allocation-page .anvil-role-security-choice { font-size: 13px; }
+.allocation-page .anvil-role-security-detail, .allocation-page .anvil-role-security-weight { font-size: 10px; line-height: 1.6; }
+.security-shares { text-align: right; }
+.anvil-role-security-share-value { font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.allocation-page .security-description .allocation-weight-track { max-width: 150px; height: 3px; }
+.allocation-page .readout-notes { margin-bottom: 0; padding: 14px; }
+@container allocation (max-width: 560px) {
+  .allocation-page .allocation-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .allocation-page .allocation-summary > div { padding: 12px; border-right: 0 !important; border-bottom: 1px solid var(--line); }
+  .allocation-page .allocation-summary > div:nth-child(odd) { border-right: 1px solid var(--line) !important; }
+  .allocation-page .allocation-summary > div:nth-child(n + 5) { border-bottom: 0; }
+  .allocation-page .anvil-role-structure-value { font-size: 20px; }
+  .holdings-filter { grid-template-columns: 1fr; }
+}
 @container notifications (max-width: 860px) { .notifications-layout { grid-template-columns: minmax(0, 1fr); } }
 @container notifications (max-width: 420px) { .notification-watch-fields { grid-template-columns: 1fr; gap: 0; } .notifications-header { padding: 18px; } .notification-card { padding: 18px; } }
 @media (max-width: 700px) {
