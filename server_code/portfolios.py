@@ -2,6 +2,7 @@ import anvil.secrets
 """Private, account-owned portfolio documents. Prices are refreshed on analysis."""
 
 from datetime import date, datetime
+import base64
 import gzip
 import hashlib
 import json
@@ -147,7 +148,10 @@ def remember_analysis(transactions, as_of_date, risk_free_rate, analysis, portfo
   user = anvil.users.get_user()
   if anvil.server.context.client.type == "browser":
     session: Any = anvil.server.session
-    session["latest_portfolio_analysis"] = (fingerprint, compressed, computed_at, user.get_id() if user is not None else None)
+    session["latest_portfolio_analysis"] = (
+      fingerprint, base64.b64encode(compressed).decode("ascii"), computed_at,
+      user.get_id() if user is not None else None,
+    )
   if portfolio_id is not None:
     _store_analysis_if_unchanged(portfolio_id, _current_user(), fingerprint, media, computed_at)
 
@@ -277,8 +281,9 @@ def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate)
   fingerprint = _analysis_fingerprint(values["transactions"], values["as_of_date"], values["risk_free_rate"])
   staged = _staged_analysis()
   if (staged and len(staged) == 4 and staged[0] == fingerprint
-      and isinstance(staged[1], bytes) and staged[3] in (None, user.get_id())):
-    media = anvil.BlobMedia("application/gzip", staged[1], name="portfolio-analysis.json.gz")
+      and isinstance(staged[1], str) and staged[3] in (None, user.get_id())):
+    compressed = base64.b64decode(staged[1], validate=True)
+    media = anvil.BlobMedia("application/gzip", compressed, name="portfolio-analysis.json.gz")
     values.update(**_analysis_values(staged[0], media, staged[2]))
   elif portfolio is not None and portfolio["analysis_fingerprint"] != fingerprint:
     values.update(analysis_cache=None, analysis_fingerprint=None, analysis_updated_at=None)
