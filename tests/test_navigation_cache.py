@@ -84,6 +84,9 @@ class NavigationHarness:
             def open_notifications(self):
                 pass
 
+            def open_portfolio_page(self):
+                pass
+
         pages = {name: type(name, (Page,), {}) for name in
                  ('ProfileHome', 'MySubscription', 'Subscribe', 'Disclosures', 'PublicPerformance')}
         namespace = dict(

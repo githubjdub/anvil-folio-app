@@ -7,7 +7,15 @@
         <div class="brand-name">Folio</div>
       </div>
     </div>
-    <nav class="portfolio-masthead-links" aria-label="Main navigation"><a href="#?page=portfolio" aria-current="page">My Portfolio</a><a href="#?page=profile">Profile</a><a href="#?page=subscription">Membership</a></nav>
+    <nav class="portfolio-masthead-links" aria-label="Main navigation"><a anvil:name="portfolio_header_link" href="#?page=portfolio" anvil:on-dom:click="self.portfolio_header_click" aria-current="page">My Portfolio</a>
+      <anvil-component type="m3._Components.Button" name="profile_button" prop:text="Profile" prop:appearance="text" prop:role="masthead-tab" prop:icon="mi:person"></anvil-component>
+      <div class="notification-tab-wrap portfolio-header-notifications">
+        <anvil-component type="m3._Components.Button" name="notifications_tab_button" prop:text="Notifications" prop:icon="mi:mail" prop:appearance="text" prop:role="masthead-tab" prop:tooltip="Your insider activity inbox"></anvil-component>
+        <span anvil:name="notification_badge" class="notification-tab-badge" aria-hidden="true"><anvil-component type="Label" name="notification_badge_label" prop:role="notification-tab-count" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></span>
+        <span class="notification-tab-announcement" role="status" aria-live="polite" aria-atomic="true"><anvil-component type="Label" name="notification_badge_accessible_label" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></span>
+      </div>
+      <a href="#?page=subscription">Membership</a>
+    </nav>
     <div class="portfolio-topbar-actions">
     <div anvil:name="market_status_region" class="market-status is-unavailable" role="status" aria-live="polite">
       <div class="market-status-line"><span class="market-status-dot" aria-hidden="true"></span><anvil-component type="Label" name="market_status_label" prop:text="Checking US markets…" prop:role="market-status-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
@@ -121,12 +129,8 @@
       <anvil-component type="m3._Components.Button" name="passive_tab_button" prop:text="Passive Income" prop:appearance="text" prop:role="readout-tab"></anvil-component>
       <anvil-component type="m3._Components.Button" name="tax_tab_button" prop:text="Tax Harvester" prop:appearance="text" prop:role="readout-tab"></anvil-component>
       <anvil-component type="m3._Components.Button" name="retirement_tab_button" prop:text="Retirement" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-      <anvil-component type="m3._Components.Button" name="profile_button" prop:text="Profile" prop:appearance="text" prop:role="readout-tab" prop:icon="mi:person"></anvil-component>
-      <div class="notification-tab-wrap">
-        <anvil-component type="m3._Components.Button" name="notifications_tab_button" prop:text="Notifications" prop:icon="mi:mail" prop:appearance="text" prop:role="readout-tab" prop:tooltip="Your insider activity inbox"></anvil-component>
-        <span anvil:name="notification_badge" class="notification-tab-badge" aria-hidden="true"><anvil-component type="Label" name="notification_badge_label" prop:role="notification-tab-count" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></span>
-        <span class="notification-tab-announcement" role="status" aria-live="polite" aria-atomic="true"><anvil-component type="Label" name="notification_badge_accessible_label" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></span>
-      </div>
+
+
     </nav>
 
     <div class="portfolio-workspace-tools">

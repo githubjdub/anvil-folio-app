@@ -479,7 +479,7 @@ def _build_analysis(transactions, as_of, rate, histories, now=None):
     security.update({"shares": shares, "price": price,
                      "market_value": shares * price if shares > 0 else 0.0})
     security.update(_security_trade_metrics(security, security["market_value"]))
-  return {
+  analysis = {
     "ok": True, "series": series, "rows": row_summaries, "open_holdings": open_holdings,
     "selection_data": {"dates": [day.isoformat() for day in sessions],
                        "securities": list(securities.values())},
@@ -487,7 +487,7 @@ def _build_analysis(transactions, as_of, rate, histories, now=None):
                 "market_value": market_value, "dividends": dividend_cash,
                 "profit": profit, "simple_return": profit / buy_cost if buy_cost else 0,
                 "total_return": total_return, "annualized_return": annualized_return,
-                "days": days, "holding_count": sum(shares > 0 for shares in holdings.values())},
+                "days": days, "holding_count": sum(1 for shares in holdings.values() if shares > 0)},
     "metadata": {"start_date": start.isoformat(), "end_date": end.isoformat(),
                  "source": "Yahoo Finance daily history + latest regular-session quotes" if provisional_day else "Yahoo Finance daily history", "currency": "USD",
                  "provisional_date": provisional_day.isoformat() if provisional_day else None,
@@ -497,10 +497,17 @@ def _build_analysis(transactions, as_of, rate, histories, now=None):
                  "market_benchmark": "S&P 500 price index (^GSPC)",
                  "risk_free_rate": rate, "moved_transaction_dates": moved_dates,
                  "minimum_risk_observations": 20,
-                 "observed_return_sessions": sum(point["return_observed"] for point in series if point["session_complete"]),
+                 "observed_return_sessions": sum(1 for point in series if point["session_complete"] and point["return_observed"]),
                  "uninvested_sessions": uninvested_sessions,
                  "method": "Time-weighted returns; buys are beginning-of-session contributions and sales are end-of-session withdrawals. Dividends remain cash. The first price mark is the zero-return baseline; non-trading dates use the next available session. Splits adjust quantities. Current-session quotes are provisional and excluded from daily risk estimates. Annualized return is withheld for a provisional endpoint or zero-capital gaps."},
   }
+
+
+  from planning_context import build_synced_planning_context
+  analysis['planning_context'] = build_synced_planning_context(
+    transactions, histories, end, row_summaries,
+    {'series': series, 'securities': list(securities.values())})
+  return analysis
 
 
 def _benchmark_samples(history, sessions, total_return, provisional_day=None):
@@ -602,7 +609,7 @@ def analyze_portfolio_history(transactions, as_of_date, risk_free_rate, portfoli
     analysis = _build_analysis(transactions, as_of, rate, histories, now=now)
     for security in analysis["selection_data"]["securities"]:
       security["instrument_type"] = histories[security["symbol"]].get("instrument_type")
-    refresh_analysis_classifications(analysis)
+    refresh_analysis_classifications(analysis, fetch_missing=True)
     analysis["benchmarks"] = _build_benchmarks(analysis, histories, failures)
     from portfolios import remember_analysis
     remember_analysis(original_transactions, as_of, rate * 100, analysis, portfolio_id)

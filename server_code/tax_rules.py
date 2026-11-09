@@ -1,4 +1,4 @@
-"""2026 US investment-tax planning rules, versioned and independent of quotes.
+"""2025–2026 US investment-tax planning rules, independent of quotes.
 
 Federal brackets: IRS Rev. Proc. 2025-32, section 4.01 and 4.03.
 https://www.irs.gov/pub/irs-drop/rp-25-32.pdf
@@ -9,6 +9,7 @@ State inputs are marginal planning rates, not complete state tax returns.
 import math
 
 YEAR = 2026
+SUPPORTED_YEARS = (2025, 2026)
 ORDINARY = {
   'single': [12400, 50400, 105700, 201775, 256225, 640600],
   'joint': [24800, 100800, 211400, 403550, 512450, 768700],
@@ -17,6 +18,18 @@ ORDINARY = {
 }
 CAPITAL = {'single': [49450, 545500], 'joint': [98900, 613700],
            'separate': [49450, 306850], 'head': [66200, 579600]}
+# IRS Rev. Proc. 2024-40, sections 2.01 and 2.03. Income is supplied
+# after deductions, so this module does not assume a standard deduction.
+ORDINARY_BY_YEAR = {2026: ORDINARY, 2025: {
+  'single': [11925, 48475, 103350, 197300, 250525, 626350],
+  'joint': [23850, 96950, 206700, 394600, 501050, 751600],
+  'separate': [11925, 48475, 103350, 197300, 250525, 375800],
+  'head': [17000, 64850, 103350, 197300, 250500, 626350],
+}}
+CAPITAL_BY_YEAR = {2026: CAPITAL, 2025: {
+  'single': [48350, 533400], 'joint': [96700, 600050],
+  'separate': [48350, 300000], 'head': [64750, 566700],
+}}
 NIIT = {'single': 200000, 'joint': 250000, 'separate': 125000, 'head': 200000}
 STATE_PRESETS = {
   'IL': (4.95, 'https://tax.illinois.gov/research/taxrates/income.html'),
@@ -49,15 +62,15 @@ def number(value, label, lower=-1e12, upper=1e12):
 
 
 def validate_settings(settings):
-  if not isinstance(settings, dict) or settings.get('tax_year') != YEAR:
-    raise TaxInputError('This estimator supports US tax year 2026. Choose 2026 to continue.')
+  if not isinstance(settings, dict) or type(settings.get('tax_year')) is not int or settings.get('tax_year') not in SUPPORTED_YEARS:
+    raise TaxInputError('Choose a supported US tax year: 2025 or 2026. Other years are not estimated using a different year’s rules.')
   status = settings.get('filing_status')
   state = settings.get('state')
   if status not in ORDINARY:
     raise TaxInputError('Choose a filing status.')
   if state not in {'federal', *(code for _, code in STATES)}:
     raise TaxInputError('Choose a US state or Federal only.')
-  clean = {'tax_year': YEAR, 'filing_status': status, 'state': state,
+  clean = {'tax_year': settings['tax_year'], 'filing_status': status, 'state': state,
            'wash_sale_reviewed': settings.get('wash_sale_reviewed') is True}
   clean['ordinary_income'] = number(settings.get('ordinary_income'), 'ordinary income after deductions')
   for key, label in [('magi', 'modified adjusted gross income'),
@@ -98,16 +111,18 @@ def net_capital(short, long, status):
 
 def liability(settings, short, long):
   status = settings['filing_status']
+  ordinary_limits = ORDINARY_BY_YEAR[settings['tax_year']][status]
+  capital_limits = CAPITAL_BY_YEAR[settings['tax_year']][status]
   st, lt, deduction, carry = net_capital(short, long, status)
   ordinary_before_floor = settings['ordinary_income'] + st - deduction
   ordinary = max(0.0, ordinary_before_floor)
   preferred = max(0.0, lt + settings['qualified_dividends'] + min(0.0, ordinary_before_floor))
-  ordinary_tax = _bracket_tax(ordinary, ORDINARY[status], [.1,.12,.22,.24,.32,.35,.37])
-  capital_tax = (_bracket_tax(ordinary + preferred, CAPITAL[status], [0,.15,.2])
-                 - _bracket_tax(ordinary, CAPITAL[status], [0,.15,.2]))
+  ordinary_tax = _bracket_tax(ordinary, ordinary_limits, [.1,.12,.22,.24,.32,.35,.37])
+  capital_tax = (_bracket_tax(ordinary + preferred, capital_limits, [0,.15,.2])
+                 - _bracket_tax(ordinary, capital_limits, [0,.15,.2]))
   # The Qualified Dividends/Capital Gain Tax Worksheet uses the smaller of
   # its preferential computation and regular tax on all taxable income.
-  regular_tax = _bracket_tax(ordinary + preferred, ORDINARY[status], [.1,.12,.22,.24,.32,.35,.37])
+  regular_tax = _bracket_tax(ordinary + preferred, ordinary_limits, [.1,.12,.22,.24,.32,.35,.37])
   capital_tax = min(capital_tax, max(0.0, regular_tax - ordinary_tax))
   magi = settings['magi'] + st + lt - deduction
   investment = max(0.0, settings['other_investment_income'] + st + lt - deduction)

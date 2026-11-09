@@ -54,7 +54,7 @@ class Router(RouterTemplate):
         return "notifications", None
       if route.get("page") == "portfolio":
         return "dashboard", route.get("portfolio")
-    return ("profile", None) if anvil.users.get_user() is not None else ("dashboard", None)
+    return "dashboard", None
 
   def _current_account_id(self):
     user = anvil.users.get_user()
@@ -166,6 +166,8 @@ class Router(RouterTemplate):
         record_page("dashboard")
       if page == "notifications":
         editor.open_notifications()
+      else:
+        editor.open_portfolio_page()
 
   def _open_account_page(self, page, route, generation, account_id):
     entry = self._page_forms.get(page)

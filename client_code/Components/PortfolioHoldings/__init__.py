@@ -1,6 +1,5 @@
 from anvil import *
 from ._anvil_designer import PortfolioHoldingsTemplate
-from ... import chart_theme
 from ...holdings_dashboard import build_dashboard, filter_holdings, quarter_periods, ACTIVITIES
 
 
@@ -12,11 +11,11 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self._source = None
     self._selected = ()
     self._classification = ()
+    self._transactions = []
+    self._transaction_key = ()
     self._snapshots = {}
     self._snapshot = None
     self._dirty = True
-    self._chart_mode = None
-    self._plot_size = None
     self.position_dropdown.items = [("Open holdings", "open"), ("All traded securities", "all")]
     self.position_dropdown.selected_value = "open"
     self.activity_dropdown.items = [("Any activity", "all")] + [(title, key) for key, title in ACTIVITIES]
@@ -30,15 +29,15 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self._source = None
     self._selected = ()
     self._classification = ()
+    self._transactions = []
+    self._transaction_key = ()
     self._snapshots = {}
     self._snapshot = None
     self._dirty = True
-    self._plot_size = None
     self.quarter_dropdown.items = []
     self.quarter_dropdown.selected_value = None
     self.holdings_panel.items = []
     self.activity_panel.items = []
-    self.holdings_plot.data = []
     self.dashboard_region.visible = False
     self.empty_region.visible = True
     self.empty_label.text = "Add a security and sync your portfolio to see your holdings here."
@@ -47,7 +46,10 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     securities = ((source_analysis or {}).get("selection_data") or {}).get("securities") or []
     selected = tuple(sorted(row["symbol"] for row in securities)) if selected_symbols is None else tuple(sorted(selected_symbols))
     classification = tuple((row["symbol"], row.get("sector"), row.get("company_name")) for row in securities)
-    if source_analysis is self._source and selected == self._selected and classification == self._classification:
+    transaction_key = tuple((row.get("ticker"), str(row.get("trade_date")), row.get("action"),
+                             row.get("shares"), row.get("trade_price")) for row in transactions or [])
+    if (source_analysis is self._source and selected == self._selected
+        and classification == self._classification and transaction_key == self._transaction_key):
       return
     if source_analysis is None:
       self.reset_workspace()
@@ -56,6 +58,8 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self._source = source_analysis
     self._selected = selected
     self._classification = classification
+    self._transactions = transactions or []
+    self._transaction_key = transaction_key
     self._snapshots = {}
     self._dirty = True
     dates = (source_analysis.get("selection_data") or {}).get("dates") or []
@@ -71,18 +75,14 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
       return
     if self._dirty:
       self._render_snapshot()
-    elif self._chart_mode != chart_theme.MODE:
-      self._render_plot()
-    if self._snapshot and self._snapshot["total"] > 0:
-      self._plot_size = chart_theme.redraw(self.holdings_plot, self._plot_size)
 
   def apply_appearance(self):
-    self._chart_mode = None
+    pass
 
   def _render_snapshot(self):
     key = self.quarter_dropdown.selected_value
     if key not in self._snapshots:
-      self._snapshots[key] = build_dashboard(self._source, self._selected, key)
+      self._snapshots[key] = build_dashboard(self._source, self._selected, key, self._transactions)
     self._snapshot = self._snapshots[key]
     snapshot = self._snapshot
     self._dirty = False
@@ -98,8 +98,6 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self.map_title_label.text = "%d open holding%s" % (snapshot["open_count"], "" if snapshot["open_count"] == 1 else "s")
     self.table_title_label.text = "Portfolio holdings · %s" % label
     self.value_label.text = "$%s" % format(snapshot["total"], ",.2f")
-    self.return_note_label.text = ("Price return while held · %s to %s · cash-flow adjusted · dividends excluded. New positions use their own invested dates."
-                                   % (snapshot["baseline_date"], snapshot["date"])) if snapshot["date"] else "Price returns need saved daily position history."
     self.legacy_label.visible = snapshot["legacy"]
     groups = [dict(group, count_text=str(len(group["symbols"])),
                    chips=[{"symbol": symbol, "kind": group["key"]} for symbol in group["symbols"]])
@@ -107,7 +105,6 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self.activity_panel.items = groups
     self.no_activity_label.visible = not groups
     self._render_table()
-    self._render_plot()
 
   def _render_table(self):
     if self._snapshot is None:
@@ -120,45 +117,14 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
       shares_text=format(row["shares"], ",.8f").rstrip("0").rstrip("."),
       value_text="$%s" % format(row["market_value"], ",.2f"),
       weight_text="%.2f%%" % (row["weight"] * 100),
+      basis_text="—" if row["cost_basis"] is None else "$%s" % format(row["cost_basis"], ",.2f"),
+      basis_note=("Sync complete trades and prices for basis." if row["cost_basis"] is None
+                  else "Estimated · synced closing prices" if row["basis_estimated"] else "Remaining shares · FIFO"),
       return_text="—" if row["return"] is None else "%+.2f%%" % (row["return"] * 100),
       return_detail=("%s – %s" % (row["return_start"], row["return_end"])) if row["return_start"] else "No measured holding interval",
     ) for row in rows]
     self.filter_empty_label.visible = not rows
     self.filter_count_label.text = "%d securities shown · filters affect this table only" % len(rows)
-
-  def _render_plot(self):
-    if self._snapshot is None:
-      return
-    snapshot = self._snapshot
-    rows = [row for row in snapshot["rows"] if row["market_value"] > 0]
-    self.holdings_plot.visible = bool(rows)
-    self.map_empty_label.visible = not rows
-    total = snapshot["total"]
-    # Symbols and company names enter Plotly as text, with markup escaped.
-    def plain(value):
-      return str(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    colors = [chart_theme.MUTED if row["return"] is None else
-              "#32864D" if row["return"] > 0 else "#A53836" if row["return"] < 0 else "#637183"
-              for row in rows]
-    self.holdings_plot.data = [{
-      "type": "treemap", "ids": ["holding:" + row["symbol"] for row in rows],
-      "labels": [plain(row["symbol"]) for row in rows], "parents": [""] * len(rows),
-      "values": [row["market_value"] for row in rows], "branchvalues": "total",
-      "customdata": [[plain(row["company_name"]), row["weight"],
-                      "—" if row["return"] is None else "%+.1f%%" % (row["return"] * 100)] for row in rows],
-      "texttemplate": "<b>%{label}</b><br>%{customdata[1]:.1%} · %{customdata[2]}",
-      "hovertemplate": "%{label}<br>%{customdata[0]}<br>$%{value:,.2f}<br>%{customdata[1]:.2%} of invested value<br>Price return while held: %{customdata[2]}<extra></extra>",
-      "marker": {"colors": colors, "line": {"color": chart_theme.PANEL, "width": 3}},
-      "textfont": {"color": "#FFFFFF", "size": 19},
-      "pathbar": {"visible": False}, "tiling": {"pad": 2},
-    }] if total > 0 else []
-    self.holdings_plot.layout = chart_theme.layout({
-      "margin": {"l": 0, "r": 0, "t": 0, "b": 0},
-      "uniformtext": {"minsize": 11, "mode": "hide"},
-    })
-    self.holdings_plot.config = {"displayModeBar": False, "responsive": True}
-    self._chart_mode = chart_theme.MODE
-    self._plot_size = None
 
   @handle("quarter_dropdown", "change")
   def quarter_change(self, **event_args):

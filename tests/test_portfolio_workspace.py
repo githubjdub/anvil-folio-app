@@ -30,6 +30,7 @@ class Control:
         self.visible = True
         self.enabled = True
         self.classes = {}
+        self.attrs = {}
         self.text = ''
         self.items = []
         self.selected_value = None

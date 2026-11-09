@@ -504,6 +504,18 @@ db_schema:
     indexes: []
     server: full
     title: Portfolio Directory
+  portfolio_plans:
+    client: none
+    columns:
+    - {client_hidden: true, name: owner, target: users, type: link_single}
+    - {client_hidden: true, name: portfolio_id, type: string}
+    - {name: tool, type: string}
+    - {name: year, type: number}
+    - {name: inputs, type: simpleObject}
+    - {name: updated_at, type: datetime}
+    indexes: []
+    server: full
+    title: Portfolio Planning Inputs
   portfolios:
     client: none
     columns:

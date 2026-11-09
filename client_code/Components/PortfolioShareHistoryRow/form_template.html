@@ -1,0 +1,5 @@
+<div class="portfolio-holdings-history-row">
+  <div><anvil-component type="Label" name="quarter_label" bind:text="self.item['label_text']" prop:role="portfolio-holdings-history-quarter" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="date_label" bind:text="self.item['date']" prop:role="portfolio-holdings-history-date" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+  <anvil-component type="Label" name="shares_label" bind:text="self.item['shares_text']" prop:role="portfolio-holdings-history-shares" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  <div anvil:name="change_cell" class="portfolio-holdings-history-change"><anvil-component type="Label" name="change_label" bind:text="self.item['change_text']" prop:role="portfolio-holdings-history-shares" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+</div>

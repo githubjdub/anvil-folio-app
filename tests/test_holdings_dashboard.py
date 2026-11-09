@@ -6,7 +6,7 @@ from pathlib import Path
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "client_code"))
-from holdings_dashboard import build_dashboard, filter_holdings
+from holdings_dashboard import build_dashboard, filter_holdings, quarter_periods, quarterly_share_history, display_share_history
 
 
 def point(value, shares, bought=0, sold=0, cost=100):
@@ -96,6 +96,124 @@ class HoldingsDashboardTests(unittest.TestCase):
     missing = dict(dashboard["rows"][0], symbol="MISSING", **{"return": None})
     losing = dict(dashboard["rows"][0], symbol="LOSING", **{"return": -.1})
     self.assertEqual(filter_holdings([missing, losing], sort="return")[0]["symbol"], "LOSING")
+
+
+def trade(day, action, shares, price=None):
+  return dict(ticker="TEST:NYSE", trade_date=day, action=action, shares=shares, trade_price=price)
+
+
+class HoldingsHistoryAndBasisTests(unittest.TestCase):
+  def fixture(self, dates, shares, trades, prices=None):
+    days = [point(quantity * 10, quantity) for quantity in shares]
+    payload = dict(selection_data=dict(dates=dates, securities=[dict(
+      symbol="TEST", company_name="Test", sector="Technology", days=days, **days[-1])]),
+      series=[dict(date=day, session_complete=True) for day in dates],
+      rows=[dict(entry_date_used=dates[index], entry_price=(prices or [None] * len(trades))[index])
+            for index in range(len(trades))])
+    return payload
+
+  def test_fifo_remaining_basis_excludes_already_sold_lots(self):
+    dates = ["2026-04-01", "2026-04-02", "2026-04-03"]
+    trades = [trade(dates[0], "Buy", 10, 10), trade(dates[1], "Buy", 10, 20), trade(dates[2], "Sell", 15, 30)]
+    payload = self.fixture(dates, [10, 20, 5], trades)
+    row = build_dashboard(payload, transactions=trades)["rows"][0]
+    self.assertEqual(row["cost_basis"], 100)
+    self.assertFalse(row["basis_estimated"])
+
+  def test_split_and_same_session_trade_preserve_total_basis(self):
+    dates = ["2026-04-01", "2026-04-02", "2026-04-03"]
+    trades = [trade(dates[0], "Buy", 10, 10), trade(dates[1], "Buy", 10, 8), trade(dates[2], "Sell", 25, 9)]
+    payload = self.fixture(dates, [10, 30, 5], trades)
+    row = build_dashboard(payload, transactions=trades)["rows"][0]
+    self.assertAlmostEqual(row["cost_basis"], 40)
+
+  def test_reverse_split_uses_pre_split_lot_total(self):
+    dates = ["2026-04-01", "2026-04-02"]
+    trades = [trade(dates[0], "Buy", 100, 3)]
+    payload = self.fixture(dates, [100, 10], trades)
+    row = build_dashboard(payload, transactions=trades)["rows"][0]
+    self.assertEqual(row["cost_basis"], 300)
+
+  def test_unsorted_weekend_buys_use_original_dates_before_fifo_sale(self):
+    dates = ["2026-06-08", "2026-06-09"]
+    # Sunday appears first in the editor, but Saturday must create the first lot.
+    trades = [trade("2026-06-07", "Buy", 10, 20), trade("2026-06-06", "Buy", 10, 10),
+              trade("2026-06-09", "Sell", 10, 30)]
+    payload = self.fixture(dates, [20, 10], [])
+    payload["rows"] = [dict(entry_date_used="2026-06-08", entry_price=20),
+                       dict(entry_date_used="2026-06-08", entry_price=10),
+                       dict(entry_date_used="2026-06-09", entry_price=30)]
+    self.assertEqual(build_dashboard(payload, transactions=trades)["rows"][0]["cost_basis"], 200)
+
+  def test_synced_close_fallback_is_explicitly_estimated(self):
+    dates = ["2026-04-01", "2026-04-02"]
+    trades = [trade(dates[0], "Buy", 10)]
+    payload = self.fixture(dates, [10, 10], trades, [13])
+    row = build_dashboard(payload, transactions=trades)["rows"][0]
+    self.assertEqual(row["cost_basis"], 130)
+    self.assertTrue(row["basis_estimated"])
+
+  def test_missing_execution_prices_stay_unknown(self):
+    dates = ["2026-04-01", "2026-04-02"]
+    trades = [trade(dates[0], "Buy", 10)]
+    payload = self.fixture(dates, [10, 10], trades)
+    row = build_dashboard(payload, transactions=trades)["rows"][0]
+    self.assertIsNone(row["cost_basis"])
+
+  def test_unknown_basis_does_not_poison_later_known_repurchase(self):
+    dates = ["2026-04-01", "2026-04-02", "2026-04-03"]
+    trades = [trade(dates[0], "Buy", 10), trade(dates[1], "Sell", 10, 20), trade(dates[2], "Buy", 5, 15)]
+    payload = self.fixture(dates, [10, 0, 5], trades)
+    row = build_dashboard(payload, transactions=trades)["rows"][0]
+    self.assertEqual(row["cost_basis"], 75)
+    self.assertFalse(row["basis_estimated"])
+
+  def test_missing_transaction_history_cannot_invent_basis(self):
+    payload = self.fixture(["2026-04-01", "2026-04-02"], [10, 10], [])
+    self.assertIsNone(build_dashboard(payload)["rows"][0]["cost_basis"])
+
+  def test_historical_basis_never_reads_later_purchase(self):
+    dates = ["2026-06-30", "2026-07-01"]
+    trades = [trade(dates[0], "Buy", 10, 10), trade(dates[1], "Buy", 10, 25)]
+    payload = self.fixture(dates, [10, 20], trades)
+    row = build_dashboard(payload, quarter_key="2026-Q2", transactions=trades)["rows"][0]
+    self.assertEqual(row["cost_basis"], 100)
+    self.assertEqual(len(row["share_history"]), 1)
+    self.assertEqual(row["share_history"][0]["shares"], 10)
+
+  def test_history_caps_at_five_and_compares_previous_hidden_quarter(self):
+    dates = ["2025-03-31", "2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31", "2026-05-15"]
+    history = quarterly_share_history([dict(shares=n) for n in [10, 20, 15, 20, 25, 30]],
+                                      dates, quarter_periods(dates), 5)
+    self.assertEqual(len(history), 5)
+    self.assertEqual(history[0]["label"], "Q2 2025")
+    self.assertEqual(history[0]["change"], 1)
+    self.assertAlmostEqual(history[-1]["change"], .2)
+    self.assertTrue(history[-1]["partial"])
+    self.assertTrue(history[-1]["latest"])
+    self.assertEqual(history[-1]["height"], 100)
+    self.assertIn("partial", display_share_history(history)[-1]["label_text"])
+
+  def test_history_endpoints_have_no_lookahead_and_raw_split_counts(self):
+    dates = ["2026-03-31", "2026-06-30", "2026-07-02"]
+    history = quarterly_share_history([dict(shares=n) for n in [10, 20, 99]],
+                                      dates, quarter_periods(dates), 1)
+    self.assertEqual([row["shares"] for row in history], [10, 20])
+    self.assertEqual(history[-1]["change"], 1)
+    self.assertFalse(history[-1]["partial"])
+
+  def test_complete_weekend_ending_quarter_is_not_partial(self):
+    dates = ["2028-09-29"]  # Quarter ends on Saturday September 30.
+    history = quarterly_share_history([dict(shares=10)], dates, quarter_periods(dates), 0)
+    self.assertFalse(history[0]["partial"])
+
+  def test_source_and_trades_remain_read_only(self):
+    dates = ["2026-04-01", "2026-04-02"]
+    trades = [trade(dates[0], "Buy", 10, 10)]
+    payload = self.fixture(dates, [10, 20], trades)
+    original = copy.deepcopy([payload, trades])
+    build_dashboard(payload, transactions=trades)
+    self.assertEqual(original, [payload, trades])
 
 
 if __name__ == "__main__":

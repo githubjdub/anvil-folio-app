@@ -60,6 +60,8 @@ class Form1(Form1Template):
     self._collapsed_transaction_years = {}
     self._history = None
     self._analysis_source = None
+    self._last_synced_analysis = None
+    self._last_synced_transactions = []
     self._selected_symbols = set()
     self._analyzed_transactions = []
     self._chart_trade_groups = []
@@ -78,6 +80,7 @@ class Form1(Form1Template):
     self.chart_trade_region.visible = False
     self._market_status_loading = False
     self._readout_page = "overview"
+    self._portfolio_readout_page = "overview"
     self._dirty_readout_pages = {"overview", "allocation", "performance"}
     self._plot_sizes = {}
     self._appearance_mode = chart_theme.MODE
@@ -186,6 +189,9 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
+    if self._readout_page != "notifications":
+      self._portfolio_readout_page = self._readout_page
+    self.portfolio_header_link.attrs["aria-current"] = "false" if self._readout_page == "notifications" else "page"
     editing = self._readout_page == "transactions"
     self.transactions_column.visible = editing
     self.readout_column.visible = not editing
@@ -208,7 +214,7 @@ class Form1(Form1Template):
     ):
       active = name == self._readout_page
       panel.visible = active
-      button.role = "readout-tab-active" if active else "readout-tab"
+      button.role = ("masthead-tab-active" if active else "masthead-tab") if name == "notifications" else ("readout-tab-active" if active else "readout-tab")
       setattr(button, "enabled", not self._busy)
     income_page = self._readout_page in ("dividends", "passive", "tax")
     self.income_panel.visible = income_page
@@ -397,16 +403,19 @@ class Form1(Form1Template):
   def _update_retirement_context(self):
     value = None
     as_of = None
-    if self._history is not None and self._selected_symbols:
-      value = self._history["metrics"]["market_value"]
-      as_of = self._history["metadata"]["end_date"]
-    self.retirement_form.set_portfolio_context(value, as_of)
+    source = self._last_synced_analysis
+    if source is not None:
+      value = source["metrics"]["market_value"]
+      as_of = source["metadata"]["end_date"]
+    portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+    self.retirement_form.set_portfolio_context(value, as_of, portfolio_id=portfolio_id)
 
   @handle("retirement_form", "x-use-portfolio-balance")
   def retirement_use_portfolio(self, **event_args):
-    if not self._busy and self._history is not None and self._selected_symbols:
+    source = self._last_synced_analysis
+    if not self._busy and source is not None:
       self.retirement_form.set_starting_balance(
-        self._history["metrics"]["market_value"], self._history["metadata"]["end_date"]
+        source["metrics"]["market_value"], source["metadata"]["end_date"]
       )
 
   @handle("retirement_form", "x-retirement-busy")
@@ -414,6 +423,15 @@ class Form1(Form1Template):
     self._set_busy(busy)
 
   def _update_tax_estimator_context(self):
+    # The planning tools use the latest complete sync, independent of filters
+    # and unsynced transaction drafts. Switching tabs never fetches prices.
+    source = self._last_synced_analysis
+    portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+    self.tax_estimator_form.set_portfolio_context(
+      self._last_synced_transactions,
+      source["metadata"]["end_date"] if source is not None else None,
+      portfolio_id=portfolio_id, analysis=source,
+    )
     transactions = []
     as_of = None
     if self._history is not None and self._selected_symbols:
@@ -423,7 +441,6 @@ class Form1(Form1Template):
                       for row in self._analyzed_transactions
                       if self._security_key(row) in self._selected_symbols]
       as_of = self._history["metadata"]["end_date"]
-    self.tax_estimator_form.set_portfolio_context(transactions, as_of)
     self.income_form.set_portfolio_context(transactions, as_of)
 
   @handle("dividends_tab_button", "click")
@@ -836,7 +853,7 @@ class Form1(Form1Template):
     self._update_welcome()
     setattr(self.share_performance_button, "enabled", not self._busy)
     for component in (
-      self.account_button, self.save_portfolio_button, self.new_portfolio_button,
+      self.account_button, self.profile_button, self.save_portfolio_button, self.new_portfolio_button,
       self.refresh_membership_button,
       self.plans_button, self.subscription_button,
       self.portfolio_name_box, self.add_button, self.sample_button,
@@ -976,6 +993,16 @@ class Form1(Form1Template):
   def profile_click(self, **event_args):
     if not self._busy:
       set_url_hash({"page": "profile"})
+
+  def open_portfolio_page(self):
+    if self._readout_page == "notifications":
+      self._select_readout_page(self._portfolio_readout_page)
+
+  def portfolio_header_click(self, event):
+    event.preventDefault()
+    if not self._busy:
+      self.open_portfolio_page()
+      set_url_hash({"page": "portfolio"})
 
   def open_profile_portfolio(self, portfolio_id):
     if self._busy:
@@ -1139,6 +1166,8 @@ class Form1(Form1Template):
     self._collapsed_transaction_years.clear()
     self._restore_on_resume = False
     self._current_portfolio = None
+    self._last_synced_analysis = None
+    self._last_synced_transactions = []
     self._clear_image_import()
     self.tax_estimator_form.reset_workspace()
     self.income_form.reset_workspace()
@@ -1179,10 +1208,12 @@ class Form1(Form1Template):
     try:
       if self._user is None:
         if self._ensure_signed_in():
-          # Show the welcome page first. Restore only when Portfolio is opened,
-          # leaving any guest draft intact while the user views their account.
-          self._restore_on_resume = True
-          set_url_hash({"page": "profile"})
+          # Restore here too: the Portfolio hash may already be active, so
+          # selecting it again does not necessarily cause a Router event.
+          if not self._has_unsaved_work():
+            self._restore_last_portfolio()
+          self._restore_on_resume = False
+          set_url_hash({"page": "portfolio"})
       else:
         anvil.users.logout(invalidate_client_objects=True)
         self._user = None
@@ -1302,6 +1333,8 @@ class Form1(Form1Template):
     self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
     self.portfolio_holdings_form.reset_workspace()
+    self._last_synced_analysis = None
+    self._last_synced_transactions = []
     self._current_portfolio = portfolio
     self.portfolio_name_box.text = portfolio["name"]
     # Keep saved inputs unchanged so a simple reopen retains its cache identity.
@@ -2358,6 +2391,10 @@ class Form1(Form1Template):
 
   def _apply_analysis(self, result, transactions):
     self._analysis_source = result
+    self._last_synced_analysis = result
+    self._last_synced_transactions = [{key: row.get(key) for key in
+                                      ("ticker", "trade_date", "action", "shares", "trade_price")}
+                                     for row in transactions]
     self._selected_symbols = set(row["symbol"] for row in result["selection_data"]["securities"])
     self._history = analyze_selection(result, self._selected_symbols)
     self._analyzed_transactions = list(transactions)

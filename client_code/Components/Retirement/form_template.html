@@ -4,7 +4,7 @@ custom_component: true
 <section class="retirement-workspace">
   <div class="detail-heading"><h3>Plan for your next chapter</h3><span>Retirement · Beta</span></div>
   <p class="retirement-intro">Explore how your savings, spending, and retirement date could play out across 2,000 possible market paths.</p>
-  <p class="fine-print">All amounts are in today's US dollars. The starting values are examples; return and risk assumptions are yours to choose.</p>
+  <p class="fine-print">All amounts are in today's US dollars. Your latest synced portfolio supplies starting savings automatically. Set your ages, cash flows, and growth assumptions; Save inputs keeps them for your next visit.</p>
   <div class="retirement-input-sections">
     <section class="retirement-input-group">
       <h4>Your starting point</h4>
@@ -39,7 +39,7 @@ custom_component: true
       <p class="fine-print">Return means the expected one-year total return before inflation and fees, including reinvested dividends. Volatility describes annual return variability. These assumptions apply throughout the plan and are not estimated from your portfolio history.</p>
     </details>
   </div>
-  <div class="retirement-run-row"><anvil-component type="m3._Components.Button" name="run_button" prop:text="Run retirement projection" prop:appearance="filled" prop:role="analyze-action"></anvil-component><span class="fine-print">Scenarios are not saved when you reload.</span></div>
+  <div class="retirement-run-row"><anvil-component type="m3._Components.Button" name="run_button" prop:text="Run retirement projection" prop:appearance="filled" prop:role="analyze-action"></anvil-component><anvil-component type="m3._Components.Button" name="save_inputs_button" prop:text="Save inputs" prop:appearance="outlined" prop:role="chart-tool"></anvil-component><span class="fine-print">Save inputs to continue this plan across visits.</span></div>
   <div anvil:name="status_region" class="retirement-status" role="status" aria-live="polite"><anvil-component type="Label" name="status_label" prop:role="portfolio-help"></anvil-component></div>
   <section anvil:name="results_region" class="retirement-results">
     <div class="retirement-result-heading"><div><h4>Your projected range</h4><p class="fine-print">Purchasing power in today's dollars</p></div><span class="retirement-simulation-tag">2,000 simulated paths</span></div>
