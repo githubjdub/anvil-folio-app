@@ -124,9 +124,9 @@
       <anvil-component type="m3._Components.Button" name="transactions_tab_button" prop:text="Transactions" prop:icon="mi:swap_vert" prop:appearance="text" prop:role="readout-tab"></anvil-component>
       <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Portfolio Structure" prop:icon="mi:pie_chart" prop:appearance="text" prop:role="readout-tab"></anvil-component>
       <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance History" prop:icon="mi:trending_up" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-      <div class="readout-tab-with-badge"><anvil-component type="m3._Components.Button" name="tax_estimator_tab_button" prop:text="Tax Estimator" prop:icon="mi:calculate" prop:appearance="text" prop:role="readout-tab"></anvil-component><span class="feature-beta-badge" title="Estimates, not tax filing advice">Beta</span></div>
       <anvil-component type="m3._Components.Button" name="dividends_tab_button" prop:text="Dividends" prop:appearance="text" prop:role="readout-tab"></anvil-component>
       <anvil-component type="m3._Components.Button" name="passive_tab_button" prop:text="Passive Income" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+      <div class="readout-tab-with-badge"><anvil-component type="m3._Components.Button" name="tax_estimator_tab_button" prop:text="Tax Estimator" prop:icon="mi:calculate" prop:appearance="text" prop:role="readout-tab"></anvil-component><span class="feature-beta-badge" title="Estimates, not tax filing advice">Beta</span></div>
       <anvil-component type="m3._Components.Button" name="tax_tab_button" prop:text="Tax Harvester" prop:appearance="text" prop:role="readout-tab"></anvil-component>
       <anvil-component type="m3._Components.Button" name="retirement_tab_button" prop:text="Retirement" prop:appearance="text" prop:role="readout-tab"></anvil-component>
 
@@ -378,7 +378,7 @@
           </section>
           </section>
         </section>
-        <section anvil:name="hedge_fund_panel" class="readout-page detail-card hedge-fund-subsection" aria-label="Hedge fund comparisons"><anvil-component type="M3_App_1.Components.HedgeFundComparison" name="hedge_fund_comparison"></anvil-component></section>
+        <section anvil:name="hedge_fund_panel" class="readout-page detail-card hedge-fund-subsection" aria-label="Hedge fund comparisons"><anvil-component type="M3_App_1.Components.HedgeFundComparison" name="hedge_fund_comparison" prop:visible="false"></anvil-component></section>
         <section anvil:name="retirement_panel" class="readout-page" aria-label="Retirement projections">
           <anvil-component type="M3_App_1.Components.Retirement" name="retirement_form"></anvil-component>
         </section>

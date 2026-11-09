@@ -21,6 +21,7 @@ from ..workspace_cache import account_workspace, invalidate_workspace
 
 
 SECTOR_COLORS = chart_theme.SECTOR_COLORS
+HEDGE_FUND_COMPARISONS_ENABLED = False
 
 BENCHMARK_CHOICES = [
   ("S&P 500 index", "sp500"), ("Nasdaq Composite index", "nasdaq"),
@@ -59,6 +60,10 @@ class Form1(Form1Template):
     self.transactions = []
     self._collapsed_transaction_years = {}
     self._history = None
+    self._comparison_window_source = None
+    self._comparison_window_key = None
+    self._comparison_window_data = None
+    self.hedge_fund_comparison.visible = HEDGE_FUND_COMPARISONS_ENABLED
     self._analysis_source = None
     self._last_synced_analysis = None
     self._last_synced_transactions = []
@@ -204,7 +209,7 @@ class Form1(Form1Template):
     portfolio_page = self._readout_page in ("overview", "allocation", "performance")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
-    self.hedge_fund_panel.visible = self._readout_page == "performance"
+    self.hedge_fund_panel.visible = HEDGE_FUND_COMPARISONS_ENABLED and self._readout_page == "performance"
     for name, panel, button in (
       ("overview", self.overview_panel, self.overview_tab_button),
       ("allocation", self.allocation_panel, self.allocation_tab_button),
@@ -235,7 +240,7 @@ class Form1(Form1Template):
         self.portfolio_holdings_form.redraw()
       elif self._readout_page == "tax_estimator":
         self.tax_estimator_form.redraw()
-      elif self._readout_page == "performance":
+      elif self._readout_page == "performance" and HEDGE_FUND_COMPARISONS_ENABLED:
         self.hedge_fund_comparison.redraw()
       elif self._readout_page in ("dividends", "passive", "tax"):
         self.income_form.ensure_loaded()
@@ -306,7 +311,7 @@ class Form1(Form1Template):
       self.portfolio_holdings_form.redraw()
     if self._readout_page == "tax_estimator":
       self.tax_estimator_form.apply_appearance()
-    elif self._readout_page == "performance":
+    elif self._readout_page == "performance" and HEDGE_FUND_COMPARISONS_ENABLED:
       self.hedge_fund_comparison.apply_appearance()
     elif self._readout_page in ("dividends", "passive", "tax"):
       self.income_form.apply_appearance()
@@ -930,6 +935,7 @@ class Form1(Form1Template):
     self.account_id = self._user.get_id() if self._user is not None else None
     if self.account_id != previous_account_id:
       self._set_notification_unread_count(0)
+      self.share_composer.set_account_context()
     self.notifications_form.set_account_context(self.account_id)
     self._username = ""
     self._profile_summary = None
@@ -1397,6 +1403,9 @@ class Form1(Form1Template):
     if not visible:
       self._set_charts_expanded(False, resize=False)
       self._history = None
+      self._comparison_window_source = None
+      self._comparison_window_key = None
+      self._comparison_window_data = None
       self._analysis_source = None
       self._selected_symbols = set()
       self._analyzed_transactions = []
@@ -1414,20 +1423,21 @@ class Form1(Form1Template):
   def _sharing_context(self):
     if self._history is None or not self._selected_symbols:
       raise ValueError("Sync your portfolio and select at least one security before sharing performance.")
-    # Sharing can start from Overview before Performance has been opened.
-    self._ensure_readout_rendered("performance")
-    traces = self.performance_plot.data
-    dates = traces[0].get("x", []) if traces else []
-    if not dates:
-      raise ValueError("Choose a valid performance date range and available benchmark before sharing.")
+    # Read cached comparison values directly; sharing never renders hidden plots.
+    window = self._comparison_window()
+    points = window["points"]
+    if len(points) < 2:
+      raise ValueError("Choose a period with at least two overlapping trading valuations.")
+    dates = [points[0]["date"], points[-1]["date"]]
     transactions = [{
       "ticker": row["ticker"], "trade_date": row["trade_date"],
       "action": row["action"], "shares": row["shares"],
       "trade_price": row.get("trade_price"),
     } for row in self._analyzed_transactions]
     benchmark = self.benchmark_dropdown.selected_value
-    portfolio_return = traces[0]["y"][-1]
-    benchmark_return = traces[1]["y"][-1]
+    portfolio_return = points[-1]["portfolio_index"] / points[0]["portfolio_index"] - 1
+    benchmark_values = window["benchmark_by_date"]
+    benchmark_return = benchmark_values[dates[-1]] / benchmark_values[dates[0]] - 1
     benchmark_label = next(label for label, key in BENCHMARK_CHOICES if key == benchmark)
     summary_lines = [
       "My portfolio performance",
@@ -1442,8 +1452,9 @@ class Form1(Form1Template):
       summary_lines.append("Provisional regular-session prices as of %s." % self._history["metadata"].get("quoted_at"))
     summary = "\n".join(summary_lines)
     return {
-      "transactions": transactions, "as_of_date": self.as_of_date_picker.date,
-      "risk_free_rate": float(self.risk_free_box.text) / 100,
+      "transactions": transactions, "as_of_date": self._date_from_iso(self._history["metadata"]["end_date"]),
+      "risk_free_rate": self._history["metadata"]["risk_free_rate"],
+      "portfolio_id": self._current_portfolio.get_id() if self._current_portfolio is not None else None,
       "selected_symbols": sorted(self._selected_symbols), "benchmark": benchmark,
       "benchmark_return": self.benchmark_return_dropdown.selected_value,
       "start_date": str(dates[0]), "end_date": str(dates[-1]),
@@ -1454,7 +1465,7 @@ class Form1(Form1Template):
   def share_performance_click(self, **event_args):
     if self._busy:
       return
-    self._set_charts_expanded(False)
+    self._set_charts_expanded(False, resize=False)
     self.share_composer.visible = True
     self.share_composer.show_for(self._sharing_context, self._ensure_signed_in)
 
@@ -1809,12 +1820,65 @@ class Form1(Form1Template):
     )
     self.benchmark_return_dropdown.enabled = not self._busy and len(modes) > 1
 
+  def _comparison_window(self):
+    """Reuse the active date/benchmark window without constructing any charts."""
+    source = self._history
+    if source is None or not source["series"]:
+      raise ValueError("Select at least one synced security to compare returns.")
+    timeframe = self.timeframe_dropdown.selected_value or "ALL"
+    benchmark_key = "%s_%s" % (self.benchmark_dropdown.selected_value,
+                               self.benchmark_return_dropdown.selected_value)
+    custom_start = self.comparison_start_picker.date if timeframe == "CUSTOM" else None
+    custom_end = self.comparison_end_picker.date if timeframe == "CUSTOM" else None
+    key = (timeframe, benchmark_key, custom_start, custom_end)
+    if self._comparison_window_source is source and self._comparison_window_key == key:
+      return self._comparison_window_data
+    series = source["series"]
+    start = self._date_from_iso(series[0]["date"])
+    end = self._date_from_iso(series[-1]["date"])
+    if timeframe == "CUSTOM":
+      start, end = custom_start, custom_end
+      if start is None or end is None or start > end:
+        raise ValueError("Choose a start date on or before the end date.")
+    elif timeframe == "YTD":
+      start = date(end.year, 1, 1)
+    elif timeframe != "ALL":
+      start = self._months_before(end, {"1M": 1, "3M": 3, "6M": 6, "1Y": 12, "3Y": 36}[timeframe])
+    first, last = start.isoformat(), end.isoformat()
+    selected = [point for point in series if first <= point["date"] <= last]
+    if not selected:
+      raise ValueError("No portfolio history is available in this period.")
+    benchmark_data = source["benchmarks"].get(benchmark_key)
+    if not benchmark_data or not benchmark_data.get("series"):
+      raise ValueError("No matching benchmark data is available yet. Choose another benchmark or sync prices.")
+    benchmark_by_date = {point["date"]: point["index"] for point in benchmark_data["series"]}
+    benchmark_complete = {point["date"]: point.get("session_complete", True) for point in benchmark_data["series"]}
+    first_benchmark, last_benchmark = min(benchmark_by_date), max(benchmark_by_date)
+    common = [point for point in selected if first_benchmark <= point["date"] <= last_benchmark]
+    if not common:
+      raise ValueError("No overlapping portfolio and benchmark dates. Choose another period.")
+    if any(point["date"] not in benchmark_by_date for point in common):
+      raise ValueError("This benchmark has missing daily closes. Choose another benchmark or sync prices.")
+    if common[0]["portfolio_index"] <= 0 or benchmark_by_date[common[0]["date"]] <= 0:
+      raise ValueError("Choose a period with a positive return baseline.")
+    notice = "Nasdaq Composite is a price index; it excludes dividends." if benchmark_key == "nasdaq_price" else ""
+    if len(common) < len(selected):
+      notice += " Both lines use their overlapping dates: %s – %s." % (common[0]["date"], common[-1]["date"])
+    missing = [label for label, choice in BENCHMARK_CHOICES
+               if not source["benchmarks"].get(choice + "_price", {}).get("series")
+               and not source["benchmarks"].get(choice + "_total", {}).get("series")]
+    if missing:
+      notice += " Unavailable this sync: %s." % ", ".join(missing)
+    result = {"points": common, "benchmark_by_date": benchmark_by_date,
+              "benchmark_complete": benchmark_complete, "benchmark_data": benchmark_data,
+              "notice": notice.strip()}
+    self._comparison_window_source = source
+    self._comparison_window_key = key
+    self._comparison_window_data = result
+    return result
+
   def _render_comparison(self):
     if self._history is None or self._analysis_source is None:
-      return
-    series = self._history["series"]
-    if not series:
-      self._clear_comparison("Select at least one security to compare returns.")
       return
     timeframe = self.timeframe_dropdown.selected_value or "ALL"
     for value, button in self._timeframe_buttons():
@@ -1822,63 +1886,26 @@ class Form1(Form1Template):
       self._chart_button_node(button).setAttribute("aria-pressed", "true" if value == timeframe else "false")
     self._clear_chart_trades()
     self.custom_period_region.visible = timeframe == "CUSTOM"
-    end = self._date_from_iso(series[-1]["date"])
-    start = self._date_from_iso(series[0]["date"])
-    if timeframe == "CUSTOM":
-      start = self.comparison_start_picker.date
-      end = self.comparison_end_picker.date
-      if start is None or end is None or start > end:
-        self._clear_comparison("Choose a start date on or before the end date.")
-        return
-    elif timeframe == "YTD":
-      start = date(end.year, 1, 1)
-    elif timeframe != "ALL":
-      months = {"1M": 1, "3M": 3, "6M": 6, "1Y": 12, "3Y": 36}[timeframe]
-      start = self._months_before(end, months)
-    selected = [point for point in series if start.isoformat() <= point["date"] <= end.isoformat()]
-    if not selected:
-      self._clear_comparison("No portfolio history is available in this period.")
+    try:
+      window = self._comparison_window()
+    except ValueError as error:
+      self.benchmark_status_label.text = str(error)
+      self._clear_comparison(str(error))
       return
-    benchmark_key = "%s_%s" % (self.benchmark_dropdown.selected_value,
-                               self.benchmark_return_dropdown.selected_value)
-    benchmark_data = self._history["benchmarks"].get(benchmark_key)
-    if not benchmark_data or not benchmark_data.get("series"):
-      self.benchmark_status_label.text = "Portfolio prices are synced. A matching benchmark quote is not available yet; sync again when it updates."
-      self._clear_comparison("No matching benchmark data is available for this period yet.")
-      return
-    benchmark_name = benchmark_data["name"]
-    benchmark_by_date = {point["date"]: point["index"] for point in benchmark_data["series"]}
-    benchmark_complete = {point["date"]: point.get("session_complete", True)
-                          for point in benchmark_data["series"]}
-    available_dates = sorted(benchmark_by_date)
-    common = [point for point in selected
-              if available_dates[0] <= point["date"] <= available_dates[-1]]
-    if not common:
-      self.benchmark_status_label.text = "This benchmark has no history in the selected period. Choose another benchmark or time frame."
-      self._clear_comparison("No overlapping portfolio and benchmark dates.")
-      return
-    if any(point["date"] not in benchmark_by_date for point in common):
-      self.benchmark_status_label.text = "This benchmark has missing daily closes in the selected period. Choose another benchmark."
-      self._clear_comparison("Incomplete benchmark history; no return was estimated.")
-      return
-    notice = "Nasdaq Composite is a price index; it excludes dividends." if benchmark_key == "nasdaq_price" else ""
-    if len(common) < len(selected):
-      notice += " Both lines use their overlapping dates: %s – %s." % (common[0]["date"], common[-1]["date"])
-    missing = [label for label, key in BENCHMARK_CHOICES
-               if not self._history["benchmarks"].get(key + "_price", {}).get("series")
-               and not self._history["benchmarks"].get(key + "_total", {}).get("series")]
-    if missing:
-      notice += " Unavailable this sync: %s." % ", ".join(missing)
-    self.benchmark_status_label.text = notice.strip()
-    selected = common
-    self.hedge_fund_comparison.configure_context([{
-      "date": point["date"], "index": point["portfolio_index"],
-      "return_observed": point["return_observed"],
-      "session_complete": point.get("session_complete", True),
-    } for point in selected], self._history["metadata"]["risk_free_rate"])
+    selected = window["points"]
+    benchmark_by_date = window["benchmark_by_date"]
+    benchmark_complete = window["benchmark_complete"]
+    benchmark_name = window["benchmark_data"]["name"]
+    self.benchmark_status_label.text = window["notice"]
+    if HEDGE_FUND_COMPARISONS_ENABLED:
+      self.hedge_fund_comparison.configure_context([{
+        "date": point["date"], "index": point["portfolio_index"],
+        "return_observed": point["return_observed"],
+        "session_complete": point.get("session_complete", True),
+      } for point in selected], self._history["metadata"]["risk_free_rate"])
     dates = [point["date"] for point in selected]
     portfolio = [point["portfolio_index"] for point in selected]
-    benchmark = [benchmark_by_date[point["date"]] for point in selected]
+    benchmark = [benchmark_by_date[day] for day in dates]
     portfolio_returns = [value / portfolio[0] - 1 for value in portfolio]
     benchmark_returns = [value / benchmark[0] - 1 for value in benchmark]
     completed = [point.get("session_complete", True) for point in selected]

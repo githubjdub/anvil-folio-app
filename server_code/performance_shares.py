@@ -6,6 +6,9 @@ details and per-security history never become part of a share snapshot.
 """
 
 from datetime import datetime, timezone
+import base64
+import gzip
+import json
 import math
 import re
 import secrets
@@ -228,11 +231,65 @@ def _owned_share(share_id, user):
     return None
 
 
+def _share_metadata(row):
+  """Small link-list payload; never transfer the stored chart series in history."""
+  return dict(share_id=row.get_id(), **{key: row[key] for key in ("title", "token", "created_at", "revoked")})
+
+
+def _cached_share_analysis(transactions, as_of, rate, portfolio_id, user):
+  """Reuse a matching server-owned sync; browser performance totals are untrusted."""
+  from portfolios import _analysis_fingerprint, _owned_portfolio, _staged_analysis
+  fingerprint = _analysis_fingerprint(transactions, as_of, rate * 100)
+  if portfolio_id is not None:
+    portfolio = _owned_portfolio(portfolio_id, user)
+    if portfolio is None:
+      raise AnalysisInputError("This portfolio is no longer available to your account.")
+    if portfolio["analysis_fingerprint"] == fingerprint and portfolio["analysis_cache"]:
+      current = _analysis_fingerprint(portfolio["transactions"], portfolio["as_of_date"], portfolio["risk_free_rate"])
+      if current == fingerprint:
+        # Sharing needs return paths, so skip unrelated sector/profile lookups.
+        return json.loads(gzip.decompress(portfolio["analysis_cache"].get_bytes()))
+  staged = _staged_analysis()
+  if staged and staged[0] == fingerprint and staged[3] in (None, user.get_id()):
+    return json.loads(gzip.decompress(base64.b64decode(staged[1])))
+  return None
+
+
+def _selected_share_analysis(source, selected_symbols):
+  """Combine synced security paths for a subset without fetching market history."""
+  available = source["selection_data"]["securities"]
+  selected = {symbol.strip().upper().replace(".", "-") for symbol in selected_symbols} if selected_symbols is not None else {security["symbol"] for security in available}
+  securities = [security for security in available if security["symbol"] in selected]
+  if not securities or len(securities) != len(selected):
+    raise AnalysisInputError("Choose only securities in the synced portfolio.")
+  if len(securities) == len(available):
+    return source
+  start = min(security["start_date"] for security in securities)
+  paths = [security["days"] for security in securities]
+  points = []
+  previous_nav, index = 0.0, 100.0
+  for offset, day in enumerate(source["selection_data"]["dates"]):
+    if day < start:
+      continue
+    nav = sum(path[offset]["nav"] for path in paths)
+    contributions = sum(path[offset]["contributions"] for path in paths)
+    withdrawals = sum(path[offset]["withdrawals"] for path in paths)
+    denominator = previous_nav + contributions
+    observed = bool(points) and denominator > 0
+    if observed:
+      index *= (nav + withdrawals) / denominator
+    point = dict(source["series"][offset], portfolio_index=index, return_observed=observed)
+    points.append(point)
+    previous_nav = nav
+  return dict(source, series=points)
+
+
 @anvil.server.callable(require_user=True)
 def create_performance_share(transactions, as_of_date, risk_free_rate,
                              selected_symbols=None, benchmark="sp500",
                              benchmark_return="total", start_date=None,
-                             end_date=None, visibility="private", title=_DEFAULT_TITLE):
+                             end_date=None, visibility="private", title=_DEFAULT_TITLE,
+                             portfolio_id=None, use_synced_analysis=False):
   user = _current_user()
   origin = get_performance_share_origin()
   if not origin["ok"]:
@@ -263,9 +320,15 @@ def create_performance_share(transactions, as_of_date, risk_free_rate,
     if (start_date is not None and end_date is not None
         and _share_date(start_date, "start") > _share_date(end_date, "end")):
       raise AnalysisInputError("Choose a start date on or before the end date.")
-    analysis = analyze_portfolio_history(filtered, as_of, rate)
-    if not analysis["ok"]:
-      return analysis
+    analysis = _cached_share_analysis(transactions, as_of, rate, portfolio_id, user)
+    if analysis is not None:
+      analysis = _selected_share_analysis(analysis, selected_symbols)
+    elif use_synced_analysis:
+      raise AnalysisInputError("Sync prices once to prepare this share. Sharing reuses your latest sync without requesting new market prices.")
+    else:
+      analysis = analyze_portfolio_history(filtered, as_of, rate)
+      if not analysis["ok"]:
+        return analysis
     now = datetime.now(timezone.utc)
     snapshot = _build_snapshot(
       analysis, benchmark, benchmark_return, start_date, end_date,
@@ -280,24 +343,25 @@ def create_performance_share(transactions, as_of_date, risk_free_rate,
     owner=user, token=token, title=title, visibility=visibility,
     created_at=now, revoked=False, snapshot=snapshot,
   )
-  return {"ok": True, "share": row, "snapshot": snapshot}
+  return {"ok": True, "share": _share_metadata(row) if use_synced_analysis else row, "snapshot": snapshot}
 
 
 @anvil.server.callable(require_user=True)
-def list_performance_shares():
-  return sorted(
+def list_performance_shares(metadata_only=False):
+  rows = sorted(
     app_tables.performance_shares.search(owner=_current_user()),
     key=lambda row: row["created_at"], reverse=True,
   )
+  return [_share_metadata(row) for row in rows] if metadata_only else rows
 
 
 @anvil.server.callable(require_user=True)
-def revoke_performance_share(share_id):
+def revoke_performance_share(share_id, metadata_only=False):
   row = _owned_share(share_id, _current_user())
   if row is None:
     return {"ok": False, "message": "This share is no longer available to your account."}
   row.update(revoked=True)
-  return {"ok": True}
+  return {"ok": True, "share": _share_metadata(row) if metadata_only else row}
 
 
 @anvil.server.callable
@@ -315,8 +379,10 @@ def get_performance_share(token):
 def get_performance_share_origin():
   # A published root has no temporary preview authentication token. Never
   # substitute get_app_origin() or a browser's current private preview URL.
-  published_origin = anvil.server.get_app_origin("published").rstrip("/")
-  current_origin = anvil.server.get_app_origin().rstrip("/")
+  published_origin = (anvil.server.get_app_origin("published") or "").rstrip("/")
+  current_origin = (anvil.server.get_app_origin() or "").rstrip("/")
+  if not published_origin:
+    return {"ok": False, "base_url": "", "message": "Publish Folio before creating chart links. You can copy percentages here."}
   if current_origin != published_origin:
     return {
       "ok": False, "base_url": published_origin,

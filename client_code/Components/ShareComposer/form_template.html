@@ -6,7 +6,7 @@ custom_component: true
   <div class="share-summary"><anvil-component type="Label" name="summary_label" prop:role="share-summary-text" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
   <div class="share-create-actions"><anvil-component type="m3._Components.Button" name="copy_summary_button" prop:text="Copy percentages" prop:appearance="filled" prop:icon="mi:content_copy" prop:role="share-action"></anvil-component><anvil-component type="m3._Components.Button" name="native_share_button" prop:text="Share…" prop:appearance="outlined" prop:icon="mi:share" prop:role="share-tool"></anvil-component></div>
   <div anvil:name="status_region" class="share-composer-status" role="status" aria-live="polite"><anvil-component type="Label" name="share_status" prop:role="share-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-  <details class="share-chart-options"><summary>Share a comparison chart</summary>
+  <details class="share-chart-options" anvil:dom-node="chart_options" anvil:on-dom:toggle="self.details_toggle"><summary>Share a comparison chart</summary>
   <anvil-component type="Label" name="link_availability_label" prop:role="share-help"></anvil-component>
   <p class="share-disclosure">Chart links show percentage returns and risk statistics without your holdings or dollar amounts. Each snapshot stays fixed. You can revoke it below.</p>
   <div class="share-create-actions"><anvil-component type="m3._Components.Button" name="create_button" prop:text="Create chart link" prop:appearance="outlined" prop:icon="mi:link" prop:role="share-tool"></anvil-component><anvil-component type="Link" name="live_app_link" prop:text="Open live Folio" prop:target="_blank" prop:role="share-open-link"></anvil-component></div>
@@ -16,5 +16,6 @@ custom_component: true
   </div>
   <div anvil:name="preview_region" class="share-preview"><h4>Shared chart preview</h4><anvil-component type="M3_App_1.Components.SharedPerformance" name="snapshot_card"></anvil-component></div>
   </details>
-  <details class="share-saved-links"><summary>Your shared snapshots</summary><anvil-component type="Label" name="links_empty_label" prop:role="share-help"></anvil-component><anvil-component type="RepeatingPanel" name="share_links_panel" prop:item_template="M3_App_1.Components.ShareLinkRow"></anvil-component></details>
+  <details class="share-saved-links" anvil:dom-node="saved_links" anvil:on-dom:toggle="self.details_toggle"><summary>Your shared snapshots</summary><anvil-component type="Label" name="links_empty_label" prop:role="share-help"></anvil-component><anvil-component type="RepeatingPanel" name="share_links_panel" prop:item_template="M3_App_1.Components.ShareLinkRow"></anvil-component></details>
+  <anvil-component type="Timer" name="share_load_timer" prop:interval="0"></anvil-component>
 </section>
