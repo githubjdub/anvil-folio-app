@@ -7,20 +7,49 @@ import time
 import anvil.server
 from .portfolio_analytics import AnalysisInputError, _validate, _fetch_history, _history_for_session, _normalise_ticker, _EXCHANGES
 from .income_tax_lots import build_tax_report
-from .tax_rules import (YEAR, SUPPORTED_YEARS, STATES, STATE_PRESETS, TaxInputError, number, validate_settings, compare_tax)
+from .tax_rules import (YEAR, SUPPORTED_YEARS, STATES, STATE_PRESETS, TaxInputError, number, validate_settings, compare_tax, liability)
+
+
+# IRS Rev. Proc. 2025-32, sections 3.01 and 4.14, including the amended
+# 2025 amounts: https://www.irs.gov/irb/2025-45_IRB
+STANDARD_DEDUCTIONS = {
+  2025: {'single': 15750, 'joint': 31500, 'separate': 15750, 'head': 23625},
+  2026: {'single': 16100, 'joint': 32200, 'separate': 16100, 'head': 24150},
+}
+
+
+def _prepare_settings(settings):
+  """Translate one optional income figure into the existing tax engine inputs."""
+  if not isinstance(settings, dict):
+    raise TaxInputError('Check your tax preferences.')
+  raw = dict(settings)
+  # Existing saved drafts and callers retain their detailed income assumptions.
+  mode = raw.get('input_mode', 'detailed')
+  if mode not in ('quick', 'detailed'):
+    raise TaxInputError('Choose quick or detailed tax inputs.')
+  if mode == 'quick':
+    year, status = raw.get('tax_year'), raw.get('filing_status')
+    if type(year) is not int or year not in STANDARD_DEDUCTIONS:
+      raise TaxInputError('Choose a supported US tax year: 2025 or 2026.')
+    if status not in STANDARD_DEDUCTIONS[year]:
+      raise TaxInputError('Choose a filing status.')
+    income = number(raw.get('annual_income', 0), 'annual income before tax', 0)
+    raw.update(ordinary_income=income - STANDARD_DEDUCTIONS[year][status], magi=income,
+      other_investment_income=0, qualified_dividends=0, other_short=0, other_long=0)
+  return raw
 
 
 @anvil.server.callable
 def get_tax_estimator_catalog():
   return {'tax_year': YEAR, 'tax_years': list(SUPPORTED_YEARS), 'states': [('Federal only — exclude state tax', 'federal')] + STATES,
-          'presets': STATE_PRESETS,
+          'presets': STATE_PRESETS, 'standard_deductions': {str(year): values for year, values in STANDARD_DEDUCTIONS.items()},
           'filing_statuses': [('Single', 'single'), ('Married filing jointly / surviving spouse', 'joint'),
                               ('Married filing separately', 'separate'), ('Head of household', 'head')]}
 
 
-def _scenario_trades(rows, base_count, as_of, year=YEAR):
-  if not isinstance(rows, list) or len(rows) > 100:
-    raise TaxInputError('Use up to 100 hypothetical trades, or leave the scenario empty to estimate your logged sales.')
+def _scenario_trades(rows, base_count, as_of, year=YEAR, limit=100):
+  if not isinstance(rows, list) or len(rows) > limit:
+    raise TaxInputError('Use up to %s hypothetical trades, or leave the scenario empty to estimate your logged sales.' % limit)
   trades = []
   for index, row in enumerate(rows, 1):
     if not isinstance(row, dict):
@@ -75,14 +104,14 @@ def _histories(clean, as_of):
   return {symbol: _history_for_session(history, as_of) for symbol, history in zip(symbols, fetched)}
 
 
-def _calculate(clean, histories, as_of, rows, settings):
+def _calculate(clean, histories, as_of, rows, settings, scenario_limit=100):
   year = settings['tax_year']
   through_snapshot = min(as_of, date(year, 12, 31))
   if through_snapshot.year < year:
     through_snapshot = date(year, 1, 1)
   # Retain known future purchases for the 30-day wash-sale check. The FIFO
   # engine executes only dates through the chosen scenario endpoint.
-  hypothetical = _scenario_trades(rows, len(clean), through_snapshot, year)
+  hypothetical = _scenario_trades(rows, len(clean), through_snapshot, year, scenario_limit)
   # Newly modelled tickers need no market request: all scenario prices are explicit.
   combined_histories = dict(histories)
   for trade in hypothetical:
@@ -137,7 +166,6 @@ def estimate_trade_taxes(transactions, as_of_date, scenario_trades, settings):
 def estimate_saved_trade_taxes(portfolio_id, scenario_trades, settings):
   """Use server-owned sync facts, with no quote requests or browser tax metrics."""
   from portfolios import _current_user, _owned_portfolio, _saved_analysis
-  from planning_context import decode_planning_context
   try:
     portfolio = _owned_portfolio(portfolio_id, _current_user())
     if portfolio is None:
@@ -146,25 +174,58 @@ def estimate_saved_trade_taxes(portfolio_id, scenario_trades, settings):
     context = analysis.get('planning_context') if analysis else None
     if context is None:
       raise TaxInputError('Sync prices once to prepare tax lots from the latest saved portfolio. Opening this tab does not fetch market data.')
-    raw = dict(settings) if isinstance(settings, dict) else settings
-    if not isinstance(raw, dict):
-      raise TaxInputError('Enter your tax assumptions.')
-    year = raw.get('tax_year')
-    if type(year) is not int or year not in SUPPORTED_YEARS:
-      raise TaxInputError('Choose a supported US tax year: 2025 or 2026.')
-    earned = max(0.0, context.get('earned_dividends_by_year', {}).get(str(year), 0.0))
-    qualified = number(raw.get('portfolio_qualified', 0), 'qualified dividends from this portfolio', 0, earned)
-    included = raw.get('include_portfolio_dividends') is True
-    if included:
-      # The user confirms payment timing; qualified status is an explicit input.
-      raw['ordinary_income'] = number(raw.get('ordinary_income'), 'ordinary income after deductions') + earned - qualified
-      raw['magi'] = number(raw.get('magi'), 'modified AGI', 0) + earned
-      raw['other_investment_income'] = number(raw.get('other_investment_income'), 'other investment income', 0) + earned
-      raw['qualified_dividends'] = number(raw.get('qualified_dividends', 0), 'other qualified dividends', 0) + qualified
-    validated = validate_settings(raw)
-    clean, histories, as_of = decode_planning_context(context)
-    output = _calculate(clean, histories, as_of, scenario_trades, validated)
-    output['portfolio_dividends'] = earned if included else 0.0
-    return output
+    return _estimate_synced_context(context, scenario_trades, settings)
   except (TaxInputError, AnalysisInputError) as error:
     return {'ok': False, 'message': str(error)}
+
+
+def _estimate_synced_context(context, scenario_trades, settings):
+  """All portfolio amounts and automatic sale quantities come from the saved sync."""
+  from planning_context import decode_planning_context
+  raw = _prepare_settings(settings)
+  outside = validate_settings(raw)
+  year = outside['tax_year']
+  earned = max(0.0, context.get('earned_dividends_by_year', {}).get(str(year), 0.0))
+  qualified = number(raw.get('portfolio_qualified', 0), 'qualified dividends from this portfolio', 0, earned)
+  included = raw.get('include_portfolio_dividends') is True
+  if included:
+    # Accrued dividends are an explicit planning assumption; qualified status
+    # remains a broker-confirmed override. Never silently assume qualification.
+    raw['ordinary_income'] = outside['ordinary_income'] + earned - qualified
+    raw['magi'] = outside['magi'] + earned
+    raw['other_investment_income'] = outside['other_investment_income'] + earned
+    raw['qualified_dividends'] = outside['qualified_dividends'] + qualified
+  validated = validate_settings(raw)
+  clean, histories, as_of = decode_planning_context(context)
+  mode = raw.get('scenario_mode', 'recorded')
+  if mode not in ('recorded', 'liquidate'):
+    raise TaxInputError('Choose portfolio activity or selling all holdings.')
+  if mode == 'liquidate':
+    if as_of.year < year:
+      raise TaxInputError('Choose a tax year covered by your latest sync to model selling all holdings.')
+    through = min(as_of, date(year, 12, 31))
+    report = build_tax_report(clean, histories, through)
+    scenario_trades = []
+    for symbol, position in sorted(report['positions'].items()):
+      if position['shares'] <= 0:
+        continue
+      price = position['current_price']
+      if price is None:
+        raise TaxInputError('%s has no synced price. Sync prices before estimating a sale of all holdings.' % symbol)
+      scenario_trades.append({'ticker': symbol, 'action': 'Sell', 'trade_date': through.isoformat(),
+        'shares': position['shares'], 'trade_price': price, 'fee': 0})
+  output = _calculate(clean, histories, as_of, scenario_trades, validated,
+    scenario_limit=1000 if mode == 'liquidate' else 100)
+  output['scenario_mode'] = mode
+  output['portfolio_dividends'] = earned if included else 0.0
+  output['portfolio_tax'] = None
+  output['portfolio_after_tax_income'] = None
+  if output['tax']:
+    # Subtract the outside-income baseline, so salary tax is never presented
+    # as tax caused by the selected portfolio. This also preserves loss offsets.
+    baseline = liability(outside, outside['other_short'], outside['other_long'])
+    output['portfolio_tax'] = {key: output['tax']['after'][key] - baseline[key]
+      for key in ('federal', 'niit', 'state', 'total')}
+    income = output['base_short'] + output['base_long'] + output['short_gain'] + output['long_gain'] + output['portfolio_dividends']
+    output['portfolio_after_tax_income'] = income - output['portfolio_tax']['total']
+  return output

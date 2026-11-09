@@ -30,6 +30,7 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._inputs_dirty = False
     self._year_drafts = {}
     self._positions = {}
+    self._auto_estimate_key = None
     self.set_event_handler('x-set-editable', self.set_editable)
     self.reset_workspace()
 
@@ -47,17 +48,22 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._inputs_dirty = False
     self._year_drafts = {}
     self._positions = {}
+    self._auto_estimate_key = None
     self._tax_year = 2026
     self._rows = []
     self.trades_panel.items = []
     self.ordinary_box.text = ''
     self.magi_box.text = ''
+    self.income_box.text = ''
+    self.detailed_checkbox.checked = False
+    self.scenario_dropdown.items = [('This year’s portfolio activity', 'recorded'), ('Sell all current holdings', 'liquidate')]
+    self.scenario_dropdown.selected_value = 'recorded'
     self.investment_box.text = '0'
     self.qualified_box.text = '0'
     self.other_short_box.text = '0'
     self.other_long_box.text = '0'
     self.wash_checkbox.checked = False
-    self.dividend_checkbox.checked = False
+    self.dividend_checkbox.checked = True
     self.portfolio_qualified_box.text = '0'
     self.state_short_box.text = '0'
     self.state_long_box.text = '0'
@@ -68,8 +74,8 @@ class TaxEstimator(TaxEstimatorTemplate):
       self.state_dropdown.selected_value = 'federal'
       self._set_year_choices()
     self._invalidate()
-    self._status('Add hypothetical buys and sells, or sync a portfolio to use its existing lots.')
-    self.context_label.text = 'Sync a portfolio to load its tax lots, recorded sales, and current holdings automatically.'
+    self._status('Save and sync a portfolio to get an estimate automatically.')
+    self.context_label.text = 'Your synced holdings, sales, and dividends fill in automatically.'
     self.synced_summary_label.text = 'No synced portfolio yet.'
     self.dividend_summary_label.text = ''
     self.year_label.text = 'US · 2026 · USD'
@@ -102,7 +108,7 @@ class TaxEstimator(TaxEstimatorTemplate):
       if self._catalog:
         self._set_year_choices()
         self._restore_document(self._year_drafts.get(year, {}))
-    self.context_label.text = ('Latest synced portfolio · %s · %s logged trades · USD. Unsynced transaction edits are excluded.' % (as_of, len(transactions))
+    self.context_label.text = ('Portfolio synced %s · %s recorded trades · USD' % (as_of, len(transactions or []))
                                if transactions else 'Sync a portfolio to load its lots and recorded sales automatically.')
     self._render_synced_context()
     self._invalidate()
@@ -132,10 +138,14 @@ class TaxEstimator(TaxEstimatorTemplate):
       self.holding_dropdown.selected_value = self.holding_dropdown.items[0][1]
     if report:
       summary = report['summary']
-      self.synced_summary_label.text = '%s synced tax year · %s open lots · logged short-term gains/losses %s · long-term %s.' % (
-        self._tax_year, len(report['lots']), self._money(summary['realized_short_term']), self._money(summary['realized_long_term']))
+      value = sum(position['current_value'] for position in self._positions.values() if position['current_value'] is not None)
+      complete = all(position['current_value'] is not None for position in self._positions.values())
+      self.synced_summary_label.text = '%s portfolio value · %s holdings · %s recorded gains / losses in %s' % (
+        self._money(value) if complete else 'Price needed for full',
+        sum(position['shares'] > 0 for position in self._positions.values()),
+        self._money(summary['realized_short_term'] + summary['realized_long_term']) if summary['realized_short_term'] is not None and summary['realized_long_term'] is not None else 'Unknown', self._tax_year)
       dividends = (self._context or {}).get('earned_dividends_by_year', {}).get(str(self._tax_year), 0)
-      self.dividend_summary_label.text = 'Synced accrued dividends: %s. Ex-dates do not establish payment date or qualified status. Confirm below to include this amount; outside income fields exclude it.' % self._money(dividends)
+      self.dividend_summary_label.text = 'Synced accrued dividends: %s. The quick estimate assumes payment in this tax year and treats them as ordinary dividends. Adjust below using your broker records.' % self._money(dividends)
     elif self._analysis:
       self.synced_summary_label.text = 'Sync prices once to prepare tax lots for this portfolio and year. This tab uses your saved sync without fetching prices.'
       self.dividend_summary_label.text = ''
@@ -164,6 +174,7 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._load_inputs()
     self._render_synced_context()
     self._controls()
+    self._auto_estimate()
 
   def apply_appearance(self):
     pass
@@ -175,26 +186,55 @@ class TaxEstimator(TaxEstimatorTemplate):
   def _controls(self):
     enabled = self._parent_editable and not self._busy
     for control in (self.add_button, self.year_dropdown, self.holding_dropdown, self.filing_dropdown, self.state_dropdown, self.ordinary_box,
+                    self.income_box, self.detailed_checkbox, self.scenario_dropdown,
                     self.magi_box, self.investment_box, self.qualified_box, self.other_short_box, self.other_long_box, self.wash_checkbox, self.dividend_checkbox, self.portfolio_qualified_box):
       control.enabled = enabled
     supported = self._catalog is not None and self._tax_year in self._catalog['tax_years']
-    self.estimate_button.enabled = enabled and supported and (bool(self._rows) or self._context is not None)
-    self.sell_holding_button.enabled = enabled and bool(self.holding_dropdown.selected_value)
+    self.estimate_button.enabled = enabled and supported and bool(self._portfolio_id) and self._context is not None
+    custom = self.scenario_dropdown.selected_value != 'liquidate'
+    self.add_button.enabled = enabled and custom and len(self._rows) < 100
+    self.holding_dropdown.enabled = enabled and custom
+    self.sell_holding_button.enabled = enabled and custom and bool(self.holding_dropdown.selected_value) and len(self._rows) < 100
     self.save_inputs_button.enabled = enabled and supported and bool(self._portfolio_id)
-    self.estimate_button.text = 'Estimating…' if self._busy else 'Estimate taxes'
+    self.estimate_button.text = 'Estimating…' if self._busy else 'Update estimate'
+    self.income_box.enabled = enabled and not self.detailed_checkbox.checked
+    self.detailed_income_region.visible = self.detailed_checkbox.checked
+    self.state_rates_region.visible = self.state_dropdown.selected_value != 'federal'
     self.state_short_box.enabled = enabled and self.state_dropdown.selected_value != 'federal'
     self.state_long_box.enabled = self.state_short_box.enabled
     self.previous_button.enabled = enabled and self._page > 0
-    count = len(self._result['realized']) if self._result else 0
+    count = len(self._result['logged_realized']) + len(self._result['realized']) if self._result else 0
     self.next_button.enabled = enabled and (self._page + 1) * self.PAGE_SIZE < count
     for row in self.trades_panel.get_components():
-      row.raise_event('x-set-editable', editable=enabled)
+      row.raise_event('x-set-editable', editable=enabled and custom)
+    self._render_assumptions()
+
+  def _render_assumptions(self):
+    if self.detailed_checkbox.checked:
+      income = 'Using your detailed income and outside-investment inputs'
+    else:
+      amount = self.income_box.text or '0'
+      income = 'Other annual income $%s · standard deduction · outside investments $0' % amount
+    state = 'federal tax only' if self.state_dropdown.selected_value in (None, 'federal') else 'includes your state/local rate estimate'
+    dividends = 'accrued dividends included as ordinary unless adjusted below' if self.dividend_checkbox.checked else 'portfolio dividends excluded'
+    scenario = 'Unrealized gains are excluded.' if self.scenario_dropdown.selected_value != 'liquidate' else 'Assumes all holdings sell at synced prices; individual trade drafts are paused.'
+    self.assumptions_label.text = '%s · %s · %s. %s' % (income, state, dividends, scenario)
+
+  def _auto_estimate(self):
+    if self._busy or not self._parent_editable or not self._portfolio_id or self._context is None or not self._catalog or self._tax_year not in self._catalog['tax_years']:
+      return
+    key = (self._generation, str(self._input_document()))
+    if self._result is None and key != self._auto_estimate_key:
+      self.estimate_click()
+      self._auto_estimate_key = key
 
   def _invalidate(self, **event_args):
     self._result = None
+    self._auto_estimate_key = None
     self.results_region.visible = False
     self.lots_panel.items = []
     self._page = 0
+    self.wash_review_region.visible = False
 
   def _status(self, text):
     self.status_label.text = text
@@ -251,7 +291,6 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._controls()
 
   @handle('trades_panel', 'x-trade-changed')
-  @handle('filing_dropdown', 'change')
   @handle('ordinary_box', 'change')
   @handle('magi_box', 'change')
   @handle('investment_box', 'change')
@@ -266,6 +305,32 @@ class TaxEstimator(TaxEstimatorTemplate):
   def inputs_change(self, **event_args):
     self._inputs_dirty = True
     self._invalidate()
+    self._status('Preferences changed. Update the estimate to refresh your results.')
+    self._controls()
+
+  @handle('filing_dropdown', 'change')
+  @handle('income_box', 'change')
+  @handle('scenario_dropdown', 'change')
+  def quick_inputs_change(self, **event_args):
+    self.inputs_change()
+    self._auto_estimate()
+
+  @handle('detailed_checkbox', 'change')
+  def detailed_change(self, **event_args):
+    if self.detailed_checkbox.checked and self._catalog:
+      try:
+        income = float(str(self.income_box.text or '0').replace(',', '').replace('$', '').strip())
+      except (ValueError, TypeError):
+        self._status('Enter a number for annual income before switching to detailed inputs.')
+        self.detailed_checkbox.checked = False
+        self._controls()
+        return
+      deduction = self._catalog['standard_deductions'].get(str(self._tax_year), {}).get(self.filing_dropdown.selected_value, 0)
+      if not self.ordinary_box.text:
+        self.ordinary_box.text = str(income - deduction)
+      if not self.magi_box.text:
+        self.magi_box.text = str(income)
+    self.inputs_change()
 
   @handle('state_dropdown', 'change')
   def location_change(self, **event_args):
@@ -293,6 +358,8 @@ class TaxEstimator(TaxEstimatorTemplate):
       'qualified_dividends': 'qualified_box', 'other_short': 'other_short_box', 'other_long': 'other_long_box',
       'state_short_rate': 'state_short_box', 'state_long_rate': 'state_long_box', 'portfolio_qualified': 'portfolio_qualified_box'}
     document = {'filing_status': self.filing_dropdown.selected_value or 'single', 'state': self.state_dropdown.selected_value or 'federal',
+      'input_mode': 'detailed' if self.detailed_checkbox.checked else 'quick',
+      'annual_income': str(self.income_box.text or ''), 'scenario_mode': self.scenario_dropdown.selected_value or 'recorded',
       'wash_sale_reviewed': self.wash_checkbox.checked, 'include_portfolio_dividends': self.dividend_checkbox.checked,
       'scenario_trades': [form.payload() for form in self.trades_panel.get_components() if isinstance(form, TaxTradeRow)]}
     for key, name in mapping.items():
@@ -305,12 +372,15 @@ class TaxEstimator(TaxEstimatorTemplate):
       'qualified_dividends': 'qualified_box', 'other_short': 'other_short_box', 'other_long': 'other_long_box',
       'state_short_rate': 'state_short_box', 'state_long_rate': 'state_long_box', 'portfolio_qualified': 'portfolio_qualified_box'}
     self.filing_dropdown.selected_value = document.get('filing_status', 'single')
+    self.income_box.text = document.get('annual_income', '')
+    self.detailed_checkbox.checked = document.get('input_mode', 'detailed' if document else 'quick') == 'detailed'
+    self.scenario_dropdown.selected_value = document.get('scenario_mode', 'recorded')
     self.state_dropdown.selected_value = document.get('state', 'federal')
     self.location_change()
     for key, name in mapping.items():
       getattr(self, name).text = str(document.get(key, '' if key in ('ordinary_income', 'magi') else '0'))
     self.wash_checkbox.checked = document.get('wash_sale_reviewed', False)
-    self.dividend_checkbox.checked = document.get('include_portfolio_dividends', False)
+    self.dividend_checkbox.checked = document.get('include_portfolio_dividends', True)
     self._rows = []
     for row in document.get('scenario_trades', []):
       restored = dict(row)
@@ -319,6 +389,7 @@ class TaxEstimator(TaxEstimatorTemplate):
     self.trades_panel.items = self._rows
     self._invalidate()
     self._inputs_dirty = was_dirty
+    self._controls()
 
   def _load_inputs(self):
     scope = self._account_scope()
@@ -337,7 +408,7 @@ class TaxEstimator(TaxEstimatorTemplate):
       self._restore_document(result['plan']['inputs'] or {})
       self._status('Saved %s tax inputs and hypothetical trades restored. Recorded portfolio sales come from the latest sync.' % self._tax_year)
     elif result['plan'] is None:
-      self._status('Portfolio tax lots loaded automatically. Add your outside income and location; Save inputs keeps these for your next visit.')
+      self._status('Your portfolio is ready. Add an approximate annual income to refine the tax bracket, or use the defaults shown.')
 
   @handle('year_dropdown', 'change')
   def year_change(self, **event_args):
@@ -354,6 +425,7 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._load_inputs()
     self._render_synced_context()
     self._controls()
+    self._auto_estimate()
 
   @handle('save_inputs_button', 'click')
   def save_inputs_click(self, **event_args):
@@ -382,10 +454,12 @@ class TaxEstimator(TaxEstimatorTemplate):
       return
     def value(text):
       try:
-        return float(text)
+        return float(str(text).replace(',', '').replace('$', '').strip())
       except (ValueError, TypeError):
         return text
     settings = {'tax_year': self._tax_year, 'filing_status': self.filing_dropdown.selected_value,
+      'input_mode': 'detailed' if self.detailed_checkbox.checked else 'quick',
+      'annual_income': value(self.income_box.text or '0'), 'scenario_mode': self.scenario_dropdown.selected_value,
       'state': self.state_dropdown.selected_value, 'ordinary_income': value(self.ordinary_box.text),
       'magi': value(self.magi_box.text), 'other_investment_income': value(self.investment_box.text),
       'qualified_dividends': value(self.qualified_box.text),
@@ -395,6 +469,9 @@ class TaxEstimator(TaxEstimatorTemplate):
       'include_portfolio_dividends': self.dividend_checkbox.checked,
       'portfolio_qualified': value(self.portfolio_qualified_box.text)}
     rows = [form.payload() for form in self.trades_panel.get_components() if isinstance(form, TaxTradeRow)]
+    document = self._input_document()
+    if settings['scenario_mode'] == 'liquidate':
+      rows = []
     generation = self._generation
     user = anvil.users.get_user()
     account_id = user.get_id() if user else None
@@ -416,6 +493,15 @@ class TaxEstimator(TaxEstimatorTemplate):
         return
       self._result = result
       self._render_result()
+      if self._inputs_dirty:
+        saved = anvil.server.call('save_planning_inputs', self._portfolio_id, 'tax', document, self._tax_year)
+        current = anvil.users.get_user()
+        if generation != self._generation or (current.get_id() if current else None) != account_id:
+          return
+        if saved['ok']:
+          self._inputs_dirty = False
+        else:
+          self._status('Estimate ready. Preferences were not saved: ' + saved['message'])
     finally:
       self._busy = False
       self.raise_event('x-tax-estimator-busy', busy=False)
@@ -426,28 +512,35 @@ class TaxEstimator(TaxEstimatorTemplate):
     if result is None:
       return
     self.results_region.visible = True
-    self.tax_breakdown.visible = result['tax'] is not None
+    self.tax_breakdown.visible = result['portfolio_tax'] is not None
+    self.wash_review_region.visible = result['wash_sale_flag']
+    has_scenario = result['scenario_mode'] == 'liquidate' or bool(self._rows)
+    self.scenario_result_region.visible = has_scenario
     def money(value):
       return '${:,.2f}'.format(value) if value is not None else 'Review required'
-    self.short_label.text = money(result['short_gain'])
-    self.long_label.text = money(result['long_gain'])
-    self.cash_label.text = money(result['after_tax_cash'])
+    self.short_label.text = money(result['base_short'] + result['short_gain'])
+    self.long_label.text = money(result['base_long'] + result['long_gain'])
+    self.cash_caption.text = ('After-tax sale proceeds' if result['scenario_mode'] == 'liquidate' else
+      'After-tax cash from hypothetical trades' if has_scenario else 'Portfolio income after tax')
+    self.cash_label.text = money(result['after_tax_cash'] if has_scenario else result['portfolio_after_tax_income'])
     self.proceeds_label.text = 'Sale proceeds %s · purchase cost %s · before-tax cash change %s' % (
       money(result['sale_proceeds']), money(result['purchase_cost']), money(result['cash_change']))
     self.tax_total_label.text = money(result['tax']['change']['total'] if result['tax'] else None)
-    self.annual_tax_label.text = money(result['tax']['after']['total'] if result['tax'] else None)
-    self.logged_gains_label.text = 'Loaded %s logged sales: short-term %s · long-term %s · confirmed portfolio dividends included %s.' % (len(result['logged_realized']), money(result['base_short']), money(result['base_long']), money(result.get('portfolio_dividends', 0)))
+    self.annual_tax_label.text = money(result['portfolio_tax']['total'] if result['portfolio_tax'] else None)
+    self.logged_gains_label.text = '%s · %s recorded sale lots · portfolio dividends included %s. %s' % (
+      self._tax_year, len(result['logged_realized']), money(result.get('portfolio_dividends', 0)),
+      'Includes a hypothetical sale of every open holding at its synced price.' if result['scenario_mode'] == 'liquidate' else 'Includes recorded activity and any individual hypothetical trades below.')
     self.remaining_label.text = 'Remaining shares: ' + (', '.join('%s %s' % (p['symbol'], '{:,.6f}'.format(p['shares']).rstrip('0').rstrip('.')) for p in result['remaining_holdings']) or 'None')
     if result['tax']:
       tax = result['tax']
-      self.federal_label.text = money(tax['change']['federal'])
-      self.niit_label.text = money(tax['change']['niit'])
-      self.state_label.text = money(tax['change']['state'])
+      self.federal_label.text = money(result['portfolio_tax']['federal'])
+      self.niit_label.text = money(result['portfolio_tax']['niit'])
+      self.state_label.text = money(result['portfolio_tax']['state'])
       self.loss_label.text = 'After scenario: federal capital-loss deduction %s · unused loss %s (carryforward estimate)' % (
         money(tax['after']['capital_loss_deduction']), money(tax['after']['loss_carryforward']))
-    notes = 'Estimate updated for %s. Annual totals include your entered outside income and synced recorded sales; hypothetical trades add only their estimated impact. Save inputs to keep this scenario. No trades were executed.' % self._tax_year
+    notes = 'Portfolio estimate updated for %s. Income is used to estimate your tax bracket; the headline shows tax attributable to this portfolio. Changed preferences are saved automatically.' % self._tax_year
     if result['requires_wash_review']:
-      notes = 'Potential wash-sale losses detected. Tax totals are withheld. Review substantially identical securities, other accounts and replacement-lot basis; confirm below only if the entered basis and loss deductibility are correct, then estimate again.'
+      notes = 'Potential wash-sale losses detected. Review the notice below and confirm the loss deductibility and basis before updating the estimate. Tax totals are withheld until reviewed.'
     elif result['wash_sale_flag']:
       notes += ' Potential wash-sale losses included using your confirmation; no automatic wash-sale basis adjustment is performed.'
     if result['estimated_prices']:
@@ -456,7 +549,7 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._render_lots()
 
   def _render_lots(self):
-    rows = self._result['realized'] if self._result else []
+    rows = self._result['logged_realized'] + self._result['realized'] if self._result else []
     start = self._page * self.PAGE_SIZE
     self.lots_panel.items = rows[start:start + self.PAGE_SIZE]
     self.lot_page_label.text = '%s–%s of %s realized lots' % (start + 1 if rows else 0, min(start + self.PAGE_SIZE, len(rows)), len(rows))
@@ -470,6 +563,6 @@ class TaxEstimator(TaxEstimatorTemplate):
 
   @handle('next_button', 'click')
   def next_click(self, **event_args):
-    if not self._busy and self._result and (self._page + 1) * self.PAGE_SIZE < len(self._result['realized']):
+    if not self._busy and self._result and (self._page + 1) * self.PAGE_SIZE < len(self._result['logged_realized']) + len(self._result['realized']):
       self._page += 1
       self._render_lots()

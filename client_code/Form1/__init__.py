@@ -168,7 +168,7 @@ class Form1(Form1Template):
     if self._readout_page == "transactions":
       self.readout_tab_context.text = "Transactions · Your draft stays here while you switch tabs. Save to keep it across visits."
     elif self._readout_page == "tax_estimator":
-      self.readout_tab_context.text = "Tax Estimator · Hypothetical buys, sells and location-based tax estimates"
+      self.readout_tab_context.text = "Tax Estimator · A quick estimate from your synced portfolio"
     elif self._readout_page in ("dividends", "passive", "tax"):
       self.readout_tab_context.text = {
         "dividends": "Dividends · Upcoming dates and payment history",

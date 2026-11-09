@@ -10,7 +10,7 @@ from .tax_rules import SUPPORTED_YEARS
 _RETIREMENT = {'current_age', 'retirement_age', 'end_age', 'starting_balance', 'monthly_savings',
   'monthly_spending', 'monthly_income', 'expected_return', 'volatility', 'inflation', 'annual_fee',
   'bequest_goal', 'balance_source'}
-_TAX = {'filing_status', 'state', 'ordinary_income', 'magi', 'other_investment_income',
+_TAX = {'input_mode', 'annual_income', 'scenario_mode', 'filing_status', 'state', 'ordinary_income', 'magi', 'other_investment_income',
   'qualified_dividends', 'other_short', 'other_long', 'state_short_rate', 'state_long_rate',
   'portfolio_qualified', 'include_portfolio_dividends', 'wash_sale_reviewed', 'scenario_trades'}
 

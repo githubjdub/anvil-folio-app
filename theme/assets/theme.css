@@ -1827,6 +1827,22 @@ input.anvil-role-tax-field:disabled { opacity: .55; }
 .tax-method { margin-top: 25px; padding: 18px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; line-height: 1.8; }
 .tax-method summary { cursor: pointer; color: var(--ink); font-weight: 650; }
 .tax-method a { color: var(--blue); }
+.tax-sync-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); }
+.tax-sync-summary .anvil-label { margin: 0; }
+.tax-sync-badge { font-size: 10px; font-weight: 750; color: var(--mint-strong); background: var(--mint); border-radius: 5px; padding: 6px 9px; white-space: nowrap; }
+.tax-quick-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 18px; margin-bottom: 16px; }
+.tax-quick-grid > div { min-width: 0; }
+.tax-primary-actions { justify-content: flex-start; margin-bottom: 0; }
+.tax-estimate-highlight { background: var(--blue-surface); }
+.tax-options { padding: 0; }
+.tax-options > summary { cursor: pointer; padding: 20px 24px; color: var(--ink); font-size: 13px; font-weight: 650; }
+.tax-options > summary > span { margin-left: 10px; color: var(--muted); font-size: 10px; font-weight: 500; }
+.tax-options-content { padding: 0 24px 24px; }
+.tax-options-content h4 { color: var(--ink); font-size: 14px; margin: 24px 0 8px; }
+.tax-dividend-override { max-width: 340px; margin: 12px 0 18px; }
+.tax-result-details { margin-top: 18px; }
+.tax-result-details > summary { cursor: pointer; color: var(--ink); font-size: 12px; font-weight: 650; padding: 8px 0; }
+.tax-review-notice { border-left: 3px solid var(--blue); }
 @media (max-width: 1100px) {
   .tax-trade-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .profile-metrics-strip > div, .tax-stats-grid > div { padding: 14px; }
@@ -1840,6 +1856,10 @@ input.anvil-role-tax-field:disabled { opacity: .55; }
   .profile-holding-row { grid-template-columns: minmax(0, 1fr) 100px 55px; gap: 7px; }
   .tax-trade-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tax-estimator-heading { flex-wrap: wrap; }
+  .tax-quick-grid { grid-template-columns: 1fr; }
+  .tax-options { padding: 0; }
+  .tax-options > summary { padding: 18px; }
+  .tax-options-content { padding: 0 18px 18px; }
 }
 
 /* Profile-led portfolio workspace: one retained page per tab. */
