@@ -26,6 +26,7 @@ class Retirement(RetirementTemplate):
     self._portfolio_value = None
     self._portfolio_date = None
     self._portfolio_id = None
+    self._context_account_id = None
     self._loaded_scope = None
     self._balance_source = "portfolio"
     self._inputs_dirty = False
@@ -43,6 +44,8 @@ class Retirement(RetirementTemplate):
     self._portfolio_value = None
     self._portfolio_date = None
     self._portfolio_id = None
+    user = anvil.users.get_user()
+    self._context_account_id = user.get_id() if user else None
     self._loaded_scope = None
     self._balance_source = "portfolio"
     self._inputs_dirty = False
@@ -53,13 +56,20 @@ class Retirement(RetirementTemplate):
 
   def set_portfolio_context(self, value, as_of=None, portfolio_id=None):
     """Refresh the synced balance; keep explicitly chosen manual amounts."""
+    user = anvil.users.get_user()
+    account_id = user.get_id() if user else None
+    if (self._context_account_id is not None and account_id != self._context_account_id) or (self._portfolio_id is not None and portfolio_id != self._portfolio_id):
+      self.reset_workspace()
+    self._context_account_id = account_id
     if portfolio_id != self._portfolio_id:
       self._loaded_scope = None
-      self._inputs_dirty = False
     changed = value != self._portfolio_value or as_of != self._portfolio_date
     self._portfolio_id = portfolio_id
     self._portfolio_value = value
     self._portfolio_date = as_of
+    if self._balance_source == "portfolio" and changed:
+      self._generation += 1
+      self._invalidate_result()
     if value is None:
       self.portfolio_context_label.text = "Sync a portfolio to use its selected value, or enter your retirement savings directly."
     else:
@@ -67,7 +77,6 @@ class Retirement(RetirementTemplate):
         self._money(value), " · as of %s" % as_of if as_of else "")
       if self._balance_source == "portfolio" and changed:
         self.starting_balance_box.text = "%.2f" % value
-        self._invalidate_result()
         self.balance_source_label.text = "Starting savings follows your latest sync. Enter a different amount to include other assets; Save inputs keeps your choice."
     self._update_controls()
 
@@ -178,6 +187,7 @@ class Retirement(RetirementTemplate):
     inputs = {key: str(getattr(self, key + "_box").text or "").strip() for key in DEFAULTS}
     self._generation += 1
     generation = self._generation
+    scope = self._account_scope()
     self._invalidate_result()
     self._busy = True
     self._update_controls()
@@ -185,7 +195,7 @@ class Retirement(RetirementTemplate):
     self._set_status("Simulating 2,000 possible retirement paths…")
     try:
       result = anvil.server.call("run_retirement_projection", inputs)
-      if generation != self._generation:
+      if generation != self._generation or scope != self._account_scope():
         return
       if not result["ok"]:
         self._set_status(result["message"], error=True)

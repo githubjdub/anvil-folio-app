@@ -22,6 +22,7 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._as_of = None
     self._page = 0
     self._portfolio_id = None
+    self._context_account_id = None
     self._analysis = None
     self._context = None
     self._tax_year = 2026
@@ -38,6 +39,8 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._as_of = None
     self._fingerprint = None
     self._portfolio_id = None
+    user = anvil.users.get_user()
+    self._context_account_id = user.get_id() if user else None
     self._analysis = None
     self._context = None
     self._loaded_scope = None
@@ -74,6 +77,11 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._controls()
 
   def set_portfolio_context(self, transactions, as_of=None, portfolio_id=None, analysis=None):
+    user = anvil.users.get_user()
+    account_id = user.get_id() if user else None
+    if (self._context_account_id is not None and account_id != self._context_account_id) or (self._portfolio_id is not None and portfolio_id != self._portfolio_id):
+      self.reset_workspace()
+    self._context_account_id = account_id
     fingerprint = (str(as_of), str(transactions), portfolio_id)
     if fingerprint == self._fingerprint and analysis is self._analysis:
       return
@@ -90,7 +98,7 @@ class TaxEstimator(TaxEstimatorTemplate):
         self._year_drafts[self._tax_year] = self._input_document()
       self._tax_year = year
       self._loaded_scope = None
-      self._inputs_dirty = False
+      self._inputs_dirty = year in self._year_drafts
       if self._catalog:
         self._set_year_choices()
         self._restore_document(self._year_drafts.get(year, {}))

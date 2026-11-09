@@ -1,7 +1,6 @@
 """Temporary-database planner checks: anvil repl - < tests/runtime_synced_planning.py."""
 from datetime import date, datetime
 import uuid
-import copy
 
 import anvil.users
 from anvil.tables import app_tables
@@ -15,7 +14,6 @@ original_user = anvil.users.get_user
 original_histories = tax_estimator._histories
 original_fetch = tax_estimator._fetch_history
 users = []
-rows = []
 tag = uuid.uuid4().hex[:12]
 
 def forbidden(*args, **kwargs):
@@ -32,7 +30,6 @@ try:
     saved = portfolios.save_portfolio(None, 'Planner fixture', transactions, as_of, 0)
     assert saved['ok'], saved
     row = saved['portfolio']
-    rows.append(row)
     identifier = row.get_id()
     clean, _, _ = portfolio_analytics._validate(transactions, as_of, 0)
     days = [date(2025,1,2), date(2025,12,31), date(2026,1,2), as_of]
@@ -68,7 +65,16 @@ try:
     assert not planning_inputs.save_planning_inputs(identifier, 'tax', dict(tax, hidden_payload='bad'), 2026)['ok']
     assert not planning_inputs.save_planning_inputs(identifier, 'tax', tax, 2027)['ok']
     assert not planning_inputs.save_planning_inputs(identifier, 'retirement', dict(retirement, monthly_income=float('nan')))['ok']
-    print('PASS: cross-account reads/writes/estimates denied, unsupported years and malformed inputs rejected')
+    assert planning_inputs.get_planning_inputs(identifier, 'tax', 2026)['plan']['inputs'] == tax
+    assert planning_inputs.get_planning_inputs(identifier, 'tax', 2025)['plan']['inputs'] == tax_2025
+    assert planning_inputs.get_planning_inputs(identifier, 'retirement')['plan']['inputs'] == retirement
+    assert len(app_tables.portfolio_plans.search(owner=users[0])) == 3
+    # A user can leave an assumption unfinished, save it, and continue later.
+    unfinished = dict(retirement, monthly_spending='')
+    assert planning_inputs.save_planning_inputs(identifier, 'retirement', unfinished)['ok']
+    assert planning_inputs.get_planning_inputs(identifier, 'retirement')['plan']['inputs'] == unfinished
+    assert planning_inputs.save_planning_inputs(identifier, 'retirement', retirement)['ok']
+    print('PASS: cross-account access denied; rejected writes preserve all drafts; unfinished fields survive save/load')
 
     tax_estimator._histories = forbidden
     tax_estimator._fetch_history = forbidden
@@ -77,6 +83,7 @@ try:
     base = tax_estimator.estimate_saved_trade_taxes(identifier, [], settings)
     assert base['ok'] and base['base_long'] == 200, base
     assert base['tax']['change']['total'] == 0
+    assert base['long_gain'] == 0 and base['short_gain'] == 0 and base['realized'] == []
     assert len(base['logged_realized']) == 1
     hypothetical = [dict(ticker='AAPL', action='Sell', trade_date='2026-07-01', shares=1, trade_price=250, fee=0)]
     result = tax_estimator.estimate_saved_trade_taxes(identifier, hypothetical, settings)
@@ -113,8 +120,8 @@ finally:
             directory.delete()
         for profile in list(app_tables.investor_profiles.search(owner=user)):
             profile.delete()
-    for row in rows:
-        row.delete()
+        for portfolio in list(app_tables.portfolios.search(owner=user)):
+            portfolio.delete()
     for user in users:
         user.delete()
     print('Planner fixtures cleaned up')
