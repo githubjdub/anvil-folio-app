@@ -1,4 +1,5 @@
 import anvil.server
+from time import time
 from anvil import *
 from ._anvil_designer import NotificationsTemplate
 
@@ -12,11 +13,13 @@ class Notifications(NotificationsTemplate):
     self._account_id = None
     self.activity_dropdown.items = [("Buying & selling", "both"), ("Buying only", "buys"), ("Selling only", "sells")]
     self.activity_dropdown.selected_value = "both"
-    self.channel_dropdown.items = [("In-app inbox only", "in_app"), ("Inbox + daily email", "email"), ("Inbox + daily text message", "sms")]
+    self.channel_dropdown.items = [("In-app inbox only", "in_app"), ("Email digest · currently paused", "email"), ("Text digest · currently paused", "sms")]
     self.watches_panel.set_event_handler("x-watch-update", self.watch_update)
     self.watches_panel.set_event_handler("x-watch-remove", self.watch_remove)
     self.messages_panel.set_event_handler("x-message-read", self.message_read)
     self.set_event_handler("x-set-editable", self.set_editable)
+    self.set_event_handler("hide", self.form_hide)
+    self.set_event_handler("show", self.form_show)
     self.reset_workspace()
 
   def reset_workspace(self):
@@ -30,6 +33,9 @@ class Notifications(NotificationsTemplate):
     self._page = 0
     self._next_cursor = None
     self._unread_count = 0
+    self._active = False
+    self._last_check_at = 0
+    self.check_timer.interval = 0
     self.watches_panel.items = []
     self.messages_panel.items = []
     self.symbol_box.text = ""
@@ -57,6 +63,24 @@ class Notifications(NotificationsTemplate):
   def ensure_loaded(self):
     if not self._loaded and not self._auto_load_attempted and self._can_act():
       self.refresh_click()
+    elif self._loaded and self._can_act() and time() - self._last_check_at >= 60:
+      self.refresh_click()
+
+  def set_active(self, active):
+    """Parent controls polling so other portfolio tabs make no SEC requests."""
+    self._active = bool(active)
+    self.check_timer.interval = 60 if self._active and self._account_id else 0
+
+  @handle("check_timer", "tick")
+  def check_timer_tick(self, **event_args):
+    if self._active and self._can_act():
+      self.ensure_loaded()
+
+  def form_hide(self, **event_args):
+    self.check_timer.interval = 0
+
+  def form_show(self, **event_args):
+    self.check_timer.interval = 60 if self._active and self._account_id else 0
 
   def _can_act(self):
     return bool(self._account_id) and not self._busy and self._parent_editable
@@ -94,13 +118,13 @@ class Notifications(NotificationsTemplate):
     capabilities = self._capabilities
     if channel == "email":
       if capabilities.get("email"):
-        self.capability_label.text = "Daily email goes to your account address: %s." % capabilities.get("email_address", "")
+        self.capability_label.text = "Email digest delivery is paused until a scheduler is connected. Saved destination: %s." % capabilities.get("email_address", "")
       else:
         self.capability_label.text = capabilities.get("email_setup_message") or "Email delivery needs to be configured by the platform owner. Your in-app inbox is available."
     elif channel == "sms":
-      self.capability_label.text = "Text messages use the mobile number below." if capabilities.get("sms") else (capabilities.get("sms_setup_message") or "Text delivery needs to be configured by the platform owner. Your in-app inbox is available.")
+      self.capability_label.text = "Text digest delivery is paused until a scheduler is connected. Your saved number and consent are kept." if capabilities.get("sms") else (capabilities.get("sms_setup_message") or "Text delivery needs to be configured by the platform owner. Your in-app inbox is available.")
     else:
-      self.capability_label.text = "New matching filings appear in your inbox after scheduled checks."
+      self.capability_label.text = "Open or refresh Notifications to check for matching filings. Checks advance in small steps once a minute while this page is open. Each completed security check waits 15 minutes before starting again; large filing backlogs need several visits."
 
   def _set_busy(self, busy):
     self._busy = busy
@@ -133,23 +157,27 @@ class Notifications(NotificationsTemplate):
       self._preferences_dirty = False
     delivery_status = self._settings["delivery_status"] or ""
     delivery_error = self._settings["delivery_error"] or ""
-    self.delivery_status_label.text = ("Delivery status: %s" % delivery_status.replace("_", " ")) + (" · " + delivery_error if delivery_error else "") if delivery_status or delivery_error else "No external digest has been sent yet."
+    self.delivery_status_label.text = ("Last delivery: %s" % delivery_status.replace("_", " ")) + (" · " + delivery_error if delivery_error else "") if delivery_status or delivery_error else "No external digest has been sent yet."
+    if self._settings["channel"] != "in_app":
+      self.delivery_status_label.text += " " + result.get("delivery_limit", "")
     if not self._settings["enabled"]:
       self.delivery_status_label.text = "Alerts are paused. Enable alerts and save preferences to resume watching."
     self._update_controls()
     self.raise_event("x-notifications-unread", count=self._unread_count, account_id=self._account_id)
 
-  def _load_page(self, page, cursor):
+  def _load_page(self, page, cursor, check_for_updates=False):
     if not self._can_act():
       return
     generation = self._generation
     # Releasing the parent busy state calls ensure_loaded() again. An initial
     # load failure must reach Anvil's error handler, without starting a retry loop.
     self._auto_load_attempted = True
+    if check_for_updates:
+      self._last_check_at = time()
     self._set_busy(True)
     self._set_status("Loading your notifications…")
     try:
-      result = anvil.server.call("get_notification_workspace", before=cursor)
+      result = anvil.server.call("get_notification_workspace", before=cursor, check_for_updates=check_for_updates)
       if generation != self._generation:
         return
       self._page = page
@@ -158,13 +186,18 @@ class Notifications(NotificationsTemplate):
       elif page == len(self._cursors):
         self._cursors.append(cursor)
       self._apply_workspace(result)
-      self._set_status("Inbox refreshed. New filings are added after scheduled checks.")
+      polling = result.get("polling") or {}
+      self._set_status(polling.get("message") or "Inbox refreshed.", error=bool(polling.get("source_errors")))
     finally:
+      if check_for_updates and generation == self._generation:
+        # A slow source request must not make the parent immediately start
+        # another poll when its busy state is released.
+        self._last_check_at = time()
       self._set_busy(False)
 
   @handle("refresh_button", "click")
   def refresh_click(self, **event_args):
-    self._load_page(0, None)
+    self._load_page(0, None, check_for_updates=True)
 
   @handle("previous_button", "click")
   def previous_click(self, **event_args):

@@ -189,6 +189,7 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
+    self.notifications_form.set_active(self._readout_page == "notifications")
     if self._readout_page != "notifications":
       self._portfolio_readout_page = self._readout_page
     self.portfolio_header_link.attrs["aria-current"] = "false" if self._readout_page == "notifications" else "page"

@@ -110,12 +110,19 @@ def get_catalog(refresh=False):
   return items
 
 
-def _request(url, provider, data=None):
+def _request(url, provider, data=None, timeout=20):
   # Every URL is constructed internally from verified catalog IDs. Never fetch
   # an arbitrary URL supplied by a browser. Pace even concurrent fund jobs.
   gap = 2.5 if provider == "figi" else 0.2
-  with _SOURCE_LOCKS[provider]:
+  lock = _SOURCE_LOCKS[provider]
+  started = time.monotonic()
+  if not lock.acquire(timeout=timeout):
+    raise _SourceError("The public data source is busy; retry later.")
+  try:
     delay = gap - (time.monotonic() - _SOURCE_LAST[provider])
+    remaining = timeout - (time.monotonic() - started)
+    if delay >= remaining:
+      raise _SourceError("The public data source is busy; retry later.")
     if delay > 0:
       time.sleep(delay)
     headers = {"User-Agent": _USER_AGENT, "Accept-Encoding": "identity"}
@@ -123,7 +130,7 @@ def _request(url, provider, data=None):
       headers["Content-Type"] = "application/json"
     request = Request(url, data=data, headers=headers)
     try:
-      with urlopen(request, timeout=20) as response:
+      with urlopen(request, timeout=max(0.1, timeout - (time.monotonic() - started))) as response:
         body = response.read(_MAX_BYTES + 1)
     except HTTPError as error:
       label = "OpenFIGI" if provider == "figi" else "SEC EDGAR"
@@ -131,16 +138,17 @@ def _request(url, provider, data=None):
     except (URLError, TimeoutError, ConnectionError) as error:
       label = "OpenFIGI" if provider == "figi" else "SEC EDGAR"
       raise _SourceError("%s could not be reached; retry later." % label) from error
-    finally:
-      _SOURCE_LAST[provider] = time.monotonic()
+  finally:
+    _SOURCE_LAST[provider] = time.monotonic()
+    lock.release()
   if len(body) > _MAX_BYTES:
     raise _SourceError("The source filing exceeds this importer’s size limit.")
   return body
 
 
-def _json_request(url, provider="sec", data=None):
+def _json_request(url, provider="sec", data=None, timeout=20):
   try:
-    return json.loads(_request(url, provider, data))
+    return json.loads(_request(url, provider, data, timeout=timeout))
   except (json.JSONDecodeError, UnicodeDecodeError) as error:
     raise _SourceError("The provider returned an unreadable JSON document.") from error
 

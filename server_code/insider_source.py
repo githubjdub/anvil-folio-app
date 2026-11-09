@@ -11,6 +11,7 @@ https://www.sec.gov/files/form4.pdf (General Instruction 8)
 """
 
 from collections import OrderedDict
+import copy
 from datetime import date, datetime, timedelta, timezone
 import hashlib
 import html
@@ -53,7 +54,7 @@ def _normal_symbol(value):
     return value
 
 
-def _read(url, ttl):
+def _read(url, ttl, timeout=20):
     # Share the app's declared SEC contact, timeout, byte limit and rate lock.
     # hedge_fund_data spaces SEC requests by 0.2 s across both importers.
     with _CACHE_LOCK:
@@ -63,7 +64,7 @@ def _read(url, ttl):
             return cached[1], cached[2]
     started_at = datetime.now(timezone.utc)
     try:
-        body = hedge_fund_data._request(url, "sec")
+        body = hedge_fund_data._request(url, "sec", timeout=timeout)
     except hedge_fund_data._SourceError as error:
         raise InsiderSourceError(str(error)) from error
     with _CACHE_LOCK:
@@ -74,18 +75,18 @@ def _read(url, ttl):
     return body, started_at
 
 
-def _json(url, ttl):
-    body, checked_at = _read(url, ttl)
+def _json(url, ttl, timeout=20):
+    body, checked_at = _read(url, ttl, timeout=timeout)
     try:
         return json.loads(body), checked_at
     except (json.JSONDecodeError, UnicodeDecodeError) as error:
         raise InsiderSourceError("SEC returned an unreadable JSON document; retry later.") from error
 
 
-def resolve_insider_symbol(symbol):
+def resolve_insider_symbol(symbol, timeout=20):
     """Resolve an SEC ticker to issuer CIK; suitable for validating a new rule."""
     symbol = _normal_symbol(symbol)
-    document, _ = _json("https://www.sec.gov/files/company_tickers.json", 21600)
+    document, _ = _json("https://www.sec.gov/files/company_tickers.json", 21600, timeout=timeout)
     if not isinstance(document, dict):
         raise InsiderSourceError("SEC returned an invalid ticker directory; retry later.")
     for entry in document.values():
@@ -135,7 +136,7 @@ def _records(document):
     return result
 
 
-def _accepted_at(record, issuer):
+def _accepted_at(record, issuer, timeout=20):
     # The submissions API's acceptanceDateTime has historically mixed local
     # and UTC values despite its Z suffix. The immutable filing's SEC header
     # records its actual acceptance clock in Eastern time. Do not apply a
@@ -143,7 +144,7 @@ def _accepted_at(record, issuer):
     accession = record["accession"]
     url = "https://www.sec.gov/Archives/edgar/data/%s/%s/%s-index-headers.html" % (
         issuer["cik"], accession.replace("-", ""), accession)
-    body, _ = _read(url, 86400)
+    body, _ = _read(url, 86400, timeout=timeout)
     try:
         content = html.unescape(body.decode("utf-8-sig") if isinstance(body, bytes) else body)
     except UnicodeDecodeError as error:
@@ -253,6 +254,134 @@ def _parse_filing(body, record, issuer):
             "security_title": title, "is_amendment": False,
         })
     return events
+
+
+def _pack_record(record):
+    return dict(record, filed_at=record["filed_at"].isoformat(), filing_date=record["filing_date"].isoformat())
+
+
+def _unpack_record(record):
+    return dict(record, filed_at=datetime.fromisoformat(record["filed_at"]), filing_date=date.fromisoformat(record["filing_date"]))
+
+
+def _step_result(state, events=None):
+    """Keep the stable date cursor unchanged until every selected filing is read."""
+    events = events or []
+    if state["stage"] == "headers" and state["position"] >= len(state["records"]):
+        return {"events": events, "checked_at": datetime.fromisoformat(state["checked_at"]),
+                "has_more": state["has_more"],
+                "next_since": datetime.fromisoformat(state["next_since"]) if state["next_since"] else None,
+                "amendments_skipped": state["amendments_skipped"], "progress": None}
+    return {"events": events, "progress": state}
+
+
+def _prepare_step_batch(state):
+    """Select whole filing days, matching the full worker's no-skip cursor."""
+    since, checked = datetime.fromisoformat(state["since"]), datetime.fromisoformat(state["checked_at"])
+    first, last = since.astimezone(_EDGAR_TIMEZONE).date(), checked.astimezone(_EDGAR_TIMEZONE).date()
+    records = {_unpack_record(row)["accession"]: _unpack_record(row) for row in state["records"]
+               if first <= date.fromisoformat(row["filing_date"]) <= last}
+    days = {}
+    for record in records.values():
+        days.setdefault(record["filing_date"], []).append(record)
+    selected = []
+    for filing_day in sorted(days):
+        group = sorted(days[filing_day], key=lambda row: row["accession"])
+        if selected and len(selected) + len(group) > _MAX_FILINGS:
+            break
+        if len(group) > _MAX_FILINGS_PER_DAY:
+            raise InsiderSourceError("This issuer has over 160 ownership filings in one day; alert processing needs review.")
+        selected.extend(group)
+    has_more = len(selected) < len(records)
+    if has_more:
+        next_day = selected[-1]["filing_date"] + timedelta(days=1)
+        checked = _utc(datetime.combine(next_day, datetime.min.time(), _EDGAR_TIMEZONE)) - timedelta(microseconds=1)
+    state.update(records=[_pack_record(row) for row in selected], position=0, stage="headers", has_more=has_more,
+                 checked_at=max(since, checked).isoformat(),
+                 next_since=(checked + timedelta(microseconds=1)).isoformat() if has_more else None,
+                 amendments_skipped=0)
+    state.pop("archives", None)
+
+
+def fetch_insider_transactions_step(symbol, since_datetime, progress=None):
+    """One SEC request (6-second timeout), with durable continuation between calls.
+
+    Directory, submissions, archives, each acceptance header and each XML filing
+    are separate steps. Dense filing days finish across visits without losing
+    records or moving the date cursor past unfinished work. This is the ordinary
+    server-call fallback; the future scheduled worker may use the full fetcher.
+    """
+    symbol = _normal_symbol(symbol)
+    if not isinstance(since_datetime, datetime):
+        raise InsiderSourceError("The notification start time must be a datetime.")
+    since = _utc(since_datetime)
+    now = datetime.now(timezone.utc)
+    if since < now - timedelta(days=_MAX_LOOKBACK_DAYS) or since > now:
+        raise InsiderSourceError("Insider alerts support up to 366 days of recent SEC filings. Pause and resume the watch to start a new period.")
+    if progress is None:
+        issuer = resolve_insider_symbol(symbol, timeout=6)
+        return {"events": [], "progress": {"version": 1, "symbol": symbol, "since": since.isoformat(),
+                                             "issuer": issuer, "stage": "submissions"}}
+    state = copy.deepcopy(progress)
+    if state.get("version") != 1 or state.get("symbol") != symbol or state.get("since") != since.isoformat():
+        raise InsiderSourceError("This source check changed. Pause and resume the watch to restart safely.")
+    issuer = state["issuer"]
+    if state["stage"] == "submissions":
+        document, checked = _json("https://data.sec.gov/submissions/CIK%s.json" % issuer["cik"].zfill(10), 60, timeout=6)
+        records = _records(document)
+        files = document.get("filings", {}).get("files", [])
+        if not isinstance(files, list):
+            raise InsiderSourceError("SEC returned invalid filing archive metadata.")
+        needed = []
+        first = since.astimezone(_EDGAR_TIMEZONE).date()
+        for archive in files:
+            if not isinstance(archive, dict):
+                raise InsiderSourceError("SEC returned invalid filing archive metadata.")
+            try:
+                end = date.fromisoformat(archive.get("filingTo", ""))
+            except (TypeError, ValueError):
+                raise InsiderSourceError("SEC returned an invalid filing archive date.") from None
+            if end >= first:
+                name = archive.get("name")
+                if not isinstance(name, str) or not re.fullmatch(r"CIK\d{10}-submissions-\d+\.json", name):
+                    raise InsiderSourceError("SEC returned an invalid filing archive name.")
+                needed.append(name)
+        if len(needed) > _MAX_ARCHIVES:
+            raise InsiderSourceError("This issuer has too many historical filings; choose a more recent alert start time.")
+        state.update(records=[_pack_record(row) for row in records], archives=needed,
+                     checked_at=checked.isoformat(), stage="archives")
+        if not needed:
+            _prepare_step_batch(state)
+        return _step_result(state)
+    if state["stage"] == "archives":
+        archive, _ = _json("https://data.sec.gov/submissions/" + state["archives"][0], 3600, timeout=6)
+        state["records"].extend(_pack_record(row) for row in _records(archive))
+        state["archives"].pop(0)
+        if not state["archives"]:
+            _prepare_step_batch(state)
+        return _step_result(state)
+    if state["stage"] == "headers":
+        while state["position"] < len(state["records"]) and state["records"][state["position"]]["form"] == "4/A":
+            state["amendments_skipped"] += 1
+            state["position"] += 1
+        if state["position"] == len(state["records"]):
+            return _step_result(state)
+        record = _unpack_record(state["records"][state["position"]])
+        record["filed_at"] = _accepted_at(record, issuer, timeout=6)
+        if since <= record["filed_at"] <= datetime.fromisoformat(state["checked_at"]):
+            state["records"][state["position"]] = _pack_record(record)
+            state["stage"] = "filing"
+        else:
+            state["position"] += 1
+        return _step_result(state)
+    if state["stage"] == "filing":
+        record = _unpack_record(state["records"][state["position"]])
+        url = "https://www.sec.gov/Archives/edgar/data/%s/%s/%s" % (issuer["cik"], record["accession"].replace("-", ""), record["primary"])
+        body, _ = _read(url, 86400, timeout=6)
+        events = _parse_filing(body, record, issuer)
+        state.update(position=state["position"] + 1, stage="headers")
+        return _step_result(state, events)
+    raise InsiderSourceError("This source check is unavailable. Pause and resume the watch to restart safely.")
 
 
 def fetch_insider_transactions(symbol, since_datetime):

@@ -18,6 +18,8 @@ class ProfileHome(ProfileHomeTemplate):
     self.status_label.visible = False
     self._notification_count_loading = False
     self._notification_count_revision = 0
+    self._ranking_refresh_loading = False
+    self._ranking_refresh_revision = 0
     self._set_notification_count(0)
     self._refresh()
 
@@ -86,12 +88,15 @@ class ProfileHome(ProfileHomeTemplate):
     self.profile_stats_note.text = (('As of %s · ' % metrics['as_of']) if metrics.get('as_of') else '') + metrics['note']
     self.profile_holdings_panel.items = metrics['holdings']
     self.holdings_empty_label.visible = not metrics['holdings']
+    self._render_ranking(ranking)
+    self.primary_dropdown.enabled = not self._busy and bool(portfolios)
+
+  def _render_ranking(self, ranking):
     self.percentile_label.text = '{:.1f}th'.format(ranking['percentile']) if ranking['percentile'] is not None else '—'
     self.quartile_label.text = 'Q%s · Rank %s of %s' % (ranking['quartile'], ranking['rank'], ranking['count']) if ranking['quartile'] else 'Not ranked yet'
     self.ranking_note.text = ranking['note'] + (' Last update: %s UTC.' % ranking['updated_at'].strftime('%b %d, %H:%M') if ranking.get('updated_at') else '')
     for index, cell in enumerate((self.quartile_one, self.quartile_two, self.quartile_three, self.quartile_four), 1):
       cell.classes['is-active'] = ranking['quartile'] == index
-    self.primary_dropdown.enabled = not self._busy and bool(portfolios)
 
   def _accept_result(self, result, account_id):
     user = anvil.users.get_user()
@@ -116,11 +121,40 @@ class ProfileHome(ProfileHomeTemplate):
   def profile_show(self, **event_args):
     # Fetch after the page opens, keeping this shortcut out of account startup.
     self.notification_count_timer.interval = 0.1
+    self.ranking_refresh_timer.interval = 0.2
 
   @handle('', 'hide')
   def profile_hide(self, **event_args):
     self.notification_count_timer.interval = 0
     self._notification_count_revision += 1
+    self.ranking_refresh_timer.interval = 0
+    self._ranking_refresh_revision += 1
+
+  @handle('ranking_refresh_timer', 'tick')
+  def ranking_refresh_tick(self, **event_args):
+    self.ranking_refresh_timer.interval = 0
+    if get_open_form() is not self or self._busy or self._ranking_refresh_loading:
+      return
+    self._refresh_ranking()
+
+  def _refresh_ranking(self):
+    user = anvil.users.get_user()
+    account_id = user.get_id() if user is not None else None
+    if account_id is None or account_id != self.account_id:
+      return
+    revision = self._ranking_refresh_revision
+    self._ranking_refresh_loading = True
+    try:
+      result = anvil.server.call_s('refresh_my_profile_rankings')
+      current = anvil.users.get_user()
+      if (get_open_form() is self and revision == self._ranking_refresh_revision
+          and current is not None and current.get_id() == account_id
+          and self.account_id == account_id):
+        self._render_ranking(result['ranking'])
+        self.ranking_refresh_timer.interval = 15 if result['pending'] else 0
+        return result
+    finally:
+      self._ranking_refresh_loading = False
 
   @handle('notification_count_timer', 'tick')
   def notification_count_tick(self, **event_args):
@@ -195,11 +229,15 @@ class ProfileHome(ProfileHomeTemplate):
   def refresh_summary(self, **event_args):
     if self._busy:
       return
-    account_id = self.account_id
     self._set_busy(True)
     try:
-      result = anvil.server.call('refresh_my_billing')
-      self._accept_result(result, account_id)
+      # Refresh cached personal metrics without depending on Stripe or a task.
+      invalidate_workspace()
+      self._refresh()
+      result = self._refresh_ranking()
+      if result is not None:
+        self.status_label.text = result['message']
+        self.status_label.visible = True
     finally:
       self._set_busy(False)
 

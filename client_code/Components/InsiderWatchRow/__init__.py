@@ -20,7 +20,7 @@ class InsiderWatchRow(InsiderWatchRowTemplate):
     if self.item["last_error"]:
       return "Last check: " + self.item["last_error"]
     checked = self.item["last_checked_at"]
-    return "Last checked %s UTC" % checked.strftime("%b %d, %Y %H:%M") if checked else "Waiting for the first scheduled check."
+    return "Last checked %s UTC" % checked.strftime("%b %d, %Y %H:%M") if checked else "Open or refresh Notifications to check this watch."
 
   @handle("activity_dropdown", "change")
   def activity_change(self, **event_args):

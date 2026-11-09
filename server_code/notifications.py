@@ -1,6 +1,7 @@
-"""Owner-scoped insider alert rules, live-row inbox and scheduled polling."""
+"""Owner-scoped alerts with bounded inbox polling when no scheduler is running."""
 from datetime import datetime, timedelta, timezone
 import re
+import uuid
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import anvil.server
@@ -13,6 +14,11 @@ from . import insider_source, notification_delivery
 _MAX_WATCHES = 25
 _PAGE_SIZE = 25
 _ACTIVITIES = ("both", "buys", "sells")
+_VISIT_BATCH = 1
+_VISIT_COOLDOWN = 60
+_WATCH_COOLDOWN = 15 * 60
+_VISIT_LEASE = 15 * 60
+_DELIVERY_LIMIT = "Email and text digests are paused until a scheduler is connected. Your saved preferences are kept."
 
 
 def _now():
@@ -58,8 +64,11 @@ def get_notification_unread_count():
 
 
 @anvil.server.callable(require_user=True)
-def get_notification_workspace(before=None):
+def get_notification_workspace(before=None, check_for_updates=False):
     user = _user()
+    if type(check_for_updates) is not bool:
+        raise ValueError("Choose whether to check for updates.")
+    polling = _poll_on_visit(user, _now()) if check_for_updates else None
     settings = _settings(user, _now())
     query = []
     if before is not None:
@@ -75,7 +84,8 @@ def get_notification_workspace(before=None):
     return {"settings": settings, "capabilities": notification_delivery.capabilities(user),
             "watches": list(app_tables.insider_watches.search(order_by("symbol"), owner=user, deleted=False)),
             "messages": messages[:_PAGE_SIZE], "next_cursor": next_cursor,
-            "unread_count": len(app_tables.notification_messages.search(owner=user, read_at=None))}
+            "unread_count": len(app_tables.notification_messages.search(owner=user, read_at=None)),
+            "polling": polling, "delivery_limit": _DELIVERY_LIMIT}
 
 
 @in_transaction
@@ -90,6 +100,7 @@ def _add_watch(user, symbol, activity, now):
         existing.update(activity=activity, active=True, deleted=False, since_at=now, last_error="")
         existing["last_checked_at"] = None
         existing["poll_next_since"] = None
+        existing["poll_progress"] = None
     else:
         app_tables.insider_watches.add_row(owner=user, symbol=symbol, created_at=now,
                                          activity=activity, active=True, deleted=False,
@@ -122,8 +133,9 @@ def update_insider_watch(watch_id, activity, active):
         watch.update(since_at=_now(), last_error="")
         watch["last_checked_at"] = None
         watch["poll_next_since"] = None
+        watch["poll_progress"] = None
     watch.update(activity=activity, active=active)
-    return {"ok": True, "message": "Watch updated. New matching filings will appear after scheduled checks." if active else "Watch paused."}
+    return {"ok": True, "message": "Watch updated. Open or refresh Notifications to check for new matching filings." if active else "Watch paused."}
 
 
 @anvil.server.callable(require_user=True)
@@ -175,6 +187,7 @@ def _save_preferences(user, enabled, channel, delivery_time, timezone_name, phon
             watch.update(since_at=now, last_error="")
             watch["last_checked_at"] = None
             watch["poll_next_since"] = None
+            watch["poll_progress"] = None
     consent_at = settings["sms_consent_at"]
     if not sms_consent or channel != "sms":
         consent_at = None
@@ -210,11 +223,11 @@ def mark_all_notifications_read():
 
 
 def _watch_snapshot(watch):
-    return (watch["since_at"], watch["activity"], watch["last_checked_at"], watch["poll_next_since"])
+    return (watch["since_at"], watch["activity"], watch["last_checked_at"], watch["poll_next_since"], watch["poll_progress"])
 
 
 @in_transaction
-def _record_poll(watch, snapshot, result, now, failure=None):
+def _record_poll(watch, snapshot, result, now, failure=None, claim_token=None):
     # Source requests can outlive a pause, removal or account change. Read the
     # current rows inside the transaction rather than the pre-request cache.
     watch = app_tables.insider_watches.get_by_id(watch.get_id())
@@ -226,6 +239,8 @@ def _record_poll(watch, snapshot, result, now, failure=None):
     settings = app_tables.notification_settings.get(owner=user)
     if (not user["enabled"] or not watch["active"] or watch["deleted"]
             or settings is None or not settings["enabled"] or _watch_snapshot(watch) != snapshot):
+        return 0
+    if claim_token is not None and (settings["poll_state"] or {}).get("token") != claim_token:
         return 0
     if failure is not None:
         watch["last_error"] = str(failure)[:300]
@@ -250,9 +265,100 @@ def _record_poll(watch, snapshot, result, now, failure=None):
             created_at=now, shares=event["shares"], price=event["price"], value=event["value"],
             filing_url=event["filing_url"])
         count += 1
-    watch.update(last_checked_at=result["checked_at"], last_error="")
-    watch["poll_next_since"] = result["next_since"] if result["has_more"] else None
+    watch["last_error"] = ""
+    watch["poll_progress"] = result.get("progress")
+    if result.get("progress") is None:
+        watch["last_checked_at"] = result["checked_at"]
+        watch["poll_next_since"] = result["next_since"] if result["has_more"] else None
     return count
+
+
+@in_transaction
+def _claim_visit(user, now):
+    """A durable lease and small batch prevent duplicate work across browser tabs."""
+    user = app_tables.users.get_by_id(user.get_id())
+    if user is None or user["enabled"] is not True:
+        return {"status": "paused", "message": "Sign in to an enabled account to check alerts."}
+    settings = _settings(user, now)
+    if not settings["enabled"]:
+        return {"status": "paused", "message": "Alerts are paused. Enable alerts and save preferences to resume watching."}
+    watches = list(app_tables.insider_watches.search(order_by("symbol"), owner=user, active=True, deleted=False))
+    if not watches:
+        return {"status": "empty", "message": "Add a security to start checking future insider filings."}
+    state = settings["poll_state"] or {}
+    stamp = now.timestamp()
+    if state.get("lease_until", 0) > stamp:
+        return {"status": "busy", "message": "An inbox check is already running in another tab. Refresh in a minute."}
+    if state.get("next_check", 0) > stamp:
+        return {"status": "cooldown", "message": "No new source step is due yet. Checks advance at most once a minute; refresh again shortly."}
+    # Keep at most the current account's 25 watch identifiers in persistent state.
+    attempts = {watch.get_id(): state.get("attempts", {}).get(watch.get_id(), 0) for watch in watches}
+    due = sorted((watch for watch in watches if attempts[watch.get_id()] <= stamp -
+                  (_VISIT_COOLDOWN if watch["poll_progress"] and not watch["last_error"] else _WATCH_COOLDOWN)),
+                 key=lambda watch: (attempts[watch.get_id()], watch["symbol"]))
+    if not due:
+        return {"status": "cooldown", "message": "No source step is due yet. Pending checks resume after a minute; completed or failed checks wait 15 minutes."}
+    selected = due[:_VISIT_BATCH]
+    token = uuid.uuid4().hex
+    for watch in selected:
+        attempts[watch.get_id()] = stamp
+    settings["poll_state"] = {"token": token, "lease_until": stamp + _VISIT_LEASE,
+                              "next_check": stamp + _VISIT_COOLDOWN, "attempts": attempts}
+    return {"status": "claimed", "token": token, "watch_ids": [watch.get_id() for watch in selected],
+            "remaining": max(0, len(due) - len(selected))}
+
+
+@in_transaction
+def _release_visit(user, token):
+    settings = app_tables.notification_settings.get(owner=user)
+    if settings is not None:
+        state = dict(settings["poll_state"] or {})
+        if state.get("token") == token:
+            state.update(token="", lease_until=0)
+            settings["poll_state"] = state
+
+
+def _poll_on_visit(user, now, fetcher=None):
+    """Only this owner's inbox; ordinary server calls never trigger email or SMS."""
+    claim = _claim_visit(user, now)
+    if claim["status"] != "claimed":
+        return claim
+    fetcher = fetcher or insider_source.fetch_insider_transactions_step
+    messages, checked, errors, pending = 0, 0, 0, False
+    try:
+        for watch_id in claim["watch_ids"]:
+            watch = _owned(app_tables.insider_watches, watch_id, user)
+            settings = app_tables.notification_settings.get(owner=user)
+            if (watch is None or watch["deleted"] or not watch["active"]
+                    or settings is None or not settings["enabled"]
+                    or (settings["poll_state"] or {}).get("token") != claim["token"]):
+                continue
+            snapshot = _watch_snapshot(watch)
+            since = watch["poll_next_since"]
+            if since is None:
+                since = max(_utc(watch["since_at"]), _utc(watch["last_checked_at"] or watch["since_at"]) - timedelta(days=1))
+            if _utc(since) > now:
+                continue
+            checked += 1
+            try:
+                result = fetcher(watch["symbol"], since, watch["poll_progress"])
+            except insider_source.InsiderSourceError as failure:
+                _record_poll(watch, snapshot, None, now, failure=failure, claim_token=claim["token"])
+                errors += 1
+            else:
+                messages += _record_poll(watch, snapshot, result, now, claim_token=claim["token"])
+                pending = bool(result.get("progress")) or pending
+    finally:
+        _release_visit(user, claim["token"])
+    message = "Advanced %s watch check%s; %s new alert%s." % (checked, "" if checked == 1 else "s", messages, "" if messages == 1 else "s")
+    if pending:
+        message += " More filing steps are pending. Keep Notifications open or refresh later to continue."
+    if claim["remaining"]:
+        message += " %s more watch%s waiting. Checks advance in small steps while Notifications stays open, or on your next refresh." % (claim["remaining"], "" if claim["remaining"] == 1 else "es")
+    if errors:
+        message += " Some source checks were unavailable; details are shown beside each watch. Retry after 15 minutes."
+    return {"status": "checked", "message": message, "checked": checked, "messages": messages,
+            "source_errors": errors, "remaining": claim["remaining"]}
 
 
 def _process_user(user, now, fetcher=None, sender=None):

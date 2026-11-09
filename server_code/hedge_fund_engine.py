@@ -161,7 +161,7 @@ def _positions(snapshot, histories):
     "excluded_positions": excluded}
 
 
-def fetch_history(symbol, start, now=None):
+def fetch_history(symbol, start, now=None, timeout=20):
   """Extend the app's trusted Yahoo split reversal with completed daily OHLC."""
   now = now or datetime.now(timezone.utc)
   query = urllib.parse.urlencode({
@@ -172,7 +172,7 @@ def fetch_history(symbol, start, now=None):
   url = "https://query1.finance.yahoo.com/v8/finance/chart/%s?%s" % (
     urllib.parse.quote(symbol, safe="-"), query)
   try:
-    payload = json.loads(_fetch_text(url, 20))
+    payload = json.loads(_fetch_text(url, timeout))
   except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
     raise FundSimulationError("Daily price history for %s is temporarily unavailable." % symbol) from exc
   except json.JSONDecodeError as exc:
@@ -354,6 +354,34 @@ def build_series(snapshots, end_date, histories, benchmark_symbol="^SP500TR"):
     return {"ok": False, "message": str(exc), "warnings": [], "coverage": []}
 
 
+def complete_series(snapshots, end_date, histories, failures=()):
+  """Finish a model from already fetched histories; never performs I/O."""
+  try:
+    clean = _clean_snapshots(snapshots, end_date)
+    start = clean[0]["period_end"]
+    if "^GSPC" not in histories:
+      raise FundSimulationError("S&P 500 daily price history is unavailable. Try again later.")
+    benchmark_symbol = "^SP500TR" if "^SP500TR" in histories else "^GSPC"
+    if benchmark_symbol == "^SP500TR":
+      price_days = histories["^GSPC"]["close"]
+      total_days = histories["^SP500TR"]["close"]
+      initial_session = max((day for day in price_days if day <= start), default=None)
+      check_end = min(end_date, max(total_days)) if total_days else end_date
+      if (initial_session is None or not total_days
+          or any(day not in total_days for day in price_days
+                 if initial_session <= day <= check_end)):
+        benchmark_symbol = "^GSPC"
+    result = _build_series(snapshots, end_date, histories, benchmark_symbol)
+    if benchmark_symbol == "^GSPC":
+      result["warnings"].append("S&P 500 total-return history was unavailable or incomplete. The comparison explicitly uses the S&P 500 price index, excluding benchmark dividends.")
+    for symbol, failure in failures:
+      if not symbol.startswith("^"):
+        result["warnings"].append("%s is excluded from every report because price history is unavailable: %s" % (symbol, failure))
+    return result
+  except FundSimulationError as exc:
+    return {"ok": False, "message": str(exc), "warnings": [], "coverage": []}
+
+
 def get_series(snapshots, end_date):
   """Fetch Yahoo daily histories, then reconstruct disclosed net changes."""
   try:
@@ -387,24 +415,6 @@ def get_series(snapshots, end_date):
           histories[symbol] = history
         else:
           failures.append((symbol, failure))
-    if "^GSPC" not in histories:
-      raise FundSimulationError("S&P 500 daily price history is unavailable. Try again later.")
-    benchmark_symbol = "^SP500TR" if "^SP500TR" in histories else "^GSPC"
-    if benchmark_symbol == "^SP500TR":
-      price_days = histories["^GSPC"]["close"]
-      total_days = histories["^SP500TR"]["close"]
-      initial_session = max((day for day in price_days if day <= start), default=None)
-      check_end = min(end_date, max(total_days)) if total_days else end_date
-      if (initial_session is None or not total_days
-          or any(day not in total_days for day in price_days
-                 if initial_session <= day <= check_end)):
-        benchmark_symbol = "^GSPC"
-    result = _build_series(snapshots, end_date, histories, benchmark_symbol)
-    if benchmark_symbol == "^GSPC":
-      result["warnings"].append("S&P 500 total-return history was unavailable or incomplete. The comparison explicitly uses the S&P 500 price index, excluding benchmark dividends.")
-    for symbol, failure in failures:
-      if not symbol.startswith("^"):
-        result["warnings"].append("%s is excluded from every report because price history is unavailable: %s" % (symbol, failure))
-    return result
+    return complete_series(snapshots, end_date, histories, failures)
   except FundSimulationError as exc:
     return {"ok": False, "message": str(exc), "warnings": [], "coverage": []}

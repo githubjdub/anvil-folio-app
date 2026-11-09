@@ -190,6 +190,9 @@ def _reconcile_customer(customer_id, config, event_id=None):
     return
   user = app_tables.users.get(stripe_customer_id=customer_id)
   if user is not None:
+    old_access = (user['membership_tier'], user['membership_source'], user['membership_expires_at'],
+                  (user['verification_state'] or {}).get('status'),
+                  (user['verification_state'] or {}).get('period_end'))
     # Read Stripe INSIDE the serializable transaction. A concurrent update
     # retries this read, so delayed/out-of-order events cannot restore stale access.
     subscriptions = _subscriptions(config, customer_id)
@@ -222,6 +225,11 @@ def _reconcile_customer(customer_id, config, event_id=None):
       cancel_at_period_end=bool(badge and badge.get('cancel_at_period_end')))
     values['verification_state'] = badge_state
     user.update(**values)
+    new_access = (user['membership_tier'], user['membership_source'], user['membership_expires_at'],
+                  badge_state.get('status'), badge_state.get('period_end'))
+    if old_access != new_access:
+      from investor_profiles import invalidate_rankings_for
+      invalidate_rankings_for(user)
     from memberships import membership_for
     included = membership_for(user)['is_premium']
     cancel_id = badge['id'] if (included and badge and badge['status'] in ('active', 'trialing')

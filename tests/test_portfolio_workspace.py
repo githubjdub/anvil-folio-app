@@ -52,6 +52,9 @@ class Control:
     def ensure_loaded(self):
         self.loaded_count += 1
 
+    def set_active(self, active):
+        self.active = active
+
     def set_view(self, view):
         self.view = view
 
@@ -199,6 +202,16 @@ class WorkspaceHarness:
 
 
 class PortfolioTabsTests(unittest.TestCase):
+    def test_notification_polling_is_active_only_on_the_inbox_page(self):
+        h = WorkspaceHarness()
+        h.form.overview_tab_click()
+        self.assertFalse(h.form.notifications_form.active)
+        h.form.notifications_tab_click()
+        self.assertTrue(h.form.notifications_form.active)
+        h.form.performance_tab_click()
+        self.assertFalse(h.form.notifications_form.active)
+        self.assertEqual(h.calls, [])
+
     def test_transactions_tab_shows_editor_and_preserves_analysis_without_repricing(self):
         h = WorkspaceHarness()
         analysis = h.form._analysis_source

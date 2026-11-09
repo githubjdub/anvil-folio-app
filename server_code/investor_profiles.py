@@ -1,4 +1,4 @@
-"""Private investor profiles and small, hourly peer-ranking snapshots.
+"""Private investor profiles and visitor-refreshed peer-ranking snapshots.
 
 Only server-computed saved analyses supply metrics. Membership verification is
 a paid badge, not identity verification or an audit of user-entered portfolios.
@@ -6,11 +6,18 @@ No public profile endpoint exposes account names, holdings or balances.
 """
 from datetime import date, datetime, timedelta, timezone
 import math
+import uuid
 from typing import Any
 
 import anvil
 import anvil.server
-from anvil.tables import app_tables, in_transaction
+from anvil.tables import app_tables, in_transaction, order_by, query as q
+
+
+_RANKING_BATCH = 25
+_RANKING_REFRESH_SECONDS = 3600
+_RANKING_STEP_SECONDS = 10
+_RANKING_LEASE_SECONDS = 120
 
 
 def previous_quarter(today=None):
@@ -45,7 +52,8 @@ def _return_note(value):
 def _profile_for(user):
   profile = app_tables.investor_profiles.get(owner=user)
   return profile if profile is not None else app_tables.investor_profiles.add_row(
-    owner=user, ranking_opt_in=False, updated_at=datetime.now(timezone.utc))
+    owner=user, ranking_opt_in=False, ranking_key=uuid.uuid4().hex,
+    updated_at=datetime.now(timezone.utc))
 
 
 def verification_for(user):
@@ -85,7 +93,7 @@ def metrics_from_analysis(analysis, as_of_date, portfolio_id, portfolio_name):
   result['return'] = _quarter_return(points, start, end, as_of_date, analysis['metadata'].get('provisional_date'))
   result['note'] = _return_note(result['return'])
   # Also materialize recent quarters, including a completed analysis-quarter.
-  # The hourly job can roll to a new quarter without reading 3,000 histories.
+  # Visitor refreshes can roll quarters without reading 3,000 histories.
   cursor = date(as_of_date.year, ((as_of_date.month-1)//3)*3+1, 1)
   for _ in range(8):
     next_start = date(cursor.year+1, 1, 1) if cursor.month == 10 else date(cursor.year, cursor.month+3, 1)
@@ -120,6 +128,7 @@ def _store_metrics(user, portfolio_id, metrics):
   profile = _profile_for(user)
   if not profile['primary_portfolio_id'] or profile['primary_portfolio_id'] == portfolio_id:
     profile.update(primary_portfolio_id=portfolio_id, metrics=metrics, updated_at=datetime.now(timezone.utc))
+    invalidate_rankings_for(user)
 
 
 def _percentile(value, values):
@@ -161,16 +170,20 @@ def profile_summary_for(user):
   if profile['ranking_opt_in']:
     ranking['note'] = ('Verified membership is required for peer rankings.' if not verification['verified'] else
                        'A full completed-quarter return is required for peer rankings.' if metrics['return'] is None else
-                       'Your ranking will appear after the next hourly update, once at least 4 eligible members participate.')
+                       'Rankings refresh while members visit Profile. At least 4 eligible members are required.')
     snapshot = app_tables.profile_rankings.get(quarter=previous_quarter()[2])
     if snapshot is not None and verification['verified'] and metrics['return'] is not None:
       now = datetime.now(timezone.utc).timestamp()
       peers = [p for p in snapshot['participants'] or [] if p['valid_until'] is None or p['valid_until'] > now]
       mine = next((p for p in peers if p['user_id'] == user.get_id()), None)
       ranking.update(count=len(peers), updated_at=snapshot['generated_at'])
+      state = snapshot['refresh_state'] or {}
+      ranking['refresh_pending'] = bool(state.get('phase'))
       if len(peers) >= 4 and mine and mine['return'] == metrics['return']:
         ranking.update(_percentile(mine['return'], [p['return'] for p in peers]))
-        ranking['note'] = 'Among opted-in Verified members with full-quarter data. Q1 is the top quartile. Updated hourly; ties share a rank.'
+        ranking['note'] = 'Among opted-in Verified members with full-quarter data. Q1 is the top quartile; ties share a rank.'
+      if state.get('phase'):
+        ranking['note'] += ' A refresh is in progress; the last completed comparison stays visible.'
   return {'avatar': profile['avatar'], 'primary_portfolio_id': profile['primary_portfolio_id'],
           'ranking_opt_in': profile['ranking_opt_in'] is True,
           'metrics': metrics, 'verification': verification, 'ranking': ranking}
@@ -199,12 +212,9 @@ def set_investor_profile(primary_portfolio_id, ranking_opt_in):
                  updated_at=datetime.now(timezone.utc))
   if owned is not None:
     refresh_investor_metrics(owned, user)
-  # Withdrawing consent removes this account from the current snapshot immediately.
-  if not ranking_opt_in:
-    snapshot = app_tables.profile_rankings.get(quarter=previous_quarter()[2])
-    if snapshot is not None:
-      snapshot['participants'] = [p for p in snapshot['participants'] or [] if p['user_id'] != user.get_id()]
-  return {'ok': True, 'message': 'Profile preferences saved. Rankings update hourly.'}
+  # Prevent an already-running refresh from reintroducing old data or consent.
+  invalidate_rankings_for(user)
+  return {'ok': True, 'message': 'Profile preferences saved. Rankings refresh as members visit Profile.'}
 
 
 @anvil.server.callable(require_user=True)
@@ -228,35 +238,135 @@ def set_profile_avatar(media):
 
 @anvil.server.background_task
 def refresh_profile_rankings():
-  """Read small materialized summaries once an hour, never portfolio histories."""
-  from memberships import membership_for
-  quarter = previous_quarter()[2]
-  participants = []
-  for profile in app_tables.investor_profiles.search(ranking_opt_in=True):
-    user = profile['owner']
-    metrics = profile['metrics'] or {}
-    value = (metrics.get('return') if metrics.get('quarter') == quarter else
-             metrics.get('quarter_returns', {}).get(quarter))
-    if user is None or value is None:
-      continue
-    verification = verification_for(user)
-    if not verification['verified']:
-      continue
-    membership = membership_for(user)
-    expiry = membership['expires_at'] if membership['is_premium'] else verification['period_end']
-    participants.append({'user_id': user.get_id(), 'return': value,
-                         'valid_until': expiry.timestamp() if expiry else None})
-  _write_rankings(quarter, participants)
+  """Retained for a future paid runner; ordinary visits use one bounded step."""
+  # An explicitly enabled runner can finish a cycle. No background task is
+  # launched by the free-plan fallback, and no portfolio history is loaded.
+  for _ in range(1000):
+    progress = advance_profile_rankings(bypass_step_cooldown=True)
+    if not progress['pending'] or not progress['advanced']:
+      break
 
 
 @in_transaction
-def _write_rankings(quarter, participants):
-  # Recheck consent inside the final transaction, including a concurrent opt-out.
-  allowed = {p['owner'].get_id() for p in app_tables.investor_profiles.search(ranking_opt_in=True) if p['owner']}
-  participants = [p for p in participants if p['user_id'] in allowed]
-  snapshot = app_tables.profile_rankings.get(quarter=quarter)
-  values: dict[str, Any] = {'participants': participants, 'generated_at': datetime.now(timezone.utc)}
+def invalidate_rankings_for(user):
+  """Atomically remove revoked consent, changed metrics, or changed access."""
+  snapshot = app_tables.profile_rankings.get(quarter=previous_quarter()[2])
   if snapshot is None:
-    app_tables.profile_rankings.add_row(quarter=quarter, **values)
+    return
+  user_id = user.get_id()
+  participants = [p for p in snapshot['participants'] or [] if p['user_id'] != user_id]
+  state: dict[str, Any] = dict(snapshot['refresh_state'] or {})
+  if state.get('phase'):
+    state['pending'] = [p for p in state.get('pending', []) if p['user_id'] != user_id]
+    state['invalidated'] = list(set(state.get('invalidated', [])) | {user_id})
+  snapshot.update(participants=participants, refresh_state=state)
+
+
+@in_transaction
+def _claim_ranking_batch(quarter, bypass_step_cooldown=False):
+  now = datetime.now(timezone.utc)
+  stamp = now.timestamp()
+  snapshot = app_tables.profile_rankings.get(quarter=quarter)
+  if snapshot is None:
+    snapshot = app_tables.profile_rankings.add_row(quarter=quarter, participants=[])
+  state: dict[str, Any] = dict(snapshot['refresh_state'] or {})
+  if state.get('lease_until', 0) > stamp:
+    return None
+  if not state.get('phase'):
+    generated = snapshot['generated_at']
+    if generated is not None:
+      generated = generated.replace(tzinfo=timezone.utc) if generated.tzinfo is None else generated
+      if (now - generated).total_seconds() < _RANKING_REFRESH_SECONDS:
+        return None
+    state = {'phase': 'keys', 'cursor': '', 'pending': [], 'invalidated': []}
+  if not bypass_step_cooldown and state.get('next_step', 0) > stamp:
+    return None
+  token = uuid.uuid4().hex
+  state.update(lease=token, lease_until=stamp + _RANKING_LEASE_SECONDS)
+  snapshot['refresh_state'] = state
+  return {'quarter': quarter, 'token': token, 'phase': state['phase'], 'cursor': state.get('cursor', '')}
+
+
+def _ranking_candidate(profile, quarter):
+  from memberships import membership_for
+  user = profile['owner']
+  if profile['ranking_opt_in'] is not True or user is None or user['enabled'] is not True:
+    return None
+  metrics = profile['metrics'] or {}
+  value = (metrics.get('return') if metrics.get('quarter') == quarter else
+           metrics.get('quarter_returns', {}).get(quarter))
+  if not isinstance(value, (int, float)) or not math.isfinite(value):
+    return None
+  verification = verification_for(user)
+  if not verification['verified']:
+    return None
+  membership = membership_for(user)
+  expiry = membership['expires_at'] if membership['is_premium'] else verification['period_end']
+  return {'user_id': user.get_id(), 'return': value,
+          'valid_until': expiry.timestamp() if expiry else None}
+
+
+@in_transaction
+def _commit_ranking_batch(claim, rows, candidates):
+  snapshot = app_tables.profile_rankings.get(quarter=claim['quarter'])
+  if snapshot is None:
+    return False
+  state: dict[str, Any] = dict(snapshot['refresh_state'] or {})
+  if state.get('lease') != claim['token']:
+    return False  # An expired worker cannot overwrite its replacement.
+  now = datetime.now(timezone.utc)
+  if claim['phase'] == 'keys':
+    # Existing profiles are migrated a batch at a time before pagination begins.
+    for profile in rows:
+      if not profile['ranking_key']:
+        profile['ranking_key'] = uuid.uuid4().hex
+    if len(rows) < _RANKING_BATCH:
+      state['phase'] = 'scan'
   else:
-    snapshot.update(**values)
+    blocked = set(state.get('invalidated', []))
+    pending = {p['user_id']: p for p in state.get('pending', []) if p['user_id'] not in blocked}
+    for candidate in candidates:
+      if candidate['user_id'] not in blocked:
+        pending[candidate['user_id']] = candidate
+    state['pending'] = list(pending.values())
+    if rows:
+      state['cursor'] = rows[-1]['ranking_key']
+    if len(rows) < _RANKING_BATCH:
+      stamp = now.timestamp()
+      peers = [p for p in pending.values() if p['valid_until'] is None or p['valid_until'] > stamp]
+      snapshot.update(participants=peers, generated_at=now, refresh_state={})
+      return True
+  state.update(lease=None, lease_until=0, next_step=now.timestamp() + _RANKING_STEP_SECONDS)
+  snapshot['refresh_state'] = state
+  return True
+
+
+def advance_profile_rankings(bypass_step_cooldown=False):
+  """One server-controlled batch, safe across workers and ordinary free hosting."""
+  quarter = previous_quarter()[2]
+  claim = _claim_ranking_batch(quarter, bypass_step_cooldown)
+  advanced = False
+  if claim is not None:
+    if claim['phase'] == 'keys':
+      rows = list(app_tables.investor_profiles.search(ranking_key=None)[:_RANKING_BATCH])
+      candidates = []
+    else:
+      rows = list(app_tables.investor_profiles.search(
+        order_by('ranking_key'), ranking_key=q.greater_than(claim['cursor']))[:_RANKING_BATCH])
+      candidates = [candidate for candidate in (_ranking_candidate(p, quarter) for p in rows) if candidate is not None]
+    advanced = _commit_ranking_batch(claim, rows, candidates)
+  snapshot = app_tables.profile_rankings.get(quarter=quarter)
+  return {'pending': bool(snapshot and (snapshot['refresh_state'] or {}).get('phase')),
+          'advanced': advanced,
+          'updated_at': snapshot['generated_at'] if snapshot is not None else None}
+
+
+@anvil.server.callable(require_user=True)
+def refresh_my_profile_rankings():
+  from account_profiles import _profile_user
+  user = _profile_user()
+  progress = advance_profile_rankings()
+  summary = profile_summary_for(user)
+  return {'ok': True, 'ranking': summary['ranking'], 'pending': progress['pending'],
+          'message': ('Peer comparison refresh is in progress. Previous results stay visible.' if progress['pending'] else
+                      'Profile summary refreshed. Peer comparisons refresh while members visit Profile.')}

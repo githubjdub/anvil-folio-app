@@ -5,18 +5,21 @@ User portfolio paths are transient inputs and are never saved in the shared
 fund tables. Only SEC documents and reproducible hypothetical fund models persist.
 """
 from datetime import date, datetime, timedelta, timezone
+import gzip
 import hashlib
 import json
 import math
+import uuid
 from typing import Any
 
 import anvil.server
 import anvil.tables
 from anvil.tables import app_tables
-from . import hedge_fund_data, hedge_fund_engine
+from . import hedge_fund_data, hedge_fund_engine, hedge_fund_refresh
 
 _data: Any = hedge_fund_data
 _engine: Any = hedge_fund_engine
+_refresh: Any = hedge_fund_refresh
 _MODEL_VERSION = "optimistic-13f-v1"
 _TABLES = ("hedge_funds", "hedge_fund_snapshots", "hedge_fund_models")
 _SCOPE = "Ranked by model Sharpe minus S&P 500 Sharpe among cached, covered profiles over these exact dates; not a ranking of actual hedge fund returns."
@@ -76,16 +79,19 @@ def _store_model(fund_key, fingerprint, model):
 
 
 def _model(fund_key) -> dict[str, Any]:
-  snapshots = _data.get_snapshots(fund_key)
-  if not snapshots:
-    return _failure("No filings are saved for this profile yet. Update filings to collect its quarterly holdings.")
-  fingerprint = _fingerprint(snapshots)
+  """Read an existing model immediately; ordinary reads never fetch prices."""
   cached = app_tables.hedge_fund_models.get(fund_key=fund_key)
-  if cached is not None and cached["as_of_date"] == date.today() and cached["fingerprint"] == fingerprint:
+  if cached is not None and cached["model"] and cached["model"].get("ok"):
     return cached["model"]
+  return _failure("No comparison model is saved yet. Keep this fund panel open while its filings and prices are collected.")
+
+
+def _build_model(fund_key):
+  """Future paid worker entry point; active pages use resumable steps instead."""
+  snapshots = _data.get_snapshots(fund_key)
   model = _engine.get_series(snapshots, date.today())
   if model["ok"]:
-    _store_model(fund_key, fingerprint, model)
+    _store_model(fund_key, _fingerprint(snapshots), model)
   return model
 
 
@@ -111,11 +117,29 @@ def get_hedge_fund_profile(fund_key):
   fund = _fund(fund_key)
   if fund is None:
     return _failure("Choose a supported hedge fund profile.")
+  refresh = _queue_update(fund_key, cooldown_hours=24)
   snapshots = _data.get_snapshots(fund_key)
-  return {"ok": True,
+  return {"ok": True, "update": refresh,
           "fund": {key: fund[key] for key in ("fund_key", "name", "manager", "source_url", "hedgefollow_url")},
           "holdings": snapshots, "last_checked_at": fund["last_checked_at"],
           "message": "Saved quarterly SEC holdings loaded." if snapshots else "No filings are saved yet. Check latest SEC filings to collect this profile."}
+
+
+def _public_update(row):
+  progress = row["update_progress"] or {}
+  state = progress.get("state", "running")
+  return {"ok": state != "failed", "state": "completed" if state == "failed" else state,
+          "job_id": row["update_job_id"], "message": progress.get("message") or "Checking public filings…"}
+
+
+def _pack_work(work):
+  body = json.dumps(work, separators=(",", ":"), allow_nan=False).encode()
+  if len(body) > 8 * 1024 * 1024:
+    raise _data._SourceError("This comparison exceeds the update memory limit. Saved quarterly holdings remain available.")
+  compressed = gzip.compress(body, compresslevel=3)
+  if len(compressed) > 2 * 1024 * 1024:
+    raise _data._SourceError("This comparison exceeds the update storage limit. Saved quarterly holdings remain available.")
+  return anvil.BlobMedia("application/gzip", compressed, name="fund-update.json.gz")
 
 
 @anvil.tables.in_transaction
@@ -124,37 +148,42 @@ def _claim_update(fund_key, cooldown_hours=6):
   row = app_tables.hedge_funds.get(fund_key=fund_key)
   if row is None:
     raise RuntimeError("A supported fund profile was removed during its update.")
-  for active in app_tables.hedge_funds.search():
-    started = active["update_started_at"]
-    if started is not None and now - _utc(started) < timedelta(minutes=45):
-      if active["fund_key"] == fund_key and active["update_job_id"]:
-        return {"ok": True, "state": "running", "job_id": active["update_job_id"], "message": "This profile's filing update is already running."}
-      return _failure("A filing update is already running. Try again after it finishes.")
+  progress = row["update_progress"] or {}
+  job_id = row["update_job_id"]
+  # Older background workers used only these two columns, with no progress.
+  running = progress.get("state") == "running" or (not progress and job_id and row["update_started_at"] is not None)
+  resumable = (progress.get("state") == "running" and isinstance(job_id, str)
+               and job_id.startswith("page-") and row["update_cache"] is not None)
+  if running and resumable:
+    return _public_update(row)
+  abandoned = running and not resumable
   checked = row["last_checked_at"]
-  if checked is not None and now - _utc(checked) < timedelta(hours=cooldown_hours):
+  cached = app_tables.hedge_fund_models.get(fund_key=fund_key)
+  recent = checked is not None and now - _utc(checked) < timedelta(hours=cooldown_hours)
+  if progress.get("state") == "failed":
+    # Persisted failure backoff is shared across all visitors to this fund.
+    if checked is not None and now - _utc(checked) < timedelta(minutes=15):
+      return _public_update(row)
+  elif recent and cached is not None and not abandoned:
     return {"ok": True, "state": "completed", "message": "Filings were checked recently; using the saved quarterly history."}
-  claim_values: dict[str, Any] = {"update_started_at": now, "update_job_id": None, "tracked": True}
-  row.update(**claim_values)
-  return {"ok": True, "state": "claimed"}
+  work = _refresh.new_progress(fund_key)
+  if recent and _data.get_snapshots(fund_key):
+    # A legacy interrupted background job may have saved filings but no model.
+    # Finish that work immediately without rechecking the SEC during cooldown.
+    work.update(phase="prepare_model", message="Resuming the comparison from the saved quarterly filings…")
+  job_id = "page-" + uuid.uuid4().hex
+  row.update(update_started_at=None, update_job_id=job_id, tracked=True,
+             update_progress={"state": "running", "phase": work["phase"], "message": work["message"]},
+             update_cache=_pack_work(work))
+  return {"ok": True, "state": "claimed", "job_id": job_id, "message": work["message"]}
 
 
-def _queue_update(fund_key):
-  claim = _claim_update(fund_key)
-  if claim.get("state") != "claimed":
-    return claim
-  launched = False
-  row = app_tables.hedge_funds.get(fund_key=fund_key)
-  if row is None:
-    raise RuntimeError("A supported fund profile was removed during its update.")
-  try:
-    task = anvil.server.launch_background_task("refresh_hedge_fund_profile", fund_key)
-    row.update(update_job_id=task.get_id())
-    launched = True
-    return {"ok": True, "state": "running", "job_id": task.get_id(), "message": "Fetching SEC filings and building the comparison. This can take a few minutes."}
-  finally:
-    if not launched:
-      reset_values: dict[str, Any] = {"update_started_at": None, "update_job_id": None}
-      row.update(**reset_values)
+def _queue_update(fund_key, cooldown_hours=6):
+  """Create or resume shared work without launching a background task."""
+  claim = _claim_update(fund_key, cooldown_hours)
+  if claim.get("state") == "claimed":
+    claim["state"] = "running"
+  return claim
 
 
 @anvil.server.callable
@@ -164,6 +193,91 @@ def update_hedge_fund_filings(fund_key):
   if _fund(fund_key) is None:
     return _failure("Choose a supported hedge fund profile.")
   return _queue_update(fund_key)
+
+
+@anvil.tables.in_transaction
+def _claim_step(job_id):
+  row = app_tables.hedge_funds.get(update_job_id=job_id)
+  if row is None:
+    return None, None, _failure("This update is no longer current. Check latest SEC filings to resume.")
+  progress = row["update_progress"] or {}
+  if progress.get("state") != "running":
+    return None, None, _public_update(row)
+  if row["update_cache"] is None:
+    return None, None, _failure("This saved update checkpoint is unavailable. Check latest SEC filings to resume from saved holdings.")
+  now = _now()
+  started = row["update_started_at"]
+  if started is not None and now - _utc(started) < timedelta(seconds=40):
+    return None, None, _public_update(row)
+  next_step = progress.get("next_step_at")
+  if next_step and now < datetime.fromisoformat(next_step):
+    return None, None, _public_update(row)
+  token = uuid.uuid4().hex
+  progress = dict(progress, lease=token)
+  row.update(update_started_at=now, update_progress=progress)
+  return row, token, None
+
+
+@anvil.tables.in_transaction
+def _finish_step(fund_key, job_id, token, work, media, error=None, model=None):
+  row = app_tables.hedge_funds.get(fund_key=fund_key)
+  if row is None:
+    raise RuntimeError("A fund was removed during its update.")
+  progress = row["update_progress"] or {}
+  if row["update_job_id"] != job_id or progress.get("lease") != token:
+    return _public_update(row)
+  now = _now()
+  if error is not None or model is not None:
+    message = str(error) + " Saved data is retained; retry in 15 minutes." if error is not None else "Quarterly filings and comparison model updated."
+    row.update(update_started_at=None, update_cache=None, last_checked_at=now,
+               last_error=str(error) if error is not None else None,
+               updated_at=now if model is not None else row["updated_at"],
+               update_progress={"state": "failed" if error is not None else "completed", "message": message})
+    if model is not None:
+      _store_model(fund_key, _fingerprint(_data.get_snapshots(fund_key)), model)
+      # This is the data cutoff of the persisted job, not today's wall clock.
+      saved_model = app_tables.hedge_fund_models.get(fund_key=fund_key)
+      if saved_model is None:
+        raise RuntimeError("The comparison model disappeared while saving.")
+      saved_model.update(as_of_date=date.fromisoformat(work["end_date"]))
+  else:
+    row.update(update_started_at=None, update_cache=media,
+               update_progress={"state": "running", "phase": work["phase"], "message": work["message"],
+                                "next_step_at": (now + timedelta(seconds=3)).isoformat()})
+  return _public_update(row)
+
+
+@anvil.tables.in_transaction
+def _release_step(fund_key, job_id, token):
+  row = app_tables.hedge_funds.get(fund_key=fund_key)
+  if row is not None and row["update_job_id"] == job_id:
+    progress = row["update_progress"] or {}
+    if progress.get("lease") == token:
+      progress = dict(progress)
+      progress.pop("lease", None)
+      row.update(update_started_at=None, update_progress=progress)
+
+
+@anvil.server.callable
+def get_hedge_fund_update_status(job_id):
+  """Advance at most one provider request; visible-page polling resumes work."""
+  if not _ready() or not isinstance(job_id, str) or not job_id.startswith("page-") or len(job_id) > 100:
+    return _failure("Check latest SEC filings to start or resume this fund's update.")
+  row, token, result = _claim_step(job_id)
+  if row is None:
+    return result
+  fund_key = row["fund_key"]
+  try:
+    # No provider call or Media download occurs inside a Data Table transaction.
+    work = json.loads(gzip.decompress(row["update_cache"].get_bytes()))
+    model = _refresh.advance(fund_key, work)
+    media = _pack_work(work) if model is None else None
+    return _finish_step(fund_key, job_id, token, work, media, model=model)
+  except (_data._SourceError, _engine.FundSimulationError) as error:
+    return _finish_step(fund_key, job_id, token, {}, None, error=error)
+  finally:
+    # Unexpected errors raise; release the lease so a new visit can retry safely.
+    _release_step(fund_key, job_id, token)
 
 
 def _refresh_profile(fund_key):
@@ -176,10 +290,11 @@ def _refresh_profile(fund_key):
     if not result["ok"]:
       return result
     anvil.server.task_state["message"] = "Building the daily holdings model…"
-    model = _model(fund_key)
+    model = _build_model(fund_key)
     return {"ok": model["ok"], "message": "Filings and model updated." if model["ok"] else model["message"]}
   finally:
-    finished_values: dict[str, Any] = {"update_started_at": None}
+    finished_values: dict[str, Any] = {"update_started_at": None, "update_cache": None,
+      "update_progress": {"state": "completed", "message": "The background filing check finished. Load saved holdings to inspect its result."}}
     row.update(**finished_values)
 
 
@@ -213,23 +328,6 @@ def check_hedge_fund_filings():
   return _refresh_profile(row["fund_key"])
 
 
-@anvil.server.callable
-def get_hedge_fund_update_status(job_id):
-  if not _ready() or not isinstance(job_id, str) or len(job_id) > 100:
-    return _failure("Choose a valid filing update.")
-  row = app_tables.hedge_funds.get(update_job_id=job_id)
-  if row is None:
-    return _failure("This update is no longer current. Refresh the profile.")
-  task = anvil.server.get_background_task(job_id)
-  error = task.get_error()
-  if error is not None:
-    raise error
-  if task.is_running():
-    return {"ok": True, "state": "running", "message": task.get_state().get("message", "Updating filings…")}
-  result = task.get_return_value()
-  if result is None:
-    return {"ok": True, "state": "running", "message": "The update is starting…"}
-  return dict(result, state="completed")
 
 
 def _date(value):
@@ -391,13 +489,17 @@ def get_hedge_fund_comparison(fund_key, portfolio_points, risk_free_rate):
     return _failure(queued["message"], job_id=queued.get("job_id"), pending=queued.get("state") == "running")
   model = _model(fund_key)
   if not model["ok"]:
-    return model
+    refresh = _queue_update(fund_key)
+    return _failure(refresh["message"], job_id=refresh.get("job_id"), pending=refresh.get("state") == "running")
   fund_days = {point["date"]: point for point in model["series"]}
   benchmark_days = {point["date"]: point for point in model["benchmark"]}
   aligned = [point for point in points if point["date"] in fund_days and point["date"] in benchmark_days
              and point["session_complete"] and fund_days[point["date"]].get("session_complete", True)
              and benchmark_days[point["date"]].get("session_complete", True)]
   if len(aligned) < 2:
+    refresh = _queue_update(fund_key)
+    if refresh.get("state") == "running":
+      return _failure(refresh["message"], job_id=refresh.get("job_id"), pending=True)
     return _failure("This period does not overlap saved fund history. Choose another timeframe or update filings.")
   dates = [point["date"] for point in aligned]
   values = [point["index"] for point in aligned]
@@ -412,6 +514,11 @@ def get_hedge_fund_comparison(fund_key, portfolio_points, risk_free_rate):
   board = _leaderboard(dates[0], dates[-1], rate, model["benchmark_symbol"], benchmark_days, points)
   rank = next((item for item in board["rows"] if item["fund_key"] == fund_key), None)
   warnings = list(model.get("warnings", []))
+  cached_model = app_tables.hedge_fund_models.get(fund_key=fund_key)
+  if cached_model is None:
+    raise RuntimeError("The comparison model disappeared while reading.")
+  if cached_model["as_of_date"] != date.today() or cached_model["fingerprint"] != _fingerprint(_data.get_snapshots(fund_key)):
+    warnings.append("Showing the last saved comparison while newer data is collected. Its completed-session cutoff remains visible below.")
   if fund_key == "Pershing+Square+Capital+Management":
     warnings.append("Pershing history joins the prior manager filings with the public parent filings from 2026 Q2 onward; the reporting entity changed. This remains a disclosed-holdings model.")
   if dates[0] != points[0]["date"] or dates[-1] != points[-1]["date"]:
@@ -424,6 +531,7 @@ def get_hedge_fund_comparison(fund_key, portfolio_points, risk_free_rate):
     warnings.append("This model is unranked: less than 90% of eligible reported equity value has usable mapped price history.")
   if metrics["fund"]["observations"] < len(dates)-1:
     warnings.append("All three risk estimates and these ranks exclude the same inactive or missing portfolio intervals.")
+  refresh = None
   checked = fund["last_checked_at"]
   if checked is None or _now()-_utc(checked) >= timedelta(hours=24):
     refresh = _queue_update(fund_key)
@@ -434,4 +542,4 @@ def get_hedge_fund_comparison(fund_key, portfolio_points, risk_free_rate):
           "fund": {"fund_key": fund_key, "name": fund["name"], "manager": fund["manager"], "source_url": fund["source_url"], "hedgefollow_url": fund["hedgefollow_url"]},
           "rank": {"position": rank["rank"] if rank else None, "total": len(board["rows"]), "delta_sharpe": rank["delta_sharpe"] if rank else None, "scope": _SCOPE},
           "holdings": _data.get_snapshots(fund_key), "trades": [trade for trade in model["trades"] if dates[0] <= trade["date"] <= dates[-1]],
-          "warnings": warnings, "model_note": model["method"], "last_checked_at": fund["last_checked_at"]}
+          "warnings": warnings, "model_note": model["method"], "last_checked_at": fund["last_checked_at"], "update": refresh}

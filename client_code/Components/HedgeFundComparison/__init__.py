@@ -18,6 +18,7 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
     self._generation = 0
     self._busy = False
     self._opened = False
+    self._view_visible = True
     self._funds_loaded = False
     self._funds = []
     self._result = None
@@ -144,6 +145,13 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
     key = self.fund_dropdown.selected_value
     return next((fund for fund in self._funds if fund["fund_key"] == key), None)
 
+  def _follow_update(self, update):
+    if update and update.get("ok") and update.get("state") == "running" and update.get("job_id"):
+      self._update_job_id = update["job_id"]
+      self.update_timer.interval = 5 if self._opened and self._view_visible else 0
+      return True
+    return False
+
   @handle("open_button", "click")
   def toggle_open(self, **event_args):
     if not self._editable():
@@ -154,10 +162,12 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
     if not self._opened:
       self.update_timer.interval = 0
     if self._opened:
-      if self._update_job_id is not None:
+      if self._update_job_id is not None and self._view_visible:
         self.update_timer.interval = 5
       if not self._funds_loaded:
         self.refresh_profiles()
+      if self._editable() and self.fund_dropdown.selected_value is not None and self._update_job_id is None:
+        self.view_holdings()
       self.redraw()
 
   @handle("refresh_button", "click")
@@ -259,7 +269,7 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
       if not result["ok"]:
         if result.get("pending") and result.get("job_id"):
           self._update_job_id = result["job_id"]
-          self.update_timer.interval = 5 if self._opened else 0
+          self.update_timer.interval = 5 if self._opened and self._view_visible else 0
           self._set_status(result["message"])
         else:
           self._set_status(result["message"], True)
@@ -267,7 +277,8 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
       result["holdings"] = sorted(result.get("holdings") or [], key=lambda filing: self._date_text(filing.get("period_end")) or str(filing["quarter"]))
       self._result = result
       self._render_result()
-      self._set_status("Comparison ready. This is hypothetical 13F holdings performance; review the coverage and assumptions below.")
+      updating = self._follow_update(result.get("update"))
+      self._set_status("Saved comparison loaded. Newer filings and prices will continue loading while this panel is open." if updating else "Comparison ready. This is hypothetical 13F holdings performance; review the coverage and assumptions below.")
     finally:
       if generation == self._generation:
         self._busy = False
@@ -381,10 +392,11 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
         fund.update(result.get("fund") or {})
       self._render_profile()
       self._show_holdings(result.get("holdings") or [])
+      updating = self._follow_update(result.get("update"))
       checked = result.get("last_checked_at")
       if checked:
         self.checked_label.text = "SEC filings last checked " + self._stamp(checked)
-      self._set_status(result.get("message") or "Quarterly holdings loaded. Choose a quarter to inspect its filing, mapping coverage, and positions.")
+      self._set_status("Saved holdings loaded. Checking for newer filings while this panel stays open; you can keep browsing the saved quarters." if updating else result.get("message") or "Quarterly holdings loaded. Choose a quarter to inspect its filing, mapping coverage, and positions.")
     finally:
       if generation == self._generation:
         self._busy = False
@@ -522,7 +534,7 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
       return
     generation = self._generation
     self._busy = True
-    self._set_status("Checking the SEC for this fund's newly released filings…")
+    self._set_status("Starting this fund's filing check. Saved data stays available while this panel loads each step…")
     self._update_controls()
     completed = False
     try:
@@ -532,10 +544,9 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
       if not result["ok"]:
         self._set_status(result["message"], True)
         return
-      self._clear_result()
       self._update_job_id = result.get("job_id") if result.get("state") == "running" else None
       completed = result.get("state") == "completed"
-      self.update_timer.interval = 5 if self._update_job_id is not None and self._opened else 0
+      self.update_timer.interval = 5 if self._update_job_id is not None and self._opened and self._view_visible else 0
       self._set_status(result.get("message") or "Filings updated. Compare again to recompute this profile.")
     finally:
       if generation == self._generation:
@@ -556,7 +567,7 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
 
   @handle("update_timer", "tick")
   def poll_update(self, **event_args):
-    if self._update_job_id is None or self._polling or self._busy or not self._parent_editable or not self._opened:
+    if self._update_job_id is None or self._polling or self._busy or not self._parent_editable or not self._opened or not self._view_visible:
       return
     job_id = self._update_job_id
     self._polling = True
@@ -569,7 +580,7 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
         self._stop_update_polling()
         self._set_status(result["message"], True)
         return
-      self._set_status(result.get("message") or "Checking public SEC filings…")
+      self._set_status((result.get("message") or "Checking public SEC filings…") + (" Keep this panel open to continue." if result.get("state") == "running" else ""))
       if result["state"] == "completed":
         self._stop_update_polling()
         completed = True
@@ -586,10 +597,12 @@ class HedgeFundComparison(HedgeFundComparisonTemplate):
 
   @handle("", "hide")
   def hide_view(self, **event_args):
+    self._view_visible = False
     self.update_timer.interval = 0
 
   @handle("", "show")
   def show_view(self, **event_args):
+    self._view_visible = True
     if self._opened and self._update_job_id is not None:
       self.update_timer.interval = 5
     self.redraw()

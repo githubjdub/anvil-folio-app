@@ -72,7 +72,7 @@ def require_premium():
 @anvil.server.callable(require_user=True)
 def creator_set_membership(account_id, tier, expires_on=None):
   # Late import keeps creator account summaries free to use membership_for().
-  from . import creator_portfolios
+  import creator_portfolios
   creator_module: Any = creator_portfolios
   creator = creator_module._require_creator()
   if not isinstance(account_id, str) or not 1 <= len(account_id) <= 200:
@@ -101,6 +101,8 @@ def creator_set_membership(account_id, tier, expires_on=None):
               "membership_expires_at": expires_at, "membership_updated_at": now,
               "membership_updated_by": creator}
     account.update(**values)
+    from investor_profiles import invalidate_rankings_for
+    invalidate_rankings_for(account)
     membership = membership_for(account)
   except RowDeleted:
     return {"ok": False, "message": "This account is no longer available."}

@@ -119,6 +119,14 @@ db_schema:
       client_hidden: null
       name: tracked
       type: bool
+    - admin_ui: {}
+      client_hidden: true
+      name: update_progress
+      type: simpleObject
+    - admin_ui: {}
+      client_hidden: true
+      name: update_cache
+      type: media
     indexes: []
     server: full
     title: Hedge Funds
@@ -166,6 +174,10 @@ db_schema:
       client_hidden: true
       name: poll_next_since
       type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: poll_progress
+      type: simpleObject
     indexes: []
     server: full
     title: Insider Alert Watchlist
@@ -178,6 +190,10 @@ db_schema:
     - {name: ranking_opt_in, type: bool}
     - {client_hidden: true, name: metrics, type: simpleObject}
     - {name: updated_at, type: datetime}
+    - admin_ui: {}
+      client_hidden: true
+      name: ranking_key
+      type: string
     indexes: []
     server: full
     title: Investor Profiles
@@ -435,6 +451,10 @@ db_schema:
       client_hidden: null
       name: delivery_error
       type: string
+    - admin_ui: {}
+      client_hidden: true
+      name: poll_state
+      type: simpleObject
     indexes: []
     server: full
     title: Notification Preferences
@@ -573,6 +593,10 @@ db_schema:
     - {name: quarter, type: string}
     - {client_hidden: true, name: participants, type: simpleObject}
     - {name: generated_at, type: datetime}
+    - admin_ui: {}
+      client_hidden: true
+      name: refresh_state
+      type: simpleObject
     indexes: []
     server: full
     title: Profile Rankings
@@ -766,20 +790,7 @@ runtime_options:
   client_version: '3'
   server_spec: {base: python310-minimal}
   version: 3
-scheduled_tasks:
-- job_id: folio-profile-rankings
-  task_name: refresh_profile_rankings
-  time_spec:
-    at: {minute: 40}
-    every: hour
-- job_id: folio-insider-notifications
-  task_name: process_insider_notifications
-  time_spec: {every: minute, n: 5}
-- job_id: portfoliora-13f-check
-  task_name: check_hedge_fund_filings
-  time_spec:
-    at: {minute: 20}
-    every: hour
+scheduled_tasks: []
 secrets:
   STRIPE_APP_URL:
     type: secret
