@@ -7,6 +7,7 @@
         <div class="brand-name">Folio</div>
       </div>
     </div>
+    <nav class="portfolio-masthead-links" aria-label="Main navigation"><a href="#?page=portfolio" aria-current="page">My Portfolio</a><a href="#?page=profile">Profile</a><a href="#?page=subscription">Membership</a></nav>
     <div class="portfolio-topbar-actions">
     <div anvil:name="market_status_region" class="market-status is-unavailable" role="status" aria-live="polite">
       <div class="market-status-line"><span class="market-status-dot" aria-hidden="true"></span><anvil-component type="Label" name="market_status_label" prop:text="Checking US markets…" prop:role="market-status-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
@@ -29,10 +30,24 @@
       </div>
     </section>
 
-    <section anvil:name="welcome_region" class="portfolio-welcome" aria-label="Welcome back">
-      <div class="eyebrow">Your investment workspace</div>
-      <div role="heading" aria-level="1"><anvil-component type="Label" name="welcome_heading_label" prop:text="Welcome back." prop:bold="true" prop:role="portfolio-welcome-heading" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-      <anvil-component type="Label" name="welcome_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <section anvil:name="welcome_region" class="portfolio-welcome portfolio-profile-header" aria-label="Your portfolio">
+      <div class="portfolio-profile-identity">
+        <anvil-component type="Image" name="portfolio_avatar" prop:source="_/theme/folio-mark.svg" prop:height="64px" prop:display_mode="fill_width" prop:role="portfolio-avatar"></anvil-component>
+        <div class="portfolio-profile-copy">
+          <div class="portfolio-profile-eyebrow">Personal portfolio <anvil-component type="Label" name="portfolio_verified_label" prop:role="profile-verified" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+          <div role="heading" aria-level="1"><anvil-component type="Label" name="welcome_heading_label" prop:text="Your portfolio" prop:bold="true" prop:role="portfolio-welcome-heading" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+          <anvil-component type="Label" name="welcome_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+        </div>
+      </div>
+      <div class="portfolio-profile-actions"><anvil-component type="m3._Components.Button" name="toggle_transactions_button" prop:text="Edit transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component><anvil-component type="m3._Components.Button" name="save_portfolio_button" prop:text="Save portfolio" prop:appearance="filled" prop:icon="mi:save"></anvil-component><anvil-component type="m3._Components.Button" name="share_performance_button" prop:text="Share" prop:appearance="filled" prop:icon="mi:share" prop:role="share-action"></anvil-component><anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync prices" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component></div>
+    </section>
+    <section class="portfolio-summary-strip" aria-label="Portfolio summary">
+      <div class="portfolio-summary-cell"><span class="portfolio-summary-caption">Portfolio value · USD</span><anvil-component type="Label" name="summary_value_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_date_label" prop:text="Sync to calculate" prop:role="portfolio-summary-note" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+      <div class="portfolio-summary-cell"><span class="portfolio-summary-caption">Holdings</span><anvil-component type="Label" name="summary_holdings_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><span class="portfolio-summary-note">Open positions</span></div>
+      <div class="portfolio-summary-cell"><anvil-component type="Label" name="summary_quarter_caption" prop:text="Prior quarter return" prop:role="portfolio-summary-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_quarter_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><span class="portfolio-summary-note">Time weighted · completed quarter</span></div>
+      <div class="portfolio-summary-cell"><anvil-component type="Label" name="summary_period_caption" prop:text="Available-period return" prop:role="portfolio-summary-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_period_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_period_note" prop:text="Time weighted" prop:role="portfolio-summary-note" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+      <div class="portfolio-summary-cell"><span class="portfolio-summary-caption">Top 20 weight</span><anvil-component type="Label" name="summary_concentration_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><span class="portfolio-summary-note">Of invested market value</span></div>
+      <div class="portfolio-summary-cell"><span class="portfolio-summary-caption">Verified-user ranking</span><anvil-component type="Label" name="summary_rank_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_rank_note" prop:text="Primary portfolio · prior quarter" prop:role="portfolio-summary-note" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
     </section>
 
     <section anvil:name="creator_access_region" class="panel-card creator-entry-card" aria-label="Creator workspace">
@@ -46,6 +61,7 @@
     </section>
 
     <section class="panel-card portfolio-library" aria-label="Saved portfolios">
+      <details class="portfolio-account-details"><summary>Account &amp; plan</summary>
       <div class="card-heading portfolio-library-heading">
         <div>
           <h2>Your portfolios</h2>
@@ -60,7 +76,7 @@
           </div>
         </div>
         <div class="portfolio-account-actions">
-          <anvil-component type="m3._Components.Button" name="profile_button" prop:text="Profile" prop:appearance="outlined" prop:role="subscription-nav-button" prop:icon="mi:person"></anvil-component>
+
           <anvil-component type="m3._Components.Button" name="plans_button" prop:text="Plans" prop:appearance="text"></anvil-component>
           <anvil-component type="m3._Components.Button" name="creator_setup_button" prop:text="Creator setup" prop:appearance="outlined" prop:icon="mi:settings" prop:visible="False"></anvil-component>
           <anvil-component type="m3._Components.Button" name="account_button" prop:text="Sign in / Create account" prop:appearance="outlined" prop:icon="mi:person"></anvil-component>
@@ -73,11 +89,13 @@
         <anvil-component type="TextBox" name="creator_reference_box" prop:role="creator-search" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
         <p class="fine-print">This reference identifies your account; it is not your password or an access code.</p>
       </div>
+      </details>
+      <div class="portfolio-library-controls">
       <div class="portfolio-save-row">
         <div class="portfolio-name-field">
           <anvil-component type="m3._Components.TextInput.TextBox" name="portfolio_name_box" prop:label="Portfolio name" prop:text="My portfolio" prop:placeholder="e.g. Long-term investments" prop:appearance="outlined" prop:role="portfolio-name"></anvil-component>
         </div>
-        <anvil-component type="m3._Components.Button" name="save_portfolio_button" prop:text="Save portfolio" prop:appearance="filled" prop:icon="mi:save"></anvil-component>
+
         <anvil-component type="m3._Components.Button" name="new_portfolio_button" prop:text="New portfolio" prop:appearance="text" prop:icon="mi:add"></anvil-component>
       </div>
       <div class="portfolio-picker-row">
@@ -87,10 +105,50 @@
         </div>
         <anvil-component type="m3._Components.Button" name="open_portfolio_button" prop:text="Open portfolio" prop:appearance="outlined" prop:icon="mi:folder_open" prop:enabled="false"></anvil-component>
       </div>
+      </div>
       <div anvil:name="portfolio_status_region" class="portfolio-save-status" role="status" aria-live="polite">
         <anvil-component type="Label" name="portfolio_status_label" prop:text="Not saved yet. Save your transactions and analysis settings without syncing prices." prop:role="portfolio-help"></anvil-component>
       </div>
     </section>
+
+    <nav anvil:name="readout_navigation" class="readout-navigation portfolio-page-tabs" aria-label="Portfolio pages">
+      <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Top Holdings" prop:icon="mi:dashboard" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="transactions_tab_button" prop:text="Transactions" prop:icon="mi:swap_vert" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Portfolio Structure" prop:icon="mi:pie_chart" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance History" prop:icon="mi:trending_up" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+      <div class="readout-tab-with-badge"><anvil-component type="m3._Components.Button" name="tax_estimator_tab_button" prop:text="Tax Estimator" prop:icon="mi:calculate" prop:appearance="text" prop:role="readout-tab"></anvil-component><span class="feature-beta-badge" title="Estimates, not tax filing advice">Beta</span></div>
+      <anvil-component type="m3._Components.Button" name="dividends_tab_button" prop:text="Dividends" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="passive_tab_button" prop:text="Passive Income" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="tax_tab_button" prop:text="Tax Harvester" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="retirement_tab_button" prop:text="Retirement" prop:appearance="text" prop:role="readout-tab"></anvil-component>
+      <anvil-component type="m3._Components.Button" name="profile_button" prop:text="Profile" prop:appearance="text" prop:role="readout-tab" prop:icon="mi:person"></anvil-component>
+      <div class="notification-tab-wrap">
+        <anvil-component type="m3._Components.Button" name="notifications_tab_button" prop:text="Notifications" prop:icon="mi:mail" prop:appearance="text" prop:role="readout-tab" prop:tooltip="Your insider activity inbox"></anvil-component>
+        <span anvil:name="notification_badge" class="notification-tab-badge" aria-hidden="true"><anvil-component type="Label" name="notification_badge_label" prop:role="notification-tab-count" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></span>
+        <span class="notification-tab-announcement" role="status" aria-live="polite" aria-atomic="true"><anvil-component type="Label" name="notification_badge_accessible_label" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></span>
+      </div>
+    </nav>
+
+    <div class="portfolio-workspace-tools">
+<details class="panel-card settings-card">
+          <summary>Analysis settings <span>As-of date &amp; risk-free rate</span></summary>
+          <div class="analysis-settings-body">
+          <div class="card-heading compact-heading"><div><h3>Run your analysis</h3><p>Use daily history through this date. Today's analysis also includes the latest available regular-session prices.</p></div><div class="window-badge">History + latest prices</div></div>
+          <div class="date-grid single-date-grid">
+            <div class="field-stack"><label>Analyze as of</label><anvil-component type="DatePicker" name="as_of_date_picker" prop:role="date-field"></anvil-component></div>
+          </div>
+          <div class="assumption-row">
+            <div><label>Risk-free rate</label><p>Annual rate used for daily excess returns.</p></div>
+            <div class="rate-input"><anvil-component type="m3._Components.TextInput.TextBox" name="risk_free_box" prop:text="4.50" prop:type="number" prop:appearance="outlined" prop:role="rate-field"></anvil-component><span>%</span></div>
+          </div>
+          </div>
+        </details>
+<div class="readout-page-status" role="status" aria-live="polite"><anvil-component type="Label" name="readout_tab_context" prop:role="readout-tab-context" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+    </div>
+<div anvil:name="status_region" class="status-region is-hidden">
+          <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
+        </div>
+<anvil-component type="M3_App_1.Components.ShareComposer" name="share_composer"></anvil-component>
 
     <section anvil:name="workspace_region" class="workspace-grid">
       <div anvil:name="transactions_column" anvil:dom-node="transactions_workspace" class="input-column">
@@ -150,83 +208,31 @@
         </div>
       </div>
 
-      <div anvil:dom-node="readout_workspace" class="results-column">
+      <div anvil:name="readout_column" anvil:dom-node="readout_workspace" class="results-column">
         <div class="readout-workspace">
-        <div class="section-intro results-intro">
-          <div class="section-index accent-index">02</div>
-          <div class="readout-heading-copy"><h2>Your readout</h2><p>Performance, income, and risk in one view.</p></div>
-          <anvil-component type="m3._Components.Button" name="share_performance_button" prop:text="Share" prop:appearance="filled" prop:icon="mi:share" prop:role="share-action"></anvil-component>
-          <anvil-component type="m3._Components.Button" name="toggle_transactions_button" prop:text="Collapse transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component>
-        </div>
 
-        <details class="panel-card settings-card">
-          <summary>Analysis settings <span>As-of date &amp; risk-free rate</span></summary>
-          <div class="analysis-settings-body">
-          <div class="card-heading compact-heading"><div><h3>Run your analysis</h3><p>Use daily history through this date. Today's analysis also includes the latest available regular-session prices.</p></div><div class="window-badge">History + latest prices</div></div>
-          <div class="date-grid single-date-grid">
-            <div class="field-stack"><label>Analyze as of</label><anvil-component type="DatePicker" name="as_of_date_picker" prop:role="date-field"></anvil-component></div>
-          </div>
-          <div class="assumption-row">
-            <div><label>Risk-free rate</label><p>Annual rate used for daily excess returns.</p></div>
-            <div class="rate-input"><anvil-component type="m3._Components.TextInput.TextBox" name="risk_free_box" prop:text="4.50" prop:type="number" prop:appearance="outlined" prop:role="rate-field"></anvil-component><span>%</span></div>
-          </div>
-          </div>
-        </details>
 
-        <div anvil:name="status_region" class="status-region is-hidden">
-          <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
-        </div>
-        <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync history &amp; analyze" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
-        <anvil-component type="M3_App_1.Components.ShareComposer" name="share_composer"></anvil-component>
 
-        <nav anvil:name="readout_navigation" class="readout-navigation" aria-label="Readout pages">
-          <div class="readout-nav-group" role="group" aria-label="Portfolio">
-            <span class="readout-group-label">Portfolio</span>
-            <div class="readout-group-buttons">
-              <anvil-component type="m3._Components.Button" name="overview_tab_button" prop:text="Overview" prop:appearance="text" prop:role="readout-tab-active"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="performance_tab_button" prop:text="Performance" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="allocation_tab_button" prop:text="Allocation" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-            </div>
-          </div>
-          <div class="readout-nav-group" role="group" aria-label="Income and tax">
-            <span class="readout-group-label">Income &amp; tax</span>
-            <div class="readout-group-buttons">
-              <anvil-component type="m3._Components.Button" name="dividends_tab_button" prop:text="Dividends" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="passive_tab_button" prop:text="Passive Income" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="tax_tab_button" prop:text="Tax Harvester" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-            </div>
-          </div>
-          <div class="readout-nav-group" role="group" aria-label="Planning">
-            <span class="readout-group-label">Planning</span>
-            <div class="readout-group-buttons readout-planning-buttons">
-              <div class="readout-tab-with-badge">
-                <anvil-component type="m3._Components.Button" name="tax_estimator_tab_button" prop:text="Tax Estimator" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-                <span class="feature-beta-badge" title="Work in progress">Beta</span>
-              </div>
-              <anvil-component type="m3._Components.Button" name="retirement_tab_button" prop:text="Retirement" prop:appearance="text" prop:role="readout-tab"></anvil-component>
-            </div>
-          </div>
-          <div class="readout-nav-group readout-notifications-group">
-            <div class="notification-tab-wrap">
-              <anvil-component type="m3._Components.Button" name="notifications_tab_button" prop:text="Notifications" prop:icon="mi:mail" prop:align="full" prop:appearance="text" prop:role="readout-tab" prop:tooltip="Your insider activity inbox"></anvil-component>
-              <span anvil:name="notification_badge" class="notification-tab-badge" aria-hidden="true"><anvil-component type="Label" name="notification_badge_label" prop:role="notification-tab-count" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></span>
-              <span class="notification-tab-announcement" role="status" aria-live="polite" aria-atomic="true"><anvil-component type="Label" name="notification_badge_accessible_label" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></span>
-            </div>
-          </div>
-        </nav>
+
+
+
+
         <div class="readout-disclosures"><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods ↗</a></div>
-        <div class="readout-page-status" role="status" aria-live="polite"><anvil-component type="Label" name="readout_tab_context" prop:role="readout-tab-context" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+
         <div anvil:dom-node="readout_scroller" class="readout-scroll-region" tabindex="0" role="region" aria-label="Readout content">
         <section anvil:name="empty_results" class="empty-results">
           <div class="empty-orbit"><span>✦</span></div>
           <h3>Add A Security!</h3>
-          <p>Start with your own stock or ETF. Enter its transaction, then sync history to see your portfolio's performance and risk.</p>
+          <p>Open Transactions to add your first stock or ETF. Save your portfolio, then sync prices to see your holdings and performance.</p>
+          <anvil-component type="m3._Components.Button" name="empty_add_security_button" prop:text="Add A Security!" prop:icon="mi:add" prop:appearance="filled"></anvil-component>
           <div class="empty-line"><span></span><span></span><span></span></div>
         </section>
 
         <section anvil:name="results_section" class="results-section">
           <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="Sync history to see your portfolio" prop:role="period-label"></anvil-component></div>
-          <section anvil:name="overview_panel" class="readout-page" aria-label="Portfolio overview">
+          <section anvil:name="overview_panel" class="readout-page" aria-label="Top holdings">
+          <anvil-component type="M3_App_1.Components.PortfolioHoldings" name="portfolio_holdings_form"></anvil-component>
+          <details class="portfolio-overview-details"><summary>Returns &amp; portfolio anatomy</summary>
           <div class="metric-grid">
             <div class="metric-card metric-card-main"><div class="metric-label">Market value</div><anvil-component type="Label" name="value_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Open positions at the latest available price</div></div>
             <div class="metric-card metric-card-positive"><div class="metric-label">Total return</div><anvil-component type="Label" name="return_label" prop:text="—" prop:role="metric-value"></anvil-component><div class="metric-sub">Investment profit ÷ total buy capital</div></div>
@@ -241,6 +247,7 @@
               <div class="detail-row"><span>Investment profit</span><anvil-component type="Label" name="profit_label" prop:text="—" prop:role="detail-value"></anvil-component></div>
             </div>
           </div>
+          </details>
           </section>
           <section anvil:name="allocation_panel" class="readout-page allocation-page" aria-label="Portfolio structure">
           <section class="detail-card sector-card" aria-label="Portfolio composition">

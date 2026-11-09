@@ -1,0 +1,41 @@
+<section class="portfolio-holdings">
+  <div class="portfolio-holdings-periodbar">
+    <div><anvil-component type="Label" name="period_label" prop:role="portfolio-holdings-period" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+    <anvil-component type="DropDown" name="quarter_dropdown" prop:role="portfolio-holdings-quarter" prop:tooltip="Choose the holdings quarter"></anvil-component>
+  </div>
+  <div anvil:name="empty_region" class="portfolio-holdings-empty"><anvil-component type="Label" name="empty_label" prop:role="portfolio-help"></anvil-component></div>
+  <div anvil:name="dashboard_region">
+    <div class="portfolio-holdings-visual-grid">
+      <section class="portfolio-holdings-map-card">
+        <div class="portfolio-holdings-card-heading"><anvil-component type="Label" name="map_title_label" prop:role="portfolio-holdings-heading" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="value_label" prop:role="portfolio-holdings-total" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+        <anvil-component type="Plot" name="holdings_plot" prop:height="365px"></anvil-component>
+        <anvil-component type="Label" name="map_empty_label" prop:text="No open positions at this quarter's saved valuation." prop:role="portfolio-help"></anvil-component>
+        <anvil-component type="Label" name="return_note_label" prop:role="portfolio-holdings-note" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+      </section>
+      <aside class="portfolio-holdings-activity-card">
+        <h3 class="portfolio-holdings-activity-title">Your trading activity</h3>
+        <p class="portfolio-holdings-activity-note">Logged buys and sells in this quarter</p>
+        <anvil-component type="RepeatingPanel" name="activity_panel" prop:item_template="M3_App_1.Components.PortfolioActivityGroup" prop:role="portfolio-holdings-activity-list"></anvil-component>
+        <anvil-component type="Label" name="no_activity_label" prop:text="No logged trades in this quarter." prop:role="portfolio-help"></anvil-component>
+      </aside>
+    </div>
+    <anvil-component type="Label" name="legacy_label" prop:text="This saved analysis predates daily holding details. Sync once to enable historical positions, activity and price returns." prop:role="portfolio-holdings-note"></anvil-component>
+    <section class="portfolio-holdings-table-section">
+      <anvil-component type="Label" name="table_title_label" prop:role="portfolio-holdings-heading"></anvil-component>
+      <div class="portfolio-holdings-controls">
+        <anvil-component type="TextBox" name="search_box" prop:placeholder="Search holdings…" prop:tooltip="Search symbol, company or sector" prop:role="portfolio-holdings-search"></anvil-component>
+        <anvil-component type="DropDown" name="position_dropdown" prop:tooltip="Show open holdings or all traded securities" prop:role="portfolio-holdings-filter"></anvil-component>
+        <anvil-component type="DropDown" name="activity_dropdown" prop:tooltip="Filter logged trade activity" prop:role="portfolio-holdings-filter"></anvil-component>
+        <anvil-component type="DropDown" name="sort_dropdown" prop:tooltip="Sort holdings" prop:role="portfolio-holdings-filter"></anvil-component>
+      </div>
+      <div class="portfolio-holdings-table-scroll">
+        <div class="portfolio-holdings-table" role="table" aria-label="Your portfolio holdings">
+          <div class="portfolio-holdings-table-head" role="row"><span role="columnheader">Security</span><span role="columnheader">Portfolio weight</span><span role="columnheader">Activity</span><span role="columnheader">Shares owned</span><span role="columnheader">Market value</span><span role="columnheader">Price return while held</span></div>
+          <anvil-component type="RepeatingPanel" name="holdings_panel" prop:item_template="M3_App_1.Components.PortfolioHoldingTableRow" prop:role="portfolio-holdings-table-rows"></anvil-component>
+        </div>
+      </div>
+      <anvil-component type="Label" name="filter_empty_label" prop:text="No holdings match these filters. Try All traded securities or clear your search." prop:role="portfolio-help"></anvil-component>
+      <anvil-component type="Label" name="filter_count_label" prop:role="portfolio-holdings-note"></anvil-component>
+    </section>
+  </div>
+</section>

@@ -10,6 +10,7 @@ from .. import chart_theme
 from ..analysis_selection import analyze_selection, update_sector_classification
 from ..chart_trades import build_trade_markers
 from ..portfolio_periods import quarterly_returns, allocation_snapshots
+from ..portfolio_summary import summarize_portfolio
 from ..allocation_breakdown import allocation_groups
 from ..HoldingRow import HoldingRow
 from ..Components.TransactionYearGroup import TransactionYearGroup
@@ -36,6 +37,7 @@ class Form1(Form1Template):
 
     self._user = None
     self._username = ""
+    self._profile_summary = None
     self.account_id = None
     self._notification_badge_loading = False
     self._notification_badge_revision = 0
@@ -122,6 +124,13 @@ class Form1(Form1Template):
         self._set_busy(False)
     self._initializing = False
 
+  @handle("", "show")
+  def form_show(self, **event_args):
+    # Router may prepare a retained workspace while detached. Once visible,
+    # resize its existing plots without fetching data or resetting the editor.
+    if not self._initializing and not self._busy:
+      self._apply_readout_page(redraw=True)
+
   @handle("market_status_timer", "tick")
   def market_status_timer_tick(self, **event_args):
     if self._market_status_loading:
@@ -149,11 +158,13 @@ class Form1(Form1Template):
         self._history["metadata"]["end_date"], self._history["metrics"]["holding_count"],
         " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
       )
-    name = {"overview": "Overview", "allocation": "Portfolio structure",
+    name = {"overview": "Top Holdings", "transactions": "Transactions", "allocation": "Portfolio structure",
             "performance": "Performance", "dividends": "Dividends", "passive": "Passive Income",
             "tax": "Tax Harvester", "tax_estimator": "Tax Estimator", "retirement": "Retirement",
             "notifications": "Notifications"}[self._readout_page]
-    if self._readout_page == "tax_estimator":
+    if self._readout_page == "transactions":
+      self.readout_tab_context.text = "Transactions · Your draft stays here while you switch tabs. Save to keep it across visits."
+    elif self._readout_page == "tax_estimator":
       self.readout_tab_context.text = "Tax Estimator · Hypothetical buys, sells and location-based tax estimates"
     elif self._readout_page in ("dividends", "passive", "tax"):
       self.readout_tab_context.text = {
@@ -175,7 +186,15 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    portfolio_page = self._readout_page not in ("retirement", "tax_estimator", "dividends", "passive", "tax", "notifications")
+    editing = self._readout_page == "transactions"
+    self.transactions_column.visible = editing
+    self.readout_column.visible = not editing
+    self._transactions_collapsed = not editing
+    self.workspace_region.classes["transactions-collapsed"] = not editing
+    self.toggle_transactions_button.text = "View holdings" if editing else "Edit transactions"
+    self.transactions_tab_button.role = "readout-tab-active" if editing else "readout-tab"
+    self.transactions_tab_button.enabled = not self._busy
+    portfolio_page = self._readout_page in ("overview", "allocation", "performance")
     self.results_section.visible = has_analysis and portfolio_page
     self.empty_results.visible = not has_analysis and portfolio_page
     self.hedge_fund_panel.visible = self._readout_page == "performance"
@@ -205,6 +224,8 @@ class Form1(Form1Template):
       self._resize_readout_charts()
       if self._readout_page == "notifications":
         self.notifications_form.ensure_loaded()
+      elif self._readout_page == "overview" and has_analysis:
+        self.portfolio_holdings_form.redraw()
       elif self._readout_page == "tax_estimator":
         self.tax_estimator_form.redraw()
       elif self._readout_page == "performance":
@@ -270,8 +291,12 @@ class Form1(Form1Template):
     if self._appearance_mode == chart_theme.MODE:
       return
     self._appearance_mode = chart_theme.MODE
+    self.portfolio_holdings_form.apply_appearance()
+    self._render_portfolio_summary()
     self._dirty_readout_pages.update(("overview", "allocation", "performance"))
     self._render_active_readout()
+    if self._readout_page == "overview" and self._history is not None:
+      self.portfolio_holdings_form.redraw()
     if self._readout_page == "tax_estimator":
       self.tax_estimator_form.apply_appearance()
     elif self._readout_page == "performance":
@@ -287,7 +312,7 @@ class Form1(Form1Template):
 
   def _select_readout_page(self, page):
     if (self._busy or page == self._readout_page or
-        page not in ("overview", "allocation", "performance", "tax_estimator", "retirement", "dividends", "passive", "tax", "notifications")):
+        page not in ("overview", "transactions", "allocation", "performance", "tax_estimator", "retirement", "dividends", "passive", "tax", "notifications")):
       return
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
@@ -337,23 +362,21 @@ class Form1(Form1Template):
       self._set_busy(False)
 
   def _set_transactions_collapsed(self, collapsed):
-    if collapsed == self._transactions_collapsed:
-      return
-    self._transactions_collapsed = collapsed
-    self.transactions_column.visible = not collapsed
-    self.workspace_region.classes["transactions-collapsed"] = collapsed
-    self.toggle_transactions_button.text = "Show transactions" if collapsed else "Collapse transactions"
+    if not collapsed:
+      self._readout_page = "transactions"
+    elif self._readout_page == "transactions":
+      self._readout_page = "overview"
     self._apply_readout_page(redraw=True)
 
   @handle("toggle_transactions_button", "click")
   def toggle_transactions_click(self, **event_args):
     if not self._busy:
-      collapsed = not self._transactions_collapsed
-      self._set_transactions_collapsed(collapsed)
-      if anvil.js.window.innerWidth <= 980:
-        # On stacked layouts, keep the newly requested workspace in view.
-        target = "readout_workspace" if collapsed else "transactions_workspace"
-        self.dom_nodes[target].scrollIntoView({"block": "start"})
+      self._select_readout_page("overview" if self._readout_page == "transactions" else "transactions")
+
+  @handle("transactions_tab_button", "click")
+  @handle("empty_add_security_button", "click")
+  def transactions_tab_click(self, **event_args):
+    self._select_readout_page("transactions")
 
   @handle("overview_tab_button", "click")
   def overview_tab_click(self, **event_args):
@@ -824,7 +847,7 @@ class Form1(Form1Template):
       self.comparison_start_picker, self.comparison_end_picker,
       self.transaction_view_dropdown, self.regroup_button,
       self.collapse_all_button, self.expand_all_button, self.collapse_prior_years_button,
-      self.overview_tab_button, self.allocation_tab_button,
+      self.overview_tab_button, self.transactions_tab_button, self.empty_add_security_button, self.allocation_tab_button,
       self.performance_tab_button, self.retirement_tab_button,
       self.tax_estimator_tab_button, self.dividends_tab_button, self.passive_tab_button,
       self.tax_tab_button, self.notifications_tab_button, self.toggle_transactions_button,
@@ -891,6 +914,7 @@ class Form1(Form1Template):
       self._set_notification_unread_count(0)
     self.notifications_form.set_account_context(self.account_id)
     self._username = ""
+    self._profile_summary = None
     workspace = None
     if self._user is not None:
       # A saved profile can be newer than the Users row cached in this browser.
@@ -901,6 +925,7 @@ class Form1(Form1Template):
         return
       profile = workspace["profile"]
       self._username = profile["username"] or ""
+      self._profile_summary = profile
     self.subscription_button.visible = self._user is not None
     self.account_button.text = "Sign out" if self._user is not None else "Sign in / Create account"
     self.account_label.text = (
@@ -1014,18 +1039,53 @@ class Form1(Form1Template):
   def _update_welcome(self):
     signed_in = self._user is not None
     self.guest_hero.visible = not signed_in
-    self.welcome_region.visible = signed_in
-    self.welcome_heading_label.text = (
-      "Welcome back, %s." % self._username if signed_in and self._username else "Welcome back."
+    self.welcome_region.visible = True
+    profile = self._profile_summary or {}
+    investor = profile.get("investor") or {}
+    verification = investor.get("verification") or {}
+    self.portfolio_avatar.source = investor.get("avatar") or "_/theme/folio-mark.svg"
+    self.portfolio_verified_label.visible = bool(verification.get("verified"))
+    self.portfolio_verified_label.text = "Verified member" if verification.get("verified") else ""
+    self.welcome_heading_label.text = str(self.portfolio_name_box.text or "").strip() or "Your portfolio"
+    identity = profile.get("display_name") or self._username or "Personal investment workspace"
+    self.welcome_detail_label.text = (
+      "%s · @%s" % (identity, self._username) if signed_in and self._username else identity
     )
-    if not signed_in:
-      self.welcome_detail_label.text = ""
-    else:
-      self.welcome_detail_label.text = (
-        'Continue with "%s" below.' % self._current_portfolio["name"]
-        if self._current_portfolio is not None else
-        "Continue your draft below, or open a saved portfolio. We'll remember the portfolio you open or save."
-      )
+    self._update_profile_ranking()
+
+  def _update_profile_ranking(self):
+    investor = (self._profile_summary or {}).get("investor") or {}
+    ranking = investor.get("ranking") or {}
+    portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+    primary = bool(portfolio_id and portfolio_id == investor.get("primary_portfolio_id"))
+    ranked = primary and ranking.get("quartile") is not None
+    self.summary_rank_label.text = "Q%s · %.1f%%" % (ranking["quartile"], ranking["percentile"]) if ranked else "—"
+    quarter = (investor.get("metrics") or {}).get("quarter_label") or "prior quarter"
+    self.summary_rank_note.text = (
+      "Percentile · saved primary · %s" % quarter if ranked else
+      "Choose a primary portfolio in Profile" if not primary else "No completed-quarter rank yet"
+    )
+    self.summary_rank_label.tooltip = ranking.get("note", "Ranked among opted-in Verified members using their primary portfolios.") + (
+      " Rank %s of %s." % (ranking["rank"], ranking["count"]) if ranked else ""
+    )
+
+  def _render_portfolio_summary(self):
+    summary = summarize_portfolio(self._history)
+    self.summary_value_label.text = "—" if summary["value"] is None else self._format_currency(summary["value"])
+    self.summary_holdings_label.text = str(summary["holding_count"]) if self._history is not None else "—"
+    self.summary_date_label.text = ("As of %s%s" % (summary["as_of"], " · provisional" if summary["return_is_provisional"] else "")) if summary["as_of"] else "Sync to calculate"
+    self.summary_quarter_caption.text = summary["prior_quarter_label"]
+    self.summary_period_caption.text = summary["long_return_label"]
+    self.summary_period_note.text = "Time weighted · includes dividends"
+    self.summary_period_label.tooltip = summary["return_note"]
+    self.summary_quarter_label.tooltip = summary["prior_quarter_note"]
+    for label, key in ((self.summary_quarter_label, "prior_quarter_return"),
+                       (self.summary_period_label, "long_return")):
+      value = summary[key]
+      label.text = "—" if value is None else self._format_percent(value)
+      label.foreground = chart_theme.TEXT if value is None or value == 0 else chart_theme.POSITIVE if value > 0 else chart_theme.NEGATIVE
+    self.summary_concentration_label.text = "—" if summary["top20_weight"] is None else "%.1f%%" % (summary["top20_weight"] * 100)
+    self._update_profile_ranking()
 
   def _restore_last_portfolio(self):
     result = anvil.server.call("get_last_portfolio")
@@ -1083,6 +1143,7 @@ class Form1(Form1Template):
     self.tax_estimator_form.reset_workspace()
     self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
+    self.portfolio_holdings_form.reset_workspace()
     self.portfolio_name_box.text = ""
     self.transactions = []
     self._refresh_transactions()
@@ -1136,6 +1197,7 @@ class Form1(Form1Template):
   def portfolio_name_box_change(self, **event_args):
     if not self._initializing and not self._busy:
       self._mark_portfolio_dirty()
+      self._update_welcome()
 
   @handle("as_of_date_picker", "change")
   @handle("risk_free_box", "change")
@@ -1179,43 +1241,59 @@ class Form1(Form1Template):
       self._set_portfolio_status(str(error), is_error=True)
       return
 
+    starting_account = self.account_id
+    starting_portfolio = self._current_portfolio.get_id() if self._current_portfolio is not None else None
     self._set_busy(True)
     try:
       if not self._ensure_signed_in():
         return
+      if starting_account is not None and not self._workspace_matches(starting_account, starting_portfolio):
+        return
+      if not self._workspace_matches(self.account_id, starting_portfolio):
+        return
       self._set_portfolio_status("Saving portfolio…")
-      portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
-      result = anvil.server.call(
-        "save_portfolio", portfolio_id, name, document, as_of_date, risk_free_rate
-      )
+      result = self._save_snapshot(starting_portfolio, self.account_id, name, document, as_of_date, risk_free_rate)
+      if result is None:
+        return
       if not result["ok"]:
         self._set_portfolio_status(result["message"], is_error=True)
         return
+      self._set_portfolio_status('Saved "%s" to your account.' % result["portfolio"]["name"])
+    finally:
+      self._set_busy(False)
+
+  def _workspace_matches(self, account_id, portfolio_id):
+    user = anvil.users.get_user()
+    active_account = user.get_id() if user is not None else None
+    active_portfolio = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+    return active_account == account_id and self.account_id == account_id and active_portfolio == portfolio_id
+
+  def _save_snapshot(self, portfolio_id, account_id, name, document, as_of_date, risk_free_rate):
+    # Saving the same captured inputs after Sync attaches the server's staged
+    # analysis snapshot, including when an existing portfolio was edited first.
+    if not self._workspace_matches(account_id, portfolio_id):
+      return None
+    result = anvil.server.call("save_portfolio", portfolio_id, name, document, as_of_date, risk_free_rate)
+    if not self._workspace_matches(account_id, portfolio_id):
+      return None
+    if result["ok"]:
       self._current_portfolio = result["portfolio"]
       self.portfolio_name_box.text = self._current_portfolio["name"]
       self._portfolio_dirty = False
       invalidate_workspace()
-      self._set_portfolio_status('Saved "%s" to your account.' % self._current_portfolio["name"])
       self._refresh_portfolios()
-    finally:
-      self._set_busy(False)
+    return result
 
   @handle("open_portfolio_button", "click")
   def open_portfolio_button_click(self, **event_args):
     portfolio = self.saved_portfolios_dropdown.selected_value
-    if self._busy or portfolio is None or not self._confirm_discard():
+    if self._busy or portfolio is None:
       return
-    self._set_busy(True)
-    try:
-      result = anvil.server.call("load_portfolio", portfolio["portfolio_id"])
-      if not result["ok"]:
-        self._set_portfolio_status(result["message"], is_error=True)
-        return
-      portfolio = result["portfolio"]
-      self._apply_portfolio(portfolio, result.get("analysis"))
-      self._set_portfolio_status('Opened "%s". Changes are saved when you click Save changes.' % portfolio["name"])
-    finally:
-      self._set_busy(False)
+    if self._current_portfolio is not None and portfolio["portfolio_id"] == self._current_portfolio.get_id():
+      self._set_portfolio_status("This portfolio is already open. Your current analysis and draft are still here.")
+      return
+    if self.open_profile_portfolio(portfolio["portfolio_id"]):
+      self._set_portfolio_status('Opened "%s". Save changes or Sync prices to keep updates.' % portfolio["name"])
 
   def _apply_portfolio(self, portfolio, analysis=None):
     self._collapsed_transaction_years.clear()
@@ -1223,11 +1301,11 @@ class Form1(Form1Template):
     self.tax_estimator_form.reset_workspace()
     self.income_form.reset_workspace()
     self.retirement_form.reset_workspace()
+    self.portfolio_holdings_form.reset_workspace()
     self._current_portfolio = portfolio
     self.portfolio_name_box.text = portfolio["name"]
-    # Reopening a portfolio starts a fresh analysis through today. Users can
-    # still choose a historical date for the current analysis.
-    self._set_dates()
+    # Keep saved inputs unchanged so a simple reopen retains its cache identity.
+    self.as_of_date_picker.date = portfolio["as_of_date"]
     self.risk_free_box.text = str(portfolio["risk_free_rate"])
     self.transactions = [self._new_transaction(
       transaction["ticker"],
@@ -1295,6 +1373,8 @@ class Form1(Form1Template):
       self.allocation_quarter_dropdown.selected_value = "latest"
       self._clear_chart_trades()
       self.hedge_fund_comparison.reset_context()
+      self.portfolio_holdings_form.reset_workspace()
+      self._render_portfolio_summary()
     self._apply_readout_page()
 
   def _sharing_context(self):
@@ -1583,7 +1663,7 @@ class Form1(Form1Template):
       node.setAttribute("aria-modal", "true")
     else:
       node.removeAttribute("aria-modal")
-    self.expand_charts_button.text = "Restore split view" if expanded else "Expand charts"
+    self.expand_charts_button.text = "Restore chart size" if expanded else "Expand charts"
     self.expand_charts_button.icon = "mi:fullscreen_exit" if expanded else "mi:fullscreen"
     self.performance_plot.height = "480px" if expanded else "380px"
     self.drawdown_plot.height = "360px" if expanded else "300px"
@@ -2131,12 +2211,15 @@ class Form1(Form1Template):
     if self._history is None:
       return
     self._dirty_readout_pages.update(("overview", "allocation", "performance"))
+    self.portfolio_holdings_form.set_analysis(self._analysis_source, self._selected_symbols, self._analyzed_transactions)
+    self._render_portfolio_summary()
     self._render_active_readout()
     self._update_readout_context()
 
   def _render_overview(self):
     if self._history is None:
       return
+    self.portfolio_holdings_form.redraw()
     metrics = self._history["metrics"]
     for label, key in [(self.invested_label, "buy_cost"), (self.value_label, "market_value"),
                        (self.dividends_label, "dividends"), (self.sale_proceeds_label, "sale_proceeds"),
@@ -2222,6 +2305,9 @@ class Form1(Form1Template):
     try:
       transactions = self._read_transactions()
       as_of_date, risk_free_rate = self._read_analysis_settings(transactions)
+      name = str(self.portfolio_name_box.text or "").strip()
+      if self._current_portfolio is not None and not 1 <= len(name) <= 80:
+        raise ValueError("Give your saved portfolio a name of 1–80 characters before syncing.")
     except ValueError as error:
       self._set_status(str(error), is_error=True)
       self._show_results(False)
@@ -2229,6 +2315,8 @@ class Form1(Form1Template):
 
     self._set_busy(True)
     try:
+      account_id = self.account_id
+      portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
       self._show_results(False)
       self._set_status("Loading history, latest session prices, dividends, sectors, and benchmarks…")
       document = [{
@@ -2236,12 +2324,26 @@ class Form1(Form1Template):
         "action": row["action"], "shares": row["shares"],
         "trade_price": row["trade_price"],
       } for row in transactions]
-      portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+      saved_document = [dict(row, trade_date=row["trade_date"].isoformat()) for row in document]
       result = anvil.server.call("analyze_portfolio_history", document, as_of_date, risk_free_rate / 100, portfolio_id)
+      if not self._workspace_matches(account_id, portfolio_id):
+        return
       if not result["ok"]:
         self._set_status(result["message"], is_error=True)
         return
       self._apply_analysis(result, transactions)
+      if portfolio_id is not None:
+        saved = self._save_snapshot(portfolio_id, account_id, name, saved_document, as_of_date, risk_free_rate)
+        if saved is None:
+          return
+        if not saved["ok"]:
+          self._set_portfolio_status(saved["message"], is_error=True)
+        else:
+          self._set_portfolio_status('Saved "%s" with its analysis. Tabs reopen instantly; Sync refreshes prices.' % name)
+      else:
+        self._set_portfolio_status("Analysis ready. Name and save your portfolio to keep transactions and analysis across visits.")
+      self._readout_page = "overview"
+      self._apply_readout_page(redraw=True)
       if result["metadata"].get("provisional_date"):
         timestamp = result["metadata"]["quoted_at"].replace("T", " ").replace("+00:00", " UTC")
         message = "Latest regular-session prices synced · oldest portfolio quote %s. Today's values are provisional; daily risk uses completed sessions." % timestamp

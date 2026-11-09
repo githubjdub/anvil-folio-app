@@ -1,0 +1,4 @@
+<div class="portfolio-holdings-activity-group">
+  <div class="portfolio-holdings-activity-heading"><anvil-component type="Label" name="title_label" bind:text="self.item['title']" prop:role="portfolio-holdings-activity-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="count_label" bind:text="self.item['count_text']" prop:role="portfolio-holdings-activity-count" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+  <anvil-component type="RepeatingPanel" name="chips_panel" prop:item_template="M3_App_1.Components.PortfolioActivityChip" prop:role="portfolio-holdings-chips"></anvil-component>
+</div>
