@@ -41,8 +41,8 @@ def _validate_inputs(name, transactions, as_of_date, risk_free_rate):
   if type(as_of_date) is not date:
     raise ValueError("Choose an analysis date.")
   rate = _finite_number(risk_free_rate, "Enter a valid risk-free rate.")
-  if not isinstance(transactions, list) or not 1 <= len(transactions) <= 1000:
-    raise ValueError("A portfolio must contain 1–1,000 transactions.")
+  if not isinstance(transactions, list) or len(transactions) > 1000:
+    raise ValueError("A portfolio can contain up to 1,000 transactions.")
 
   clean_transactions = []
   for index, transaction in enumerate(transactions, start=1):
@@ -296,10 +296,37 @@ def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate)
     portfolio = app_tables.portfolios.add_row(owner=user, **values)
   else:
     portfolio.update(**values)
-  _update_directory(portfolio, user)
+  directory_entry = _update_directory(portfolio, user)
   from investor_profiles import refresh_investor_metrics
   refresh_investor_metrics(portfolio, user)
-  return {"ok": True, "portfolio": portfolio}
+  return {"ok": True, "portfolio": portfolio, "directory_entry": directory_entry}
+
+
+@anvil.server.callable(require_user=True)
+def refresh_portfolio(portfolio_id, name, transactions, risk_free_rate):
+  """Save inputs, refresh through today, and persist the server-owned analysis."""
+  from portfolio_analytics import analyze_portfolio_history
+  user = _current_user()
+  today = date.today()
+  saved = save_portfolio(portfolio_id, name, transactions, today, risk_free_rate)
+  if not saved["ok"]:
+    return saved
+  portfolio = saved["portfolio"]
+  if not portfolio["transactions"]:
+    return dict(saved, ok=False, message="Add at least one transaction before refreshing prices.")
+  document = portfolio["transactions"]
+  rate = portfolio["risk_free_rate"]
+  expected = _analysis_fingerprint(document, today, rate)
+  analysis = analyze_portfolio_history(document, today, rate / 100, portfolio.get_id())
+  current = _owned_portfolio(portfolio.get_id(), user)
+  if current is None:
+    return {"ok": False, "message": "This portfolio is no longer available to your account."}
+  if _analysis_fingerprint(current["transactions"], current["as_of_date"], current["risk_free_rate"]) != expected:
+    return {"ok": False, "message": "This portfolio changed while prices refreshed. Refresh again to use its latest transactions."}
+  saved["portfolio"] = current
+  if not analysis["ok"]:
+    return dict(saved, ok=False, message=analysis["message"])
+  return dict(saved, analysis=analysis)
 
 
 @anvil.server.callable(require_user=True)

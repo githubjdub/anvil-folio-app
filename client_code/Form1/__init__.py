@@ -56,6 +56,11 @@ class Form1(Form1Template):
     self.share_composer.visible = False
     self._current_portfolio = None
     self._portfolio_dirty = False
+    self._edit_revision = 0
+    self._autosave_generation = 0
+    self._autosaving = False
+    self._refresh_requested = False
+    self._refreshing = False
     self._busy = False
     self.transactions = []
     self._collapsed_transaction_years = {}
@@ -171,7 +176,7 @@ class Form1(Form1Template):
             "tax": "Tax Harvester", "tax_estimator": "Tax Estimator", "retirement": "Retirement",
             "notifications": "Notifications"}[self._readout_page]
     if self._readout_page == "transactions":
-      self.readout_tab_context.text = "Transactions · Your draft stays here while you switch tabs. Save to keep it across visits."
+      self.readout_tab_context.text = "Transactions · Changes save automatically when signed in. Refresh updates prices through today."
     elif self._readout_page == "tax_estimator":
       self.readout_tab_context.text = "Tax Estimator · A quick estimate from your synced portfolio"
     elif self._readout_page in ("dividends", "passive", "tax"):
@@ -736,7 +741,7 @@ class Form1(Form1Template):
     self._show_results(False)
     count = len(imported)
     self._clear_image_import()
-    self._set_image_import_status("Imported %d row%s. You can edit the transactions, save your portfolio, or sync history." % (count, "" if count == 1 else "s"))
+    self._set_image_import_status("Imported %d row%s. Changes save automatically; Refresh updates prices." % (count, "" if count == 1 else "s"))
     self._set_status("Imported positions ready — sync history to calculate the updated readout.")
 
   def _refresh_transactions(self):
@@ -859,7 +864,7 @@ class Form1(Form1Template):
     self._update_welcome()
     setattr(self.share_performance_button, "enabled", not self._busy)
     for component in (
-      self.account_button, self.profile_button, self.save_portfolio_button, self.new_portfolio_button,
+      self.account_button, self.profile_button, self.new_portfolio_button,
       self.refresh_membership_button,
       self.plans_button, self.subscription_button,
       self.portfolio_name_box, self.add_button, self.sample_button,
@@ -891,9 +896,8 @@ class Form1(Form1Template):
     setattr(self.open_portfolio_button, "enabled", (
       not self._busy and self.saved_portfolios_dropdown.selected_value is not None
     ))
-    self.save_portfolio_button.text = (
-      "Save changes" if self._current_portfolio is not None else "Save portfolio"
-    )
+    self.analyze_button.enabled = not self._busy and not self._refresh_requested
+    self.analyze_button.text = "Refreshing…" if self._refreshing else "Waiting to refresh…" if self._refresh_requested else "Refresh"
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy, can_classify=self._user is not None)
@@ -909,6 +913,8 @@ class Form1(Form1Template):
   def _set_busy(self, busy):
     self._busy = busy
     self._update_controls()
+    if not busy and self._portfolio_dirty and self._user is not None:
+      self.autosave_timer.interval = .7
     if not busy and self._readout_page in ("dividends", "passive", "tax"):
       self.income_form.ensure_loaded()
     elif not busy and self._readout_page == "notifications":
@@ -1130,7 +1136,7 @@ class Form1(Form1Template):
     if portfolio is None:
       if not self._has_unsaved_work():
         self._new_portfolio()
-      self._set_portfolio_status("Welcome! Save your first portfolio to return to it next time.")
+      self._set_portfolio_status("Welcome! Add a transaction; changes save automatically when signed in.")
       return
     if not self._confirm_discard():
       self._set_portfolio_status("Welcome back. Your unsaved work is still here; open a saved portfolio whenever you're ready.")
@@ -1155,14 +1161,95 @@ class Form1(Form1Template):
       record_page(self._readout_page)
     return True
 
+  def _reset_autosave_scope(self):
+    self._autosave_generation += 1
+    self._edit_revision += 1
+    self._refresh_requested = False
+    self.autosave_timer.interval = 0
+
+  def _adopt_saved_portfolio(self, result, revision):
+    """Update saved references without rebinding the transaction editors."""
+    self._current_portfolio = result["portfolio"]
+    self._portfolio_dirty = revision != self._edit_revision
+    entry = result["directory_entry"]
+    entries = [entry] + [row for _, row in self.saved_portfolios_dropdown.items
+                        if row["portfolio_id"] != entry["portfolio_id"]]
+    self.saved_portfolios_dropdown.items = [(row["name"], row) for row in entries]
+    self.saved_portfolios_dropdown.selected_value = entry
+    self.saved_portfolios_dropdown.placeholder = "Choose a saved portfolio"
+    invalidate_workspace()
+
+  @handle("autosave_timer", "tick")
+  def autosave_timer_tick(self, **event_args):
+    self.autosave_timer.interval = 0
+    if self._refresh_requested and not self._busy and not self._autosaving:
+      self.analyze_button_click()
+    else:
+      self._autosave()
+
+  def _autosave(self):
+    self.autosave_timer.interval = 0
+    if self._initializing or self._busy or self._autosaving or not self._portfolio_dirty or self._user is None:
+      return
+    try:
+      transactions = self._read_transactions(allow_empty=True)
+      name = str(self.portfolio_name_box.text or "").strip()
+      if not name and self._current_portfolio is None and transactions:
+        name = "My portfolio"
+        self.portfolio_name_box.text = name
+        self._update_welcome()
+      if not 1 <= len(name) <= 80:
+        raise ValueError("Enter a portfolio name to save changes automatically.")
+      today = date.today()
+      if any(row["trade_date"] > today for row in transactions):
+        raise ValueError("Transaction dates cannot be after today.")
+      as_of = self.as_of_date_picker.date or today
+      if transactions:
+        as_of = max(as_of, max(row["trade_date"] for row in transactions))
+      rate = self._parse_number(self.risk_free_box.text, "risk-free rate", 1)
+      if rate <= -100:
+        raise ValueError("The annual risk-free rate must be greater than -100%.")
+      document = [{"ticker": row["ticker"], "trade_date": row["trade_date"].isoformat(),
+        "action": row["action"], "shares": row["shares"], "trade_price": row["trade_price"]} for row in transactions]
+    except ValueError as error:
+      self._set_portfolio_status('Not saved yet: %s' % error, is_error=True)
+      return
+    account_id = self.account_id
+    portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+    generation, revision = self._autosave_generation, self._edit_revision
+    self._autosaving = True
+    self._set_portfolio_status("Saving changes…")
+    try:
+      result = anvil.server.call("save_portfolio", portfolio_id, name, document, as_of, rate)
+      if generation != self._autosave_generation or not self._workspace_matches(account_id, portfolio_id):
+        return
+      if not result["ok"]:
+        self._set_portfolio_status(result["message"], is_error=True)
+        return
+      self._adopt_saved_portfolio(result, revision)
+      if self._portfolio_dirty:
+        self._set_portfolio_status("Saving your latest changes…")
+      else:
+        self._set_portfolio_status("All changes saved." + (" Refresh to update prices." if self._history is None else ""))
+    finally:
+      self._autosaving = False
+      if self._refresh_requested:
+        self.autosave_timer.interval = .01
+      elif self._portfolio_dirty and (generation != self._autosave_generation or revision != self._edit_revision):
+        self.autosave_timer.interval = .7
+
   def _mark_portfolio_dirty(self):
     self._portfolio_dirty = True
-    self._set_portfolio_status("Unsaved changes — save your portfolio to keep them.")
+    self._edit_revision += 1
+    self.autosave_timer.interval = .7
+    self._set_portfolio_status("Saving changes automatically…" if self._user is not None else "Sign in to save changes automatically. Refresh will guide you through sign-in.")
 
   def _has_unsaved_work(self):
     return self._portfolio_dirty or self.holdings_image_loader.file is not None
 
   def _confirm_discard(self):
+    if self._portfolio_dirty and self._user is not None and not self._autosaving:
+      self._autosave()
     return not self._has_unsaved_work() or confirm(
       "You have unsaved portfolio changes or an import in progress. Discard them and continue?",
       title="Unsaved changes",
@@ -1170,6 +1257,7 @@ class Form1(Form1Template):
     )
 
   def _new_portfolio(self):
+    self._reset_autosave_scope()
     self._collapsed_transaction_years.clear()
     self._restore_on_resume = False
     self._current_portfolio = None
@@ -1190,20 +1278,9 @@ class Form1(Form1Template):
     self._readout_page = "overview"
     self._show_results(False)
     self._set_transactions_collapsed(False)
-    self._set_status("Add A Security! Enter its transaction, then save your portfolio or sync prices.")
-    self._set_portfolio_status("New portfolio — enter a name before saving.")
+    self._set_status("Add A Security! Enter a transaction, then Refresh to update prices through today.")
+    self._set_portfolio_status("Changes save automatically when signed in.")
     self._update_controls()
-
-  def _read_analysis_settings(self, transactions):
-    as_of_date = self.as_of_date_picker.date
-    if as_of_date is None:
-      raise ValueError("Choose an analysis date.")
-    if any(transaction["trade_date"] > as_of_date for transaction in transactions):
-      raise ValueError("Every transaction must be on or before the analysis date.")
-    risk_free_rate = self._parse_number(self.risk_free_box.text, "risk-free rate", 1)
-    if risk_free_rate <= -100:
-      raise ValueError("The annual risk-free rate must be greater than -100%.")
-    return as_of_date, risk_free_rate
 
   @handle("account_button", "click")
   def account_button_click(self, **event_args):
@@ -1258,47 +1335,6 @@ class Form1(Form1Template):
     if not self._busy and self._confirm_discard():
       self._new_portfolio()
 
-  @handle("save_portfolio_button", "click")
-  def save_portfolio_button_click(self, **event_args):
-    if self._busy:
-      return
-    try:
-      name = str(self.portfolio_name_box.text or "").strip()
-      if not 1 <= len(name) <= 80:
-        raise ValueError("Give your portfolio a name of 1–80 characters.")
-      transactions = self._read_transactions()
-      as_of_date, risk_free_rate = self._read_analysis_settings(transactions)
-      document = [{
-        "ticker": transaction["ticker"],
-        "trade_date": transaction["trade_date"].isoformat(),
-        "action": transaction["action"],
-        "shares": transaction["shares"],
-        "trade_price": transaction["trade_price"],
-      } for transaction in transactions]
-    except ValueError as error:
-      self._set_portfolio_status(str(error), is_error=True)
-      return
-
-    starting_account = self.account_id
-    starting_portfolio = self._current_portfolio.get_id() if self._current_portfolio is not None else None
-    self._set_busy(True)
-    try:
-      if not self._ensure_signed_in():
-        return
-      if starting_account is not None and not self._workspace_matches(starting_account, starting_portfolio):
-        return
-      if not self._workspace_matches(self.account_id, starting_portfolio):
-        return
-      self._set_portfolio_status("Saving portfolio…")
-      result = self._save_snapshot(starting_portfolio, self.account_id, name, document, as_of_date, risk_free_rate)
-      if result is None:
-        return
-      if not result["ok"]:
-        self._set_portfolio_status(result["message"], is_error=True)
-        return
-      self._set_portfolio_status('Saved "%s" to your account.' % result["portfolio"]["name"])
-    finally:
-      self._set_busy(False)
 
   def _workspace_matches(self, account_id, portfolio_id):
     user = anvil.users.get_user()
@@ -1306,21 +1342,6 @@ class Form1(Form1Template):
     active_portfolio = self._current_portfolio.get_id() if self._current_portfolio is not None else None
     return active_account == account_id and self.account_id == account_id and active_portfolio == portfolio_id
 
-  def _save_snapshot(self, portfolio_id, account_id, name, document, as_of_date, risk_free_rate):
-    # Saving the same captured inputs after Sync attaches the server's staged
-    # analysis snapshot, including when an existing portfolio was edited first.
-    if not self._workspace_matches(account_id, portfolio_id):
-      return None
-    result = anvil.server.call("save_portfolio", portfolio_id, name, document, as_of_date, risk_free_rate)
-    if not self._workspace_matches(account_id, portfolio_id):
-      return None
-    if result["ok"]:
-      self._current_portfolio = result["portfolio"]
-      self.portfolio_name_box.text = self._current_portfolio["name"]
-      self._portfolio_dirty = False
-      invalidate_workspace()
-      self._refresh_portfolios()
-    return result
 
   @handle("open_portfolio_button", "click")
   def open_portfolio_button_click(self, **event_args):
@@ -1331,9 +1352,10 @@ class Form1(Form1Template):
       self._set_portfolio_status("This portfolio is already open. Your current analysis and draft are still here.")
       return
     if self.open_profile_portfolio(portfolio["portfolio_id"]):
-      self._set_portfolio_status('Opened "%s". Save changes or Sync prices to keep updates.' % portfolio["name"])
+      self._set_portfolio_status('Opened "%s". Changes save automatically; Refresh updates prices through today.' % portfolio["name"])
 
   def _apply_portfolio(self, portfolio, analysis=None):
+    self._reset_autosave_scope()
     self._collapsed_transaction_years.clear()
     self._clear_image_import()
     self.tax_estimator_form.reset_workspace()
@@ -1490,7 +1512,7 @@ class Form1(Form1Template):
       raise ValueError("Row %d: enter a valid %s." % (row_number, label))
     return parsed
 
-  def _read_transactions(self):
+  def _read_transactions(self, allow_empty=False):
     # Read the editors before disabling or rebuilding them so Sync and Save
     # include the last active field even if its change event is still pending.
     self._commit_transaction_inputs()
@@ -1538,8 +1560,8 @@ class Form1(Form1Template):
       })
       clean_transactions.append(row)
 
-    if not clean_transactions:
-      raise ValueError("Add at least one transaction before saving or running the analysis.")
+    if not clean_transactions and not allow_empty:
+      raise ValueError("Add at least one transaction before refreshing prices.")
     return clean_transactions
 
   def _format_currency(self, value):
@@ -2363,59 +2385,65 @@ class Form1(Form1Template):
   def analyze_button_click(self, **event_args):
     if self._busy:
       return
+    if self._autosaving:
+      self._refresh_requested = True
+      self._set_portfolio_status("Finishing the automatic save, then refreshing prices…")
+      self._update_controls()
+      return
+    self._refresh_requested = False
+    self.autosave_timer.interval = 0
     try:
       transactions = self._read_transactions()
-      as_of_date, risk_free_rate = self._read_analysis_settings(transactions)
-      name = str(self.portfolio_name_box.text or "").strip()
-      if self._current_portfolio is not None and not 1 <= len(name) <= 80:
-        raise ValueError("Give your saved portfolio a name of 1–80 characters before syncing.")
+      name = str(self.portfolio_name_box.text or "").strip() or "My portfolio"
+      if len(name) > 80:
+        raise ValueError("Give your portfolio a name of 1–80 characters.")
+      risk_free_rate = self._parse_number(self.risk_free_box.text, "risk-free rate", 1)
+      if risk_free_rate <= -100:
+        raise ValueError("The annual risk-free rate must be greater than -100%.")
+      document = [{"ticker": row["ticker"], "trade_date": row["trade_date"].isoformat(),
+        "action": row["action"], "shares": row["shares"], "trade_price": row["trade_price"]} for row in transactions]
     except ValueError as error:
       self._set_status(str(error), is_error=True)
-      self._show_results(False)
+      self._update_controls()
       return
-
+    self._refreshing = True
     self._set_busy(True)
     try:
+      if self._user is None or not self._username:
+        if not self._ensure_signed_in():
+          return
       account_id = self.account_id
       portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
-      self._show_results(False)
-      self._set_status("Loading history, latest session prices, dividends, sectors, and benchmarks…")
-      document = [{
-        "ticker": row["ticker"], "trade_date": row["trade_date"],
-        "action": row["action"], "shares": row["shares"],
-        "trade_price": row["trade_price"],
-      } for row in transactions]
-      saved_document = [dict(row, trade_date=row["trade_date"].isoformat()) for row in document]
-      result = anvil.server.call("analyze_portfolio_history", document, as_of_date, risk_free_rate / 100, portfolio_id)
-      if not self._workspace_matches(account_id, portfolio_id):
+      generation, revision = self._autosave_generation, self._edit_revision
+      self._set_status("Refreshing prices through today and saving your portfolio…")
+      result = anvil.server.call("refresh_portfolio", portfolio_id, name, document, risk_free_rate)
+      if generation != self._autosave_generation or not self._workspace_matches(account_id, portfolio_id):
         return
+      if result.get("portfolio") is not None:
+        self._adopt_saved_portfolio(result, revision)
+        self.portfolio_name_box.text = result["portfolio"]["name"]
+        self.as_of_date_picker.date = result["portfolio"]["as_of_date"]
       if not result["ok"]:
         self._set_status(result["message"], is_error=True)
         return
-      self._apply_analysis(result, transactions)
-      if portfolio_id is not None:
-        saved = self._save_snapshot(portfolio_id, account_id, name, saved_document, as_of_date, risk_free_rate)
-        if saved is None:
-          return
-        if not saved["ok"]:
-          self._set_portfolio_status(saved["message"], is_error=True)
-        else:
-          self._set_portfolio_status('Saved "%s" with its analysis. Tabs reopen instantly; Sync refreshes prices.' % name)
-      else:
-        self._set_portfolio_status("Analysis ready. Name and save your portfolio to keep transactions and analysis across visits.")
+      self._apply_analysis(result["analysis"], transactions)
+      self._set_portfolio_status('All changes saved · prices refreshed through %s.' % result["portfolio"]["as_of_date"])
       self._readout_page = "overview"
       self._apply_readout_page(redraw=True)
-      if result["metadata"].get("provisional_date"):
-        timestamp = result["metadata"]["quoted_at"].replace("T", " ").replace("+00:00", " UTC")
-        message = "Latest regular-session prices synced · oldest portfolio quote %s. Today's values are provisional; daily risk uses completed sessions." % timestamp
+      analysis = result["analysis"]
+      if analysis["metadata"].get("provisional_date"):
+        stamp = analysis["metadata"]["quoted_at"].replace("T", " ").replace("+00:00", " UTC")
+        message = "Latest regular-session prices updated · oldest portfolio quote %s. Today's values are provisional; daily risk uses completed sessions." % stamp
       else:
-        message = "Daily history synced and analysis updated."
-      moved_dates = result["metadata"]["moved_transaction_dates"]
-      if moved_dates:
-        message += " %d non-trading date(s) use the next available session." % moved_dates
+        message = "Prices and analysis updated. All changes saved."
+      moved = analysis["metadata"]["moved_transaction_dates"]
+      if moved:
+        message += " %d non-trading date(s) use the next available session." % moved
       self._set_status(message)
     finally:
+      self._refreshing = False
       self._set_busy(False)
+
 
   def _apply_analysis(self, result, transactions):
     self._analysis_source = result

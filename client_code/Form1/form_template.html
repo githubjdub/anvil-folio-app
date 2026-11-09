@@ -47,10 +47,10 @@
           <anvil-component type="Label" name="welcome_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
         </div>
       </div>
-      <div class="portfolio-profile-actions"><anvil-component type="m3._Components.Button" name="toggle_transactions_button" prop:text="Edit transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component><anvil-component type="m3._Components.Button" name="save_portfolio_button" prop:text="Save portfolio" prop:appearance="filled" prop:icon="mi:save"></anvil-component><anvil-component type="m3._Components.Button" name="share_performance_button" prop:text="Share" prop:appearance="filled" prop:icon="mi:share" prop:role="share-action"></anvil-component><anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Sync prices" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component></div>
+      <div class="portfolio-profile-actions"><anvil-component type="m3._Components.Button" name="toggle_transactions_button" prop:text="Edit transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component><anvil-component type="m3._Components.Button" name="share_performance_button" prop:text="Share" prop:appearance="filled" prop:icon="mi:share" prop:role="share-action"></anvil-component><anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Refresh" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component></div>
     </section>
     <section class="portfolio-summary-strip" aria-label="Portfolio summary">
-      <div class="portfolio-summary-cell"><span class="portfolio-summary-caption">Portfolio value · USD</span><anvil-component type="Label" name="summary_value_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_date_label" prop:text="Sync to calculate" prop:role="portfolio-summary-note" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+      <div class="portfolio-summary-cell"><span class="portfolio-summary-caption">Portfolio value · USD</span><anvil-component type="Label" name="summary_value_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_date_label" prop:text="Refresh to calculate" prop:role="portfolio-summary-note" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
       <div class="portfolio-summary-cell"><span class="portfolio-summary-caption">Holdings</span><anvil-component type="Label" name="summary_holdings_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><span class="portfolio-summary-note">Open positions</span></div>
       <div class="portfolio-summary-cell"><anvil-component type="Label" name="summary_quarter_caption" prop:text="Prior quarter return" prop:role="portfolio-summary-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_quarter_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><span class="portfolio-summary-note">Time weighted · completed quarter</span></div>
       <div class="portfolio-summary-cell"><anvil-component type="Label" name="summary_period_caption" prop:text="Available-period return" prop:role="portfolio-summary-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_period_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_period_note" prop:text="Time weighted" prop:role="portfolio-summary-note" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
@@ -115,7 +115,7 @@
       </div>
       </div>
       <div anvil:name="portfolio_status_region" class="portfolio-save-status" role="status" aria-live="polite">
-        <anvil-component type="Label" name="portfolio_status_label" prop:text="Not saved yet. Save your transactions and analysis settings without syncing prices." prop:role="portfolio-help"></anvil-component>
+        <anvil-component type="Label" name="portfolio_status_label" prop:text="Changes save automatically when signed in. Refresh updates prices through today." prop:role="portfolio-help"></anvil-component>
       </div>
     </section>
 
@@ -135,11 +135,11 @@
 
     <div class="portfolio-workspace-tools">
 <details class="panel-card settings-card">
-          <summary>Analysis settings <span>As-of date &amp; risk-free rate</span></summary>
+          <summary>Analysis settings <span>Refresh preferences</span></summary>
           <div class="analysis-settings-body">
-          <div class="card-heading compact-heading"><div><h3>Run your analysis</h3><p>Use daily history through this date. Today's analysis also includes the latest available regular-session prices.</p></div><div class="window-badge">History + latest prices</div></div>
+           <div class="card-heading compact-heading"><div><h3>Refresh preferences</h3><p>Refresh updates your portfolio through today, including the latest available regular-session prices.</p></div><div class="window-badge">History + latest prices</div></div>
           <div class="date-grid single-date-grid">
-            <div class="field-stack"><label>Analyze as of</label><anvil-component type="DatePicker" name="as_of_date_picker" prop:role="date-field"></anvil-component></div>
+            <div class="field-stack"><p class="portfolio-help">Refresh always uses today’s date and saves your portfolio automatically.</p><anvil-component type="DatePicker" name="as_of_date_picker" prop:role="date-field" prop:visible="false"></anvil-component></div>
           </div>
           <div class="assumption-row">
             <div><label>Risk-free rate</label><p>Annual rate used for daily excess returns.</p></div>
@@ -227,13 +227,13 @@
         <section anvil:name="empty_results" class="empty-results">
           <div class="empty-orbit"><span>✦</span></div>
           <h3>Add A Security!</h3>
-          <p>Open Transactions to add your first stock or ETF. Save your portfolio, then sync prices to see your holdings and performance.</p>
+          <p>Open Transactions to add your first stock or ETF. Changes save automatically. Refresh to update prices and see your holdings and performance.</p>
           <anvil-component type="m3._Components.Button" name="empty_add_security_button" prop:text="Add A Security!" prop:icon="mi:add" prop:appearance="filled"></anvil-component>
           <div class="empty-line"><span></span><span></span><span></span></div>
         </section>
 
         <section anvil:name="results_section" class="results-section">
-          <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="Sync history to see your portfolio" prop:role="period-label"></anvil-component></div>
+          <div class="readout-meta"><span class="live-pulse"></span><span>Full history</span><span class="meta-divider">·</span><anvil-component type="Label" name="period_label" prop:text="Refresh to see your portfolio" prop:role="period-label"></anvil-component></div>
           <section anvil:name="overview_panel" class="readout-page" aria-label="Top holdings">
           <anvil-component type="M3_App_1.Components.PortfolioHoldings" name="portfolio_holdings_form"></anvil-component>
           <details class="portfolio-overview-details"><summary>Returns &amp; portfolio anatomy</summary>
@@ -399,6 +399,7 @@
 
   <footer class="portfolio-footer"><span>Folio</span><span>Built for clearer decisions.</span><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods</a></footer>
   <p class="site-analytics-notice">Basic visit counts and approximate country statistics help us understand site usage. Browser privacy signals are respected.</p>
+  <anvil-component type="Timer" name="autosave_timer" prop:interval="0"></anvil-component>
   <anvil-component type="Timer" name="market_status_timer" prop:interval="1"></anvil-component>
   <anvil-component type="Timer" name="notification_badge_timer" prop:interval="60"></anvil-component>
 </section>
