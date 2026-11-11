@@ -2016,7 +2016,54 @@ input.anvil-role-tax-field:disabled { opacity: .55; }
 .anvil-role-portfolio-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .portfolio-profile-copy { min-width: 0; }
 .portfolio-profile-eyebrow { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 11px; margin-bottom: 3px; }
-.portfolio-app .portfolio-profile-header .anvil-role-portfolio-welcome-heading { font-size: clamp(25px, 2.7vw, 34px); letter-spacing: -.04em; margin: 0 0 5px; line-height: 1.16; }
+.portfolio-app .portfolio-profile-header .anvil-role-portfolio-welcome-heading,
+.membership-heading-title { font-size: clamp(25px, 2.7vw, 34px); letter-spacing: -.04em; margin: 0 0 5px; line-height: 1.16; }
+.membership-heading-title { color: var(--ink); font-weight: 750; }
+.membership-heading-avatar { display: block; flex: 0 0 64px; width: 64px; height: 64px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.membership-heading-description { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.membership-masthead .portfolio-masthead-links a { display: inline-flex; align-items: center; gap: 8px; }
+.membership-masthead .portfolio-masthead-links svg { flex: 0 0 18px; }
+.membership-page .membership-page-heading { padding: 4px 0 6px; }
+.membership-page .subscription-plan-card { padding: 24px; border-radius: 10px; box-shadow: none; }
+.membership-page .membership-overview { margin: 0 0 24px; }
+.membership-page .subscription-plan-card h2 { font-size: 20px; line-height: 1.35; margin: 0 0 12px; }
+.membership-page .subscription-plan-card h3 { font-size: 15px; }
+.membership-page .membership-signin { margin: 0 0 24px; border-radius: 10px; }
+.membership-page .membership-signin h2 { font-size: 20px; }
+.membership-section-title { margin: 0 0 14px; color: var(--ink); font-size: 20px; font-weight: 750; letter-spacing: -.025em; }
+.membership-billing-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.membership-billing-actions > :first-child { flex: 1; min-width: 0; }
+.membership-billing-actions > :last-child { flex: 0 0 auto; }
+.membership-page .plan-cards { border-radius: 10px; }
+.membership-page .plan-option { padding: 24px; }
+.membership-page .plan-option h2 { margin: 6px 0 14px; font-size: 24px; letter-spacing: -.025em; }
+.membership-page .anvil-role-plan-kicker { font-size: 10px; letter-spacing: .08em; }
+.membership-page .plan-price { min-height: 54px; }
+.membership-page .plan-price strong { font-size: clamp(32px, 3.2vw, 40px); letter-spacing: -.04em; }
+.membership-page .plan-price .plan-currency { padding-top: 5px; font-size: 20px; }
+.membership-page .plan-price > span:last-child { font-size: 12px; }
+.membership-page .plan-description { min-height: 0; margin: 18px 0; font-size: 14px; line-height: 1.65; }
+.membership-page .plan-feature-list { margin: 20px 0 12px; }
+.membership-page .plan-feature-list li { margin-bottom: 10px; font-size: 13px; }
+.membership-page button.anvil-role-plan-primary, .membership-page button.anvil-role-plan-secondary,
+.membership-page .anvil-role-plan-primary > button, .membership-page .anvil-role-plan-secondary > button { min-height: 42px; padding: 10px 16px; border-radius: 7px; font-size: 13px; }
+.membership-page button.anvil-role-subscription-primary, .membership-page button.anvil-role-subscription-button,
+.membership-page .anvil-role-subscription-primary > button, .membership-page .anvil-role-subscription-button > button { border-radius: 7px; font-size: 13px; }
+.membership-page .plan-table-wrap { margin-top: 24px; border-radius: 10px; }
+.membership-page .plan-table { font-size: 13px; }
+.membership-page .plan-table caption { padding: 18px 20px; font-size: 17px; }
+.membership-page .plan-table th, .membership-page .plan-table td { padding: 14px 20px; }
+@media (max-width: 620px) {
+  .membership-heading-avatar { flex-basis: 52px; width: 52px; height: 52px; }
+  .membership-heading-description { font-size: 13px; }
+  .membership-page .subscription-plan-card, .membership-page .plan-option { padding: 20px 16px; }
+  .membership-billing-actions { align-items: stretch; flex-direction: column; gap: 10px; }
+  .membership-page .subscription-heading-row { align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .membership-page .plan-table th, .membership-page .plan-table td { padding: 12px; }
+  .membership-page button.anvil-role-plan-primary, .membership-page button.anvil-role-plan-secondary,
+  .membership-page .anvil-role-plan-primary > button, .membership-page .anvil-role-plan-secondary > button { min-height: 44px; }
+  .membership-masthead .portfolio-masthead-links a { min-height: 44px; box-sizing: border-box; }
+}
 .portfolio-profile-header .anvil-role-portfolio-help { font-size: 14px; color: var(--muted); }
 .portfolio-profile-actions { display: flex; align-items: flex-start; justify-content: flex-end; flex-wrap: wrap; gap: 8px; flex: 0 1 auto; }
 .portfolio-profile-actions > * { flex: none; margin: 0; }

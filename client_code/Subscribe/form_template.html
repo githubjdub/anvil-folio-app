@@ -1,1 +1,17 @@
-<main class="subscription-page"><header class="subscription-topbar"><div class="subscription-brand"><span class="share-brand-mark" aria-hidden="true"><img src="_/theme/folio-mark.svg" alt="" width="42" height="42"></span><span>Folio</span></div><div class="account-header-actions"><nav class="subscription-nav" aria-label="Account navigation"><anvil-component type="Button" name="profile_button" prop:role="subscription-nav-button" prop:text="Profile"></anvil-component><anvil-component type="Button" name="dashboard_button" prop:role="subscription-nav-button" prop:text="Portfolio"></anvil-component><span class="subscription-nav-current" aria-current="page">Plans</span><anvil-component type="Button" name="subscription_button" prop:role="subscription-nav-button" prop:text="My subscription"></anvil-component></nav><anvil-component type="M3_App_1.Components.ThemeSwitch" name="theme_switch"></anvil-component></div></header><div class="subscription-content"><section class="subscription-intro"><div class="eyebrow">Invest with perspective</div><h1>Your portfolio. Your pace.</h1><p>Start with one portfolio for free. Choose Plus when you want room for more.</p></section><anvil-component type="M3_App_1.Components.PlanComparison" name="plan_comparison"></anvil-component></div><footer class="subscription-footer">Folio · Understand your portfolio.</footer></main>
+<section class="portfolio-app membership-page">
+  <anvil-component type="M3_App_1.Components.MembershipHeader" name="workspace_header"></anvil-component>
+  <main class="portfolio-shell membership-content">
+    <section class="portfolio-profile-header membership-page-heading" aria-labelledby="membership-plans-title">
+      <div class="portfolio-profile-identity">
+        <img class="membership-heading-avatar" src="_/theme/folio-mark.svg" width="64" height="64" alt="" aria-hidden="true">
+        <div class="portfolio-profile-copy">
+          <div class="portfolio-profile-eyebrow">Your account</div>
+          <h1 id="membership-plans-title" class="membership-heading-title">Membership plans</h1>
+          <p class="membership-heading-description">Compare plans and choose how many portfolios you want to save.</p>
+        </div>
+      </div>
+    </section>
+    <anvil-component type="M3_App_1.Components.PlanComparison" name="plan_comparison"></anvil-component>
+  </main>
+  <footer class="portfolio-footer"><span>Folio</span><span>Built for clearer decisions.</span><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods</a></footer>
+</section>

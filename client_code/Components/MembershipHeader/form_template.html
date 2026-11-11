@@ -1,0 +1,23 @@
+---
+custom_component: true
+---
+<header class="portfolio-topbar membership-masthead">
+  <div class="brand-lockup">
+    <div class="brand-mark" aria-hidden="true"><img src="_/theme/folio-mark.svg" alt="" width="40" height="40"></div>
+    <div><div class="brand-kicker">Portfolio analyzer</div><div class="brand-name">Folio</div></div>
+  </div>
+  <nav class="portfolio-masthead-links" aria-label="Main navigation">
+    <a href="#?page=portfolio">My Portfolio</a>
+    <a href="#?page=profile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3"></circle><path d="M5 20v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2z"></path></svg>Profile</a>
+    <a href="#?page=notifications"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg>Notifications</a>
+    <a href="#?page=subscription" aria-current="page">Membership</a>
+  </nav>
+  <div class="portfolio-topbar-actions">
+    <div anvil:name="market_status_region" class="market-status is-unavailable" role="status" aria-live="polite">
+      <div class="market-status-line"><span class="market-status-dot" aria-hidden="true"></span><anvil-component type="Label" name="market_status_label" prop:text="Checking US markets…" prop:role="market-status-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+      <anvil-component type="Label" name="market_detail_label" prop:text="Regular and extended US trading · Updates each minute" prop:role="market-status-detail" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    </div>
+    <anvil-component type="M3_App_1.Components.ThemeSwitch" name="theme_switch"></anvil-component>
+  </div>
+  <anvil-component type="Timer" name="market_status_timer" prop:interval="0"></anvil-component>
+</header>

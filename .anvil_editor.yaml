@@ -29,6 +29,7 @@ unique_ids:
     Components.IncomeSecurityRow: '1792764910611.2122479282021814'
     Components.IncomeTracker: '1792764910630.09271609055396501'
     Components.InsiderWatchRow: '1792968603920.5888910606688451'
+    Components.MembershipHeader: '1794433109964.47337400510094796'
     Components.NotificationMessageRow: '1792968603922.4828101805012258'
     Components.Notifications: '1792968603937.2596088244266487'
     Components.PlanComparison: '1792270548601.5147890516009245'

@@ -25,7 +25,7 @@ class MySubscription(MySubscriptionTemplate):
 
   def _set_busy(self, busy):
     self._busy = busy
-    for button in (self.profile_button, self.dashboard_button, self.signin_button, self.refresh_button):
+    for button in (self.signin_button, self.refresh_button):
       button.enabled = not busy
     self.billing_portal_button.enabled = not busy and self._billing_eligible
     self.plan_comparison.set_parent_busy(busy)
@@ -121,16 +121,6 @@ class MySubscription(MySubscriptionTemplate):
     self._billing_eligible = catalog['billing_portal_available'] and details['can_manage_billing']
     self.billing_portal_button.text = 'Manage billing' if catalog['billing_portal_available'] else 'Payments being set up'
     self.account_region.visible = True
-
-  @handle('dashboard_button', 'click')
-  def dashboard_click(self, **event_args):
-    if not self._busy:
-      set_url_hash({'page': 'portfolio'})
-
-  @handle('profile_button', 'click')
-  def profile_click(self, **event_args):
-    if not self._busy:
-      set_url_hash({'page': 'profile'})
 
   @handle('signin_button', 'click')
   def signin_click(self, **event_args):

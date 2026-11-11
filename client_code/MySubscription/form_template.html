@@ -1,11 +1,32 @@
-<main class="subscription-page"><header class="subscription-topbar"><div class="subscription-brand"><span class="share-brand-mark" aria-hidden="true"><img src="_/theme/folio-mark.svg" alt="" width="42" height="42"></span><span>Folio</span></div><div class="account-header-actions"><nav class="subscription-nav" aria-label="Account navigation"><anvil-component type="Button" name="profile_button" prop:text="Profile" prop:role="subscription-nav-button"></anvil-component><anvil-component type="Button" name="dashboard_button" prop:text="Portfolio" prop:role="subscription-nav-button"></anvil-component><span class="subscription-nav-current" aria-current="page">My subscription</span></nav><anvil-component type="M3_App_1.Components.ThemeSwitch" name="theme_switch"></anvil-component></div></header>
-  <div class="subscription-content"><section class="subscription-intro"><div class="eyebrow">Your membership</div><h1>A plan for your perspective.</h1><p>One portfolio or room for three. Choose what fits the way you invest.</p></section>
-    <section anvil:name="signed_out_region" class="subscription-notice"><h2>Already have an account?</h2><p>Sign in to see your current membership and billing details.</p><anvil-component type="Button" name="signin_button" prop:text="Sign in / Create account" prop:role="subscription-primary"></anvil-component></section>
-    <anvil-component type="M3_App_1.Components.PlanComparison" name="plan_comparison"></anvil-component>
-    <section anvil:name="account_region" class="subscription-plan-card profile-settings"><div class="subscription-heading-row"><div><h2>Your subscription</h2><anvil-component type="Label" name="plan_badge" prop:role="membership-badge-free"></anvil-component><anvil-component type="Label" name="usage_label" prop:role="subscription-value"></anvil-component></div><anvil-component type="Button" name="refresh_button" prop:text="Refresh details" prop:role="subscription-button"></anvil-component></div>
-      <div class="subscription-account-grid"><dl class="subscription-details"><div class="subscription-detail-row"><dt>Account</dt><dd><anvil-component type="Label" name="email_label" prop:role="subscription-value"></anvil-component><anvil-component type="Label" name="username_label" prop:role="portfolio-help"></anvil-component></dd></div><div class="subscription-detail-row"><dt>Membership status</dt><dd><anvil-component type="Label" name="status_label" prop:role="subscription-value"></anvil-component></dd></div></dl><dl class="subscription-details"><div class="subscription-detail-row"><dt>Billing status</dt><dd><anvil-component type="Label" name="billing_status_label" prop:role="subscription-value"></anvil-component></dd></div><div class="subscription-detail-row"><dt>Next billing event</dt><dd><anvil-component type="Label" name="renewal_label" prop:role="subscription-value"></anvil-component></dd></div></dl></div>
-      <div class="profile-settings-subsection"><h3>Verified membership</h3><anvil-component type="Label" name="verification_status_label" prop:role="profile-verified"></anvil-component><anvil-component type="Label" name="verification_detail_label" prop:role="portfolio-help"></anvil-component><p class="profile-data-note">Paid membership badge; identity and investment performance are not independently verified.</p></div><anvil-component type="Label" name="billing_detail_label" prop:role="portfolio-help"></anvil-component><anvil-component type="Button" name="billing_portal_button" prop:text="Manage billing" prop:role="subscription-primary"></anvil-component>
-    </section><div role="status" aria-live="polite"><anvil-component type="Label" name="action_status_label" prop:role="portfolio-status" prop:visible="false"></anvil-component></div>
-  </div><footer class="subscription-footer">Folio · Understand your portfolio.</footer>
+<section class="portfolio-app membership-page">
+  <anvil-component type="M3_App_1.Components.MembershipHeader" name="workspace_header"></anvil-component>
+  <main class="portfolio-shell membership-content">
+    <section class="portfolio-profile-header membership-page-heading" aria-labelledby="membership-title">
+      <div class="portfolio-profile-identity">
+        <img class="membership-heading-avatar" src="_/theme/folio-mark.svg" width="64" height="64" alt="" aria-hidden="true">
+        <div class="portfolio-profile-copy">
+          <div class="portfolio-profile-eyebrow">Your account</div>
+          <h1 id="membership-title" class="membership-heading-title">Membership</h1>
+          <p class="membership-heading-description">Your plan, billing, and account access.</p>
+        </div>
+      </div>
+    </section>
+    <section anvil:name="signed_out_region" class="subscription-notice membership-signin"><h2>Sign in to manage your membership</h2><p>View your current plan and billing details, or compare the plans below.</p><anvil-component type="Button" name="signin_button" prop:text="Sign in / Create account" prop:role="subscription-primary"></anvil-component></section>
+    <section anvil:name="account_region" class="subscription-plan-card membership-overview">
+      <div class="subscription-heading-row"><div><h2>Your membership</h2><anvil-component type="Label" name="plan_badge" prop:role="membership-badge-free"></anvil-component><anvil-component type="Label" name="usage_label" prop:role="subscription-value"></anvil-component></div><anvil-component type="Button" name="refresh_button" prop:text="Refresh details" prop:role="subscription-button"></anvil-component></div>
+      <div class="subscription-account-grid">
+        <dl class="subscription-details"><div class="subscription-detail-row"><dt>Account</dt><dd><anvil-component type="Label" name="email_label" prop:role="subscription-value"></anvil-component><anvil-component type="Label" name="username_label" prop:role="portfolio-help"></anvil-component></dd></div><div class="subscription-detail-row"><dt>Membership status</dt><dd><anvil-component type="Label" name="status_label" prop:role="subscription-value"></anvil-component></dd></div></dl>
+        <dl class="subscription-details"><div class="subscription-detail-row"><dt>Billing status</dt><dd><anvil-component type="Label" name="billing_status_label" prop:role="subscription-value"></anvil-component></dd></div><div class="subscription-detail-row"><dt>Next billing event</dt><dd><anvil-component type="Label" name="renewal_label" prop:role="subscription-value"></anvil-component></dd></div></dl>
+      </div>
+      <div class="membership-billing-actions"><anvil-component type="Label" name="billing_detail_label" prop:role="portfolio-help"></anvil-component><anvil-component type="Button" name="billing_portal_button" prop:text="Manage billing" prop:role="subscription-primary"></anvil-component></div>
+      <div class="profile-settings-subsection"><h3>Verified membership</h3><anvil-component type="Label" name="verification_status_label" prop:role="profile-verified"></anvil-component><anvil-component type="Label" name="verification_detail_label" prop:role="portfolio-help"></anvil-component><p class="profile-data-note">Paid membership badge; identity and investment performance are not independently verified.</p></div>
+    </section>
+    <div role="status" aria-live="polite"><anvil-component type="Label" name="action_status_label" prop:role="portfolio-status" prop:visible="false"></anvil-component></div>
+    <section class="membership-plans" aria-labelledby="membership-options-title">
+      <h2 id="membership-options-title" class="membership-section-title">Plans</h2>
+      <anvil-component type="M3_App_1.Components.PlanComparison" name="plan_comparison"></anvil-component>
+    </section>
+  </main>
+  <footer class="portfolio-footer"><span>Folio</span><span>Built for clearer decisions.</span><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods</a></footer>
   <anvil-component type="Timer" name="billing_load_timer" prop:interval="0"></anvil-component>
-</main>
+</section>
