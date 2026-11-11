@@ -7,27 +7,21 @@
     <anvil-component type="DropDown" name="sector_dropdown" prop:enabled="False" prop:role="security-sector-picker" prop:tooltip="Sign in to save your own sector classification" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
     <div class="allocation-weight-track" aria-hidden="true"><span anvil:name="weight_fill" class="allocation-weight-fill"></span></div>
   </div>
-  <div class="security-shares"><anvil-component type="Label" name="shares_label" bind:text="self.item['shares_text']" prop:role="security-share-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+  <div class="security-shares"><anvil-component type="Label" name="shares_label" bind:text="self.item['shares_text']" prop:align="right" prop:role="security-share-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
   <div class="security-amounts">
-    <anvil-component type="Label" name="value_label" bind:text="self.item['value_text']" prop:role="security-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" prop:role="security-weight" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="value_label" bind:text="self.item['value_text']" prop:align="right" prop:role="security-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" prop:align="right" prop:role="security-weight" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
   </div>
-  <div anvil:name="performance_metrics" class="security-performance-metrics">
-    <div class="security-performance-stat security-profit-stat">
-      <span class="security-stat-caption">Total P&amp;L</span>
-      <anvil-component type="Label" name="profit_label" bind:text="self.item.get('profit_text', '—')" prop:role="security-stat-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    </div>
-    <div class="security-performance-stat security-profit-stat">
-      <span class="security-stat-caption">Return on buys</span>
-      <anvil-component type="Label" name="profit_return_label" bind:text="self.item.get('profit_return_text', '—')" prop:role="security-stat-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    </div>
-    <div class="security-performance-stat">
-      <span class="security-stat-caption">Avg buy / share</span>
-      <anvil-component type="Label" name="average_buy_label" bind:text="self.item.get('average_buy_text', '—')" prop:role="security-stat-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    </div>
-    <div class="security-performance-stat">
-      <span class="security-stat-caption">Avg sell / share</span>
-      <anvil-component type="Label" name="average_sell_label" bind:text="self.item.get('average_sell_text', '—')" prop:role="security-stat-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-    </div>
+  <div class="security-performance-stat security-profit-stat">
+    <anvil-component type="Label" name="profit_label" bind:text="self.item.get('profit_text', '—')" prop:align="right" prop:role="security-stat-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <div class="security-performance-stat security-profit-stat">
+    <anvil-component type="Label" name="profit_return_label" bind:text="self.item.get('profit_return_text', '—')" prop:align="right" prop:role="security-stat-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <div class="security-performance-stat">
+    <anvil-component type="Label" name="average_buy_label" bind:text="self.item.get('average_buy_text', '—')" prop:align="right" prop:role="security-stat-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+  </div>
+  <div class="security-performance-stat">
+    <anvil-component type="Label" name="average_sell_label" bind:text="self.item.get('average_sell_text', '—')" prop:align="right" prop:role="security-stat-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
   </div>
 </div>

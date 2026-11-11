@@ -1750,6 +1750,9 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
 .allocation-page .anvil-role-allocation-change { margin: 0; text-align: right; font-size: 12px; color: var(--muted); }
 .allocation-page .sector-allocation-row.is-positive .anvil-role-allocation-change { color: var(--mint-strong); }
 .allocation-page .sector-allocation-row.is-negative .anvil-role-allocation-change { color: var(--negative); }
+.allocation-page .sector-allocation-row.is-highlighted { background: var(--surface-soft); box-shadow: inset 3px 0 var(--allocation-color); }
+.allocation-page .sector-allocation-row.is-dimmed .sector-identity, .allocation-page .sector-allocation-row.is-dimmed .sector-amounts { opacity: .55; }
+.allocation-page .sector-allocation-row:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 .allocation-table-card .anvil-role-allocation-caption { margin-top: 12px; font-size: 11px; }
 .allocation-page .allocation-history-card { padding: 12px 10px 10px; }
 .allocation-history-card .anvil-role-allocation-caption { padding: 4px 8px 0; margin: 0; }
@@ -1771,18 +1774,22 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
 .holdings-filter { display: grid; grid-template-columns: minmax(0, 1fr) minmax(145px, .45fr); gap: 12px; padding: 14px 0; }
 .holdings-filter > * { min-width: 0; width: 100%; }
 .allocation-page .security-selection-help, .allocation-page .anvil-role-portfolio-help { font-size: 12px; line-height: 1.7; }
-.holdings-table-scroll { overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--line); border-radius: 8px; margin-top: 12px; }
+.holdings-table-scroll { --holdings-columns: 9px minmax(240px, 1.7fr) minmax(85px, .6fr) minmax(135px, 1fr) repeat(2, minmax(120px, .9fr)) repeat(2, minmax(110px, .8fr)); overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--line); border-radius: 8px; margin-top: 12px; }
 .holdings-table-scroll:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
-.holdings-table-heading, .allocation-page .security-allocation-row { display: grid; grid-template-columns: 9px minmax(220px, 1.5fr) 90px 130px minmax(400px, 2fr); min-width: 990px; gap: 12px; padding: 14px; align-items: center; }
+.holdings-table-heading, .allocation-page .security-allocation-row { display: grid; grid-template-columns: var(--holdings-columns); min-width: 1100px; width: 100%; box-sizing: border-box; gap: 12px; padding: 14px; align-items: center; }
 .holdings-table-heading { font-size: 10px; font-weight: 700; color: var(--muted); background: var(--surface-soft); letter-spacing: .025em; }
-.holdings-table-heading > :nth-child(3), .holdings-table-heading > :nth-child(4) { text-align: right; }
+.holdings-table-heading > :nth-child(n + 3) { text-align: right; }
 .allocation-page .security-allocation-row { border-top: 1px solid var(--line); background: var(--paper); }
 .allocation-page .security-allocation-row:hover { background: var(--surface-soft); }
 .allocation-page .security-allocation-row .security-swatch { border-radius: 3px; margin-top: 0; }
-.allocation-page .security-amounts { grid-column: auto; display: block; padding: 0; text-align: right; }
-.allocation-page .security-performance-metrics { grid-column: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0 0 0 12px; margin: 0; background: transparent; border-radius: 0; border-left: 1px solid var(--line); text-align: right; }
-.allocation-page .security-stat-caption { font-size: 10px; margin-bottom: 4px; }
-.allocation-page .anvil-role-security-stat-value, .allocation-page .anvil-role-security-value { font-size: 12px; }
+.allocation-page .security-shares, .allocation-page .security-amounts, .allocation-page .security-performance-stat { grid-column: auto; display: grid; grid-template-rows: 20px 16px; row-gap: 4px; min-width: 0; padding: 0; margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.allocation-page .anvil-role-security-stat-value, .allocation-page .anvil-role-security-value, .allocation-page .anvil-role-security-share-value { display: block; margin: 0; font-size: 12px; line-height: 20px; white-space: nowrap; }
+.allocation-page .anvil-role-security-weight { margin: 0; line-height: 16px; }
+.allocation-page .anvil-label.anvil-role-security-stat-value > span, .allocation-page .anvil-label.anvil-role-security-value > span, .allocation-page .anvil-label.anvil-role-security-share-value > span, .allocation-page .anvil-label.anvil-role-security-weight > span { padding-top: 0; padding-bottom: 0; }
+.allocation-page .security-allocation-row.is-positive .security-profit-stat .anvil-role-security-stat-value { color: var(--mint-strong); }
+.allocation-page .security-allocation-row.is-negative .security-profit-stat .anvil-role-security-stat-value { color: var(--negative); }
+.allocation-page .security-allocation-row.is-excluded .security-performance-stat { opacity: .65; }
+.allocation-page .anvil-role-security-sector-picker { max-width: 100%; }
 .allocation-page .anvil-role-security-company { font-size: 12px; }
 .allocation-page .anvil-role-security-choice { font-size: 13px; }
 .allocation-page .anvil-role-security-detail, .allocation-page .anvil-role-security-weight { font-size: 10px; line-height: 1.6; }

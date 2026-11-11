@@ -1,4 +1,4 @@
-<div class="sector-allocation-row">
+<div class="sector-allocation-row" tabindex="0" anvil:on-dom:mouseenter="self.row_mouse_enter" anvil:on-dom:mouseleave="self.row_mouse_leave" anvil:on-dom:focusin="self.row_focus_in" anvil:on-dom:focusout="self.row_focus_out">
   <div class="sector-identity">
     <span anvil:name="swatch" class="sector-swatch" aria-hidden="true"></span>
     <anvil-component type="Label" name="sector_label" bind:text="self.item['sector']" bind:tooltip="self.item['tickers_text']" prop:role="sector-name" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>

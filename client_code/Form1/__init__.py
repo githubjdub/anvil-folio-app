@@ -87,6 +87,11 @@ class Form1(Form1Template):
     self._allocation_groups_cache = {}
     self._allocation_history_key = None
     self._allocation_highlight_key = None
+    self._allocation_trace_names = []
+    self._allocation_row_names = set()
+    self._allocation_hover_name = None
+    self._allocation_hover_source = None
+    self._allocation_hover_styling = False
     self._allocation_security_rows = None
     self._allocation_holdings_open = False
     self.allocation_map_region.visible = HOLDINGS_MAP_ENABLED
@@ -351,6 +356,8 @@ class Form1(Form1Template):
       return
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
+    if page != "allocation":
+      self._set_allocation_hover(None)
     self._readout_page = page
     if page == "transactions":
       self._refresh_date_groups_if_needed()
@@ -2114,6 +2121,9 @@ class Form1(Form1Template):
     self.quarterly_plot.config = {"displayModeBar": False, "responsive": True}
 
   def _invalidate_allocation(self):
+    self._set_allocation_hover(None)
+    self._allocation_trace_names = []
+    self._allocation_row_names = set()
     self._allocation_data_ready = False
     self._allocation_groups_cache = {}
     self._allocation_history_key = None
@@ -2150,6 +2160,7 @@ class Form1(Form1Template):
   def _render_allocation_snapshot(self):
     if self._history is None:
       return
+    self._set_allocation_hover(None)
     chosen = self.allocation_quarter_dropdown.selected_value
     self._allocation_snapshot = next((snapshot for snapshot in self._allocation_snapshots if snapshot["key"] == chosen), None)
     allocation = self._allocation_snapshot or self._history["sector_allocation"]
@@ -2193,6 +2204,7 @@ class Form1(Form1Template):
       change_value_text=("—" if group["change_pp"] is None else "0.0"
                          if abs(group["change_pp"]) < 0.05 else "%+.1f" % group["change_pp"]),
     ) for group, color in zip(groups, colors)]
+    self._allocation_row_names = {group["sector"] for group in groups}
     unknown = [row["symbol"] for row in holdings if row["sector"] == "Unclassified"]
     self.sector_status_label.text = (
       "Choose a sector in the holdings table for %s. Their values remain included under Unclassified." % ", ".join(unknown)
@@ -2275,6 +2287,7 @@ class Form1(Form1Template):
     # Anchor both stack order and colours to the latest allocation, so choosing
     # another quarter never reshuffles the history or rebuilds its traces.
     names = sorted(names, key=lambda name: (-latest.get(name, {}).get("weight", 0), name))
+    self._allocation_trace_names = names
     labels = [snapshot["label"].replace(" · latest", "") for snapshot in snapshots]
     traces = [
       {"type": "bar", "name": name, "x": labels,
@@ -2300,6 +2313,69 @@ class Form1(Form1Template):
       "yaxis": {"tickformat": ".0%", "dtick": 0.25, "range": [0, 1], "gridcolor": chart_theme.GRID, "fixedrange": True},
     })}
     self._allocation_history_key, self._allocation_highlight_key = key, selected
+
+  def _set_allocation_hover(self, name, source=None):
+    self.allocation_unhover_timer.interval = 0
+    if name is not None and name not in self._allocation_trace_names:
+      return
+    if name == self._allocation_hover_name:
+      if name is not None:
+        self._allocation_hover_source = source
+      return
+    self._allocation_hover_name = name
+    self._allocation_hover_source = source if name is not None else None
+    # Older history can contain a sector absent from the selected snapshot.
+    # Leave that table readable instead of dimming every row without a match.
+    row_name = name if name in self._allocation_row_names else None
+    self.sector_panel.raise_event_on_children("x-highlight-allocation", name=row_name)
+    if self._allocation_trace_names and self.allocation_history_plot.visible:
+      self._allocation_hover_styling = True
+      try:
+        self.allocation_history_plot.restyle({
+          "opacity": [1 if name is None or trace == name else 0.16
+                      for trace in self._allocation_trace_names],
+        }, list(range(len(self._allocation_trace_names))))
+      finally:
+        self._allocation_hover_styling = False
+
+  @handle("sector_panel", "x-allocation-hover")
+  def allocation_row_hover(self, name, active, **event_args):
+    if active and not self._busy:
+      self._set_allocation_hover(name, "row")
+    elif self._allocation_hover_source == "row" and self._allocation_hover_name == name:
+      self._set_allocation_hover(None)
+
+  def _allocation_hover_point_name(self, points):
+    for point in points or []:
+      index = point.get("curve_number")
+      if isinstance(index, int) and 0 <= index < len(self._allocation_trace_names):
+        return self._allocation_trace_names[index]
+    return None
+
+  @handle("allocation_history_plot", "hover")
+  def allocation_chart_hover(self, points, **event_args):
+    if not self._busy and not self._allocation_hover_styling:
+      name = self._allocation_hover_point_name(points)
+      if name is not None:
+        self._set_allocation_hover(name, "chart")
+
+  @handle("allocation_history_plot", "unhover")
+  def allocation_chart_unhover(self, points=None, **event_args):
+    if self._allocation_hover_styling or self._allocation_hover_source != "chart":
+      return
+    name = self._allocation_hover_point_name(points)
+    if name is None or name == self._allocation_hover_name:
+      # Moving to another bar of the same sector should not flash all colours.
+      self.allocation_unhover_timer.interval = 0.03
+
+  @handle("allocation_unhover_timer", "tick")
+  def allocation_chart_unhover_tick(self, **event_args):
+    self.allocation_unhover_timer.interval = 0
+    if self._allocation_hover_source == "chart":
+      self._set_allocation_hover(None)
+
+  def allocation_hover_leave(self, event):
+    self._set_allocation_hover(None)
 
   @handle("allocation_view_dropdown", "change")
   @handle("allocation_quarter_dropdown", "change")

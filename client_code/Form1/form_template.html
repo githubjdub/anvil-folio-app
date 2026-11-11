@@ -268,7 +268,7 @@
             <h3><anvil-component type="Label" name="allocation_legend_label" prop:text="Sector allocation" prop:role="allocation-chart-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></h3>
             <div class="allocation-view-control"><span>View</span><anvil-component type="DropDown" name="allocation_view_dropdown" prop:role="portfolio-picker" prop:tooltip="Show sectors or individual securities"></anvil-component></div>
           </div>
-          <div class="allocation-comparison-grid">
+          <div class="allocation-comparison-grid" anvil:on-dom:mouseleave="self.allocation_hover_leave">
             <section class="detail-card allocation-table-card" aria-label="Allocation weights and changes">
               <div class="allocation-table-heading"><anvil-component type="DropDown" name="allocation_quarter_dropdown" prop:role="allocation-snapshot-picker" prop:tooltip="Choose a quarter or the latest snapshot"></anvil-component><span>Weight</span><span>Change</span></div>
               <anvil-component type="Label" name="sector_empty_label" prop:text="Refresh your portfolio to see its allocation." prop:role="portfolio-help"></anvil-component>
@@ -304,7 +304,7 @@
             <div class="holdings-filter"><anvil-component type="TextBox" name="allocation_search_box" prop:placeholder="Filter ticker, company, or sector" prop:role="portfolio-input" prop:tooltip="Filter holdings by ticker, company name, or sector"></anvil-component><anvil-component type="DropDown" name="allocation_position_dropdown" prop:role="portfolio-picker" prop:tooltip="Filter open or closed positions"></anvil-component></div>
             <p class="security-selection-help">Position values, P&amp;L and average trade prices follow the selected snapshot. Uncheck a security to recalculate your charts and totals instantly. Sign in to customize a sector; your choices are saved to your account and used across your portfolios.</p>
             <anvil-component type="Label" name="selection_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
-            <div class="holdings-table-scroll" tabindex="0" role="region" aria-label="Portfolio holdings table; scroll horizontally for all columns"><div class="holdings-table-heading" aria-hidden="true"><span></span><span>Stock / company / sector</span><span>Shares held</span><span>Value / weight</span><span>P&amp;L / return / average trade prices</span></div><anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component></div>
+            <div class="holdings-table-scroll" tabindex="0" role="region" aria-label="Portfolio holdings table; scroll horizontally for all columns"><div class="holdings-table-heading" aria-hidden="true"><span></span><span>Stock / company / sector</span><span>Shares held</span><span>Value / weight</span><span>Total P&amp;L</span><span>Return on buys</span><span>Avg buy / share</span><span>Avg sell / share</span></div><anvil-component type="RepeatingPanel" name="security_panel" prop:item_template="M3_App_1.Components.SecurityAllocationRow"></anvil-component></div>
             <anvil-component type="Label" name="allocation_filter_empty_label" prop:visible="False" prop:text="No holdings match these filters. Clear the search or choose All positions." prop:role="portfolio-help"></anvil-component>
             <details class="readout-notes"><summary>Composition notes</summary>
             <p class="fine-print">Open positions at the selected price mark, weighted by market value; sold positions and dividend cash are excluded. Today's quote-based snapshot is provisional. Current sector classifications are used for every snapshot. Funds / ETFs are grouped separately, without looking through their holdings.</p>
@@ -412,6 +412,7 @@
 
   <footer class="portfolio-footer"><span>Folio</span><span>Built for clearer decisions.</span><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods</a></footer>
   <p class="site-analytics-notice">Basic visit counts and approximate country statistics help us understand site usage. Browser privacy signals are respected.</p>
+  <anvil-component type="Timer" name="allocation_unhover_timer" prop:interval="0"></anvil-component>
   <anvil-component type="Timer" name="allocation_filter_timer" prop:interval="0"></anvil-component>
 <anvil-component type="Timer" name="autosave_timer" prop:interval="0"></anvil-component>
   <anvil-component type="Timer" name="market_status_timer" prop:interval="1"></anvil-component>
