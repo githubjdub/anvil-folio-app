@@ -194,11 +194,11 @@
           </section>
           <p class="transaction-price-help">Price per share is optional. Enter what you paid or received, or leave it blank to use that day's close (the latest regular-session quote for today).</p>
           <div class="transaction-view-toolbar">
-            <div class="transaction-view-choice"><div class="portfolio-field-caption">Transaction view</div><anvil-component type="DropDown" name="transaction_view_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+            <div class="transaction-view-choice"><div class="portfolio-field-caption">Transaction view</div><anvil-component type="DropDown" name="transaction_view_dropdown" prop:tooltip="Group transactions by familiar date sections, by year, by security, or in their original entry order" prop:role="portfolio-picker"></anvil-component></div>
             <anvil-component type="m3._Components.Button" name="regroup_button" prop:text="Regroup" prop:appearance="text" prop:icon="mi:sort"></anvil-component>
             <anvil-component type="m3._Components.Button" name="collapse_prior_years_button" prop:text="Collapse prior years" prop:appearance="text" prop:visible="false"></anvil-component>
-            <anvil-component type="m3._Components.Button" name="collapse_all_button" prop:text="Collapse all" prop:appearance="text"></anvil-component>
-            <anvil-component type="m3._Components.Button" name="expand_all_button" prop:text="Expand all" prop:appearance="text"></anvil-component>
+            <anvil-component type="m3._Components.Button" name="collapse_all_button" prop:text="Collapse sections" prop:appearance="text"></anvil-component>
+            <anvil-component type="m3._Components.Button" name="expand_all_button" prop:text="Expand sections" prop:appearance="text"></anvil-component>
           </div>
           <anvil-component type="Label" name="transaction_view_help" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
           <div anvil:name="transactions_empty_region" class="transactions-empty-state"><div class="transactions-empty-mark" aria-hidden="true">+</div><h4>Your portfolio starts here</h4><p>Add a stock or ETF and enter your first buy or sell. Your portfolio will contain only the securities you add.</p></div>

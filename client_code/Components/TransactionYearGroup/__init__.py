@@ -5,7 +5,7 @@ from ...HoldingRow import HoldingRow
 
 
 class TransactionYearGroup(TransactionYearGroupTemplate):
-  """A year section that mounts editors only while it is expanded."""
+  """A date or year section that mounts editors only while it is expanded."""
 
   def __init__(self, **properties):
     self._editable = False
@@ -34,6 +34,9 @@ class TransactionYearGroup(TransactionYearGroupTemplate):
     summary = transaction_groups.year_summary(self.item["transactions"])
     self.item["summary"] = summary
     self.summary_label.text = summary
+    self.item["date_range"] = transaction_groups.transaction_date_range(self.item["transactions"])
+    self.date_range_label.text = self.item["date_range"]
+    self.date_range_label.visible = bool(self.item["date_range"])
 
   def _mount_rows(self):
     if self._mounted:
@@ -75,7 +78,7 @@ class TransactionYearGroup(TransactionYearGroupTemplate):
     self.item["collapsed"] = collapsed
     self._show_group()
     if self._ready and self.parent is not None:
-      self.parent.raise_event("x-year-collapsed", year=self.item["year"], collapsed=collapsed)
+      self.parent.raise_event("x-group-collapsed", key=self.item["key"], grouping=self.item["grouping"], collapsed=collapsed)
 
   def set_editable(self, editable, **event_args):
     self._editable = False

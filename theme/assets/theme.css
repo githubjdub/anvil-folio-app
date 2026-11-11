@@ -1450,23 +1450,30 @@ button.anvil-role-subscription-button:focus-visible, button.anvil-role-subscript
   .retirement-chart { margin-left: -12px; margin-right: -12px; }
 }
 
-/* Calendar-year sections keep older transactions compact and easy to reopen. */
+/* Explorer-style date/year sections load transaction editors only when opened. */
 .transaction-year-group { margin: 12px 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.transaction-year-header { padding: 0 0 8px; background: var(--surface-soft); }
+.transaction-year-header { display: grid; grid-template-columns: minmax(140px, 1fr) auto; gap: 12px; align-items: center; padding: 6px 12px; background: var(--surface-soft); }
 .anvil-role-transaction-year-toggle { width: 100%; }
 .anvil-role-transaction-year-toggle > button {
-  display: block; width: 100%; min-height: 34px; padding: 9px 12px 3px;
-  border: 0; border-radius: 0; background: transparent; box-shadow: none;
-  color: var(--ink); font: inherit; font-size: 13px; font-weight: 750;
+  display: block; width: 100%; min-height: 38px; padding: 8px 0;
+  border: 0; border-radius: 4px; background: transparent; box-shadow: none;
+  color: var(--mint-strong); font: inherit; font-size: 13px; font-weight: 750;
   text-transform: none; letter-spacing: 0; text-align: left;
 }
 .anvil-role-transaction-year-toggle > button:hover { background: var(--surface-raised); color: var(--ink); }
 .anvil-role-transaction-year-toggle > button:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: -2px; }
 .anvil-role-transaction-year-toggle > button:disabled { opacity: .55; cursor: wait; }
-.anvil-role-transaction-year-summary { padding: 0 12px 0 33px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.transaction-group-meta { min-width: 0; text-align: right; }
+.transaction-group-meta .anvil-label > span { padding: 0; }
+.anvil-role-transaction-year-summary { padding: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.anvil-role-transaction-group-range { color: var(--muted); font-size: 10px; line-height: 1.5; }
 .anvil-role-transaction-year-rows { padding: 0 10px 8px; background: var(--paper); }
 .anvil-role-transaction-year-rows .transaction-card { margin-top: 8px; }
 .transaction-year-group.is-collapsed { margin-bottom: 8px; }
+@media (max-width: 620px) {
+  .transaction-year-header { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .transaction-group-meta { text-align: left; padding: 0 0 6px 21px; }
+}
 
 /* Historical dividend reinvestment comparisons. */
 .simulations-workspace { min-width: 0; color: var(--ink); }

@@ -14,7 +14,7 @@ from ..portfolio_summary import summarize_portfolio
 from ..allocation_breakdown import allocation_groups
 from ..HoldingRow import HoldingRow
 from ..Components.TransactionYearGroup import TransactionYearGroup
-from ..transaction_groups import group_transactions_by_year
+from ..transaction_groups import group_transactions_by_date, group_transactions_by_year
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, sign_in
 from ..workspace_cache import account_workspace, invalidate_workspace
@@ -64,6 +64,8 @@ class Form1(Form1Template):
     self._busy = False
     self.transactions = []
     self._collapsed_transaction_years = {}
+    self._collapsed_transaction_dates = {}
+    self._date_groups_on = None
     self._history = None
     self._comparison_window_source = None
     self._comparison_window_key = None
@@ -105,8 +107,8 @@ class Form1(Form1Template):
       ("Replace current transactions", "replace"),
     ]
     self.image_import_mode_dropdown.selected_value = "append"
-    self.transaction_view_dropdown.items = [("Entry order", "entry"), ("Group by security", "security"), ("Group by year", "year")]
-    self.transaction_view_dropdown.selected_value = "entry"
+    self.transaction_view_dropdown.items = [("Group by date", "date"), ("Entry order", "entry"), ("Group by security", "security"), ("Group by year", "year")]
+    self.transaction_view_dropdown.selected_value = "date"
     self.regroup_button.visible = False
     self.timeframe_dropdown.items = [
       ("1 month", "1M"), ("3 months", "3M"), ("6 months", "6M"),
@@ -142,6 +144,7 @@ class Form1(Form1Template):
     # Router may prepare a retained workspace while detached. Once visible,
     # resize its existing plots without fetching data or resetting the editor.
     if not self._initializing and not self._busy:
+      self._refresh_date_groups_if_needed()
       self._apply_readout_page(redraw=True)
 
   @handle("market_status_timer", "tick")
@@ -334,6 +337,8 @@ class Form1(Form1Template):
     if page != "performance":
       self._set_charts_expanded(False, resize=False)
     self._readout_page = page
+    if page == "transactions":
+      self._refresh_date_groups_if_needed()
     self._apply_readout_page(redraw=True)
     self.dom_nodes["readout_scroller"].scrollTop = 0
     record_page(page)
@@ -733,6 +738,8 @@ class Form1(Form1Template):
       return
     if replacing:
       self._collapsed_transaction_years.clear()
+      self._collapsed_transaction_dates.clear()
+      self._date_groups_on = None
     else:
       self._commit_transaction_inputs()
     self.transactions = imported if replacing else self.transactions + imported
@@ -750,10 +757,13 @@ class Form1(Form1Template):
     view = self.transaction_view_dropdown.selected_value
     grouped = view == "security"
     by_year = view == "year"
-    self.regroup_button.visible = grouped or by_year
-    self.collapse_prior_years_button.visible = by_year
-    self.collapse_all_button.text = "Collapse years" if by_year else "Collapse all"
-    self.expand_all_button.text = "Expand years" if by_year else "Expand all"
+    by_date = view == "date"
+    sections = by_year or by_date
+    self.regroup_button.visible = grouped or sections
+    self.collapse_prior_years_button.visible = sections
+    self.collapse_prior_years_button.text = "Collapse older dates" if by_date else "Collapse prior years"
+    self.collapse_all_button.text = "Collapse sections" if sections else "Collapse all"
+    self.expand_all_button.text = "Expand sections" if sections else "Expand all"
     for index, row in enumerate(self.transactions):
       row["_transaction_index"] = index
       row["_security_group"] = ""
@@ -778,9 +788,15 @@ class Form1(Form1Template):
     # Sync and portfolio replacement already supplied the authoritative rows.
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=False)
     self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=False)
-    self.holdings_panel.visible = bool(self.transactions) and not by_year
-    self.transaction_years_panel.visible = bool(self.transactions) and by_year
-    if by_year:
+    self.holdings_panel.visible = bool(self.transactions) and not sections
+    self.transaction_years_panel.visible = bool(self.transactions) and sections
+    if by_date:
+      self.holdings_panel.items = []
+      self._date_groups_on = date.today()
+      self.transaction_years_panel.items = group_transactions_by_date(
+        self.transactions, self._collapsed_transaction_dates, self._date_groups_on
+      )
+    elif by_year:
       self.holdings_panel.items = []
       self.transaction_years_panel.items = group_transactions_by_year(
         self.transactions, self._collapsed_transaction_years, date.today().year
@@ -791,12 +807,19 @@ class Form1(Form1Template):
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.transaction_view_help.text = (
+      "Click a date heading to expand or condense its transactions. Older dates start folded; your choices stay while you switch views. Weeks start on Monday. Use Regroup after changing dates."
+      if by_date else
       "Newest dates first. Click a year to fold it away. Use Regroup after changing dates."
       if by_year else
       "Trades are grouped by ticker. Use Regroup after editing a ticker or action."
       if grouped else "Transactions appear in the order you entered them."
     )
     self._update_image_import_controls()
+
+  def _refresh_date_groups_if_needed(self):
+    if self.transaction_view_dropdown.selected_value == "date" and self._date_groups_on != date.today():
+      self._commit_transaction_inputs()
+      self._refresh_transactions()
 
   def _transaction_year_forms(self):
     return [group for group in self.transaction_years_panel.get_components()
@@ -812,9 +835,10 @@ class Form1(Form1Template):
     for row in self._transaction_row_forms():
       row.commit_inputs()
 
-  @handle("transaction_years_panel", "x-year-collapsed")
-  def transaction_year_collapsed(self, year, collapsed, **event_args):
-    self._collapsed_transaction_years[year] = collapsed
+  @handle("transaction_years_panel", "x-group-collapsed")
+  def transaction_group_collapsed(self, key, grouping, collapsed, **event_args):
+    states = self._collapsed_transaction_dates if grouping == "date" else self._collapsed_transaction_years
+    states[key] = collapsed
 
   @handle("transaction_view_dropdown", "change")
   @handle("regroup_button", "click")
@@ -827,30 +851,45 @@ class Form1(Form1Template):
   def collapse_all_button_click(self, **event_args):
     if not self._busy:
       self._commit_transaction_inputs()
-      panel = self.transaction_years_panel if self.transaction_view_dropdown.selected_value == "year" else self.holdings_panel
+      panel = self.transaction_years_panel if self.transaction_view_dropdown.selected_value in ("date", "year") else self.holdings_panel
       panel.raise_event_on_children("x-set-collapsed", collapsed=True)
 
   @handle("expand_all_button", "click")
   def expand_all_button_click(self, **event_args):
     if not self._busy:
-      panel = self.transaction_years_panel if self.transaction_view_dropdown.selected_value == "year" else self.holdings_panel
+      panel = self.transaction_years_panel if self.transaction_view_dropdown.selected_value in ("date", "year") else self.holdings_panel
       panel.raise_event_on_children("x-set-collapsed", collapsed=False)
 
   @handle("collapse_prior_years_button", "click")
   def collapse_prior_years_click(self, **event_args):
-    if self._busy or self.transaction_view_dropdown.selected_value != "year":
+    view = self.transaction_view_dropdown.selected_value
+    if self._busy or view not in ("date", "year"):
       return
     self._commit_transaction_inputs()
     self._refresh_transactions()
     for group in self._transaction_year_forms():
-      year = group.item["year"]
-      group.set_collapsed(year is not None and year < date.today().year)
+      if view == "date":
+        group.set_collapsed(not group.item["recent"])
+      else:
+        year = group.item["year"]
+        group.set_collapsed(year is not None and year < date.today().year)
 
   def _show_entry_order_for_error(self, message):
     if message.startswith("Row ") or message.startswith("Add at least one transaction"):
       self._set_transactions_collapsed(False)
     # Validation row numbers refer to the original transaction order.
     if message.startswith("Row ") and self.transaction_view_dropdown.selected_value != "entry":
+      if self.transaction_view_dropdown.selected_value in ("date", "year"):
+        number = message.split(":", 1)[0][4:]
+        if number.isdigit() and 0 < int(number) <= len(self.transactions):
+          target = self.transactions[int(number) - 1]
+          for group in self._transaction_year_forms():
+            if any(row is target for row in group.item["transactions"]):
+              group.set_collapsed(False)
+          for form in self._transaction_row_forms():
+            if form.item is target:
+              form.set_collapsed(False)
+              return
       self.transaction_view_dropdown.selected_value = "entry"
       self._refresh_transactions()
 
@@ -1259,6 +1298,8 @@ class Form1(Form1Template):
   def _new_portfolio(self):
     self._reset_autosave_scope()
     self._collapsed_transaction_years.clear()
+    self._collapsed_transaction_dates.clear()
+    self._date_groups_on = None
     self._restore_on_resume = False
     self._current_portfolio = None
     self._last_synced_analysis = None
@@ -1357,6 +1398,8 @@ class Form1(Form1Template):
   def _apply_portfolio(self, portfolio, analysis=None):
     self._reset_autosave_scope()
     self._collapsed_transaction_years.clear()
+    self._collapsed_transaction_dates.clear()
+    self._date_groups_on = None
     self._clear_image_import()
     self.tax_estimator_form.reset_workspace()
     self.income_form.reset_workspace()
@@ -1412,6 +1455,8 @@ class Form1(Form1Template):
 
   def _load_sample_transactions(self):
     self._collapsed_transaction_years.clear()
+    self._collapsed_transaction_dates.clear()
+    self._date_groups_on = None
     self._clear_image_import()
     today = date.today()
     self.transactions = [
@@ -2352,6 +2397,7 @@ class Form1(Form1Template):
       return
     self._commit_transaction_inputs()
     self._collapsed_transaction_years[None] = False
+    self._collapsed_transaction_dates["undated"] = False
     self.transactions.append(self._new_transaction())
     self._refresh_transactions()
     self._mark_portfolio_dirty()
