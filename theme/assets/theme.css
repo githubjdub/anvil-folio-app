@@ -1893,8 +1893,11 @@ input.anvil-role-tax-field:disabled { opacity: .55; }
 .portfolio-profile-eyebrow { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 11px; margin-bottom: 3px; }
 .portfolio-app .portfolio-profile-header .anvil-role-portfolio-welcome-heading { font-size: clamp(25px, 2.7vw, 34px); letter-spacing: -.04em; margin: 0 0 5px; line-height: 1.16; }
 .portfolio-profile-header .anvil-role-portfolio-help { font-size: 14px; color: var(--muted); }
-.portfolio-profile-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; flex: 0 1 auto; }
+.portfolio-profile-actions { display: flex; align-items: flex-start; justify-content: flex-end; flex-wrap: wrap; gap: 8px; flex: 0 1 auto; }
 .portfolio-profile-actions > * { flex: none; }
+.portfolio-refresh-action { display: flex; flex-direction: column; gap: 5px; }
+.portfolio-refresh-meta { color: var(--muted); font-size: 11px; line-height: 1.4; text-align: center; }
+.anvil-role-portfolio-refresh-date { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
 .portfolio-profile-actions .anvil-role-analyze-action { margin: 0; }
 .portfolio-profile-actions button, .portfolio-profile-actions .anvil-role-share-action button { min-height: 40px; height: 40px; padding: 0 15px; border-radius: 7px; font-size: 13px; white-space: nowrap; }
 .portfolio-summary-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--paper); margin-bottom: 16px; }

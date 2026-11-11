@@ -899,6 +899,9 @@ class Form1(Form1Template):
     self.portfolio_status_label.text = message
     self.portfolio_status_region.classes["is-error"] = is_error
 
+  def _set_last_refreshed(self, refreshed_at):
+    self.last_refreshed_label.text = refreshed_at.strftime("%b %d, %Y") if refreshed_at is not None else "—"
+
   def _update_controls(self):
     self._update_welcome()
     setattr(self.share_performance_button, "enabled", not self._busy)
@@ -1304,6 +1307,7 @@ class Form1(Form1Template):
     self._current_portfolio = None
     self._last_synced_analysis = None
     self._last_synced_transactions = []
+    self._set_last_refreshed(None)
     self._clear_image_import()
     self.tax_estimator_form.reset_workspace()
     self.income_form.reset_workspace()
@@ -1408,6 +1412,7 @@ class Form1(Form1Template):
     self._last_synced_analysis = None
     self._last_synced_transactions = []
     self._current_portfolio = portfolio
+    self._set_last_refreshed(portfolio["analysis_updated_at"])
     self.portfolio_name_box.text = portfolio["name"]
     # Keep saved inputs unchanged so a simple reopen retains its cache identity.
     self.as_of_date_picker.date = portfolio["as_of_date"]
@@ -2473,6 +2478,7 @@ class Form1(Form1Template):
         self._set_status(result["message"], is_error=True)
         return
       self._apply_analysis(result["analysis"], transactions)
+      self._set_last_refreshed(result["portfolio"]["analysis_updated_at"])
       self._set_portfolio_status('All changes saved · prices refreshed through %s.' % result["portfolio"]["as_of_date"])
       self._readout_page = "overview"
       self._apply_readout_page(redraw=True)

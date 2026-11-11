@@ -47,7 +47,17 @@
           <anvil-component type="Label" name="welcome_detail_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
         </div>
       </div>
-      <div class="portfolio-profile-actions"><anvil-component type="m3._Components.Button" name="toggle_transactions_button" prop:text="Edit transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component><anvil-component type="m3._Components.Button" name="share_performance_button" prop:text="Share" prop:appearance="filled" prop:icon="mi:share" prop:role="share-action"></anvil-component><anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Refresh" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component></div>
+      <div class="portfolio-profile-actions">
+        <anvil-component type="m3._Components.Button" name="toggle_transactions_button" prop:text="Edit transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component>
+        <anvil-component type="m3._Components.Button" name="share_performance_button" prop:text="Share" prop:appearance="filled" prop:icon="mi:share" prop:role="share-action"></anvil-component>
+        <div class="portfolio-refresh-action">
+          <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Refresh" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
+          <div class="portfolio-refresh-meta" role="status" aria-live="polite" aria-atomic="true">
+            <span>Last refreshed</span>
+            <anvil-component type="Label" name="last_refreshed_label" prop:text="—" prop:role="portfolio-refresh-date" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+          </div>
+        </div>
+      </div>
     </section>
     <section class="portfolio-summary-strip" aria-label="Portfolio summary">
       <div class="portfolio-summary-cell"><span class="portfolio-summary-caption">Portfolio value · USD</span><anvil-component type="Label" name="summary_value_label" prop:text="—" prop:role="portfolio-summary-value" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="summary_date_label" prop:text="Refresh to calculate" prop:role="portfolio-summary-note" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
