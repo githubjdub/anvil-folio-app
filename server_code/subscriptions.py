@@ -3,6 +3,7 @@ import anvil.secrets
 from datetime import datetime, timezone
 from typing import Any
 import anvil.server
+import anvil.users
 from anvil.tables import app_tables
 from . import memberships, stripe_billing
 _memberships: Any = memberships
@@ -11,7 +12,10 @@ _billing: Any = stripe_billing
 
 @anvil.server.callable
 def get_subscription_catalog():
-  ready = _billing.configuration() is not None
+  return _catalog(_billing.configuration() is not None)
+
+
+def _catalog(ready):
   return {'checkout_available': ready, 'billing_portal_available': ready,
           'premium_price_label': '$19.99/month', 'plus_price_label': '$19.99/month',
           'premium_note': 'USD, billed monthly. Save up to 3 portfolios.',
@@ -20,8 +24,11 @@ def get_subscription_catalog():
 
 @anvil.server.callable(require_user=True)
 def get_my_subscription():
+  return _subscription_details(_memberships._signed_in_user())
+
+
+def _subscription_details(user):
   from investor_profiles import verification_for
-  user = _memberships._signed_in_user()
   membership = memberships.membership_for(user)
   state = user['stripe_state'] or {}
   recurring_statuses = ('active', 'trialing', 'past_due', 'unpaid', 'paused', 'incomplete')
@@ -44,6 +51,36 @@ def get_my_subscription():
     'renewal_label': ('Ends ' if canceling else 'Renews ') + end.strftime('%b %d, %Y (UTC)') if end and recurring else 'No scheduled renewal',
     'can_manage_billing': bool(user['stripe_customer_id']),
   }
+
+
+@anvil.server.callable
+def get_billing_workspace(include_details=False, refresh=False):
+  """One owner-scoped bootstrap; Stripe reconciliation is explicitly requested."""
+  if type(include_details) is not bool or type(refresh) is not bool:
+    raise ValueError('Choose whether to refresh billing details.')
+  user = anvil.users.get_user()
+  if user is None and (include_details or refresh):
+    raise anvil.users.AuthenticationFailed('Sign in to view your billing details.')
+  if user is not None:
+    user = _memberships._signed_in_user()
+  config = _billing.configuration()
+  refreshed = {'ok': True}
+  if refresh and user is not None and config and user['stripe_customer_id']:
+    account_id = user.get_id()
+    try:
+      _billing.reconcile_customer(user['stripe_customer_id'], config)
+    except _billing.BillingSetupError as error:
+      refreshed = {'ok': False, 'message': str(error)}
+    # Reconciliation updates another Row instance; return the current values.
+    user = app_tables.users.get_by_id(account_id)
+    if user is None:
+      raise anvil.users.AuthenticationFailed('This billing account is no longer available.')
+  return {'account_id': user.get_id() if user is not None else None,
+          'catalog': _catalog(config is not None),
+          'membership': memberships.membership_for(user) if user is not None else None,
+          'has_username': bool(user['username']) if user is not None else False,
+          'details': _subscription_details(user) if include_details else None,
+          'refresh_result': refreshed}
 
 
 @anvil.server.callable(require_user=True)

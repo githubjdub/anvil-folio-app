@@ -36,6 +36,8 @@ from anvil.tables import app_tables, in_transaction
 
 _SECRET_NAMES = ('STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_PLUS_PRICE_ID', 'STRIPE_APP_URL')
 _API_VERSION = '2025-06-30.basil'
+_VALIDATED_PRICE_SECONDS = 300
+_validated_price = None
 _EVENTS = {'checkout.session.completed', 'checkout.session.async_payment_succeeded',
            'customer.subscription.created', 'customer.subscription.updated',
            'customer.subscription.deleted', 'invoice.paid', 'invoice.payment_failed'}
@@ -94,12 +96,20 @@ def _stripe(config, method, path, parameters=None, idempotency_key=None):
 
 
 def _validate_price(config):
+  global _validated_price
+  # Stripe price amounts are immutable. Briefly reuse a successful check for
+  # this exact credential/price pair; Checkout still rejects archived prices.
+  cache_key = (hashlib.sha256(config['STRIPE_SECRET_KEY'].encode()).hexdigest(),
+               config['STRIPE_PLUS_PRICE_ID'], _API_VERSION)
+  if _validated_price and _validated_price[0] == cache_key and time.monotonic() < _validated_price[1]:
+    return
   price = _stripe(config, 'GET', 'prices/' + config['STRIPE_PLUS_PRICE_ID'])
   recurring = price.get('recurring') or {}
   if not (price.get('active') and price.get('currency') == 'usd' and price.get('unit_amount') == 1999
           and recurring.get('interval') == 'month' and recurring.get('interval_count') == 1
           and price.get('billing_scheme') == 'per_unit' and recurring.get('usage_type') == 'licensed'):
     raise BillingSetupError('Plus checkout is being configured. Please try again later.')
+  _validated_price = (cache_key, time.monotonic() + _VALIDATED_PRICE_SECONDS)
 
 
 @in_transaction

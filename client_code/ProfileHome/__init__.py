@@ -246,16 +246,37 @@ class ProfileHome(ProfileHomeTemplate):
     if self._busy or self._verified:
       return
     account_id = self.account_id
+    button_text = self.verify_button.text
     self._set_busy(True)
     try:
       if not confirm('Verified is $1 USD per month, billed monthly until canceled. It is a paid membership badge, not identity verification or an audit of investment results. It is included with Plus and Pro. Continue to secure Stripe checkout?', title='Folio Verified'):
         return
-      result = anvil.server.call('start_verification_checkout')
-      if not self._accept_result(result, account_id):
+      current = anvil.users.get_user()
+      if get_open_form() is not self or current is None or current.get_id() != account_id:
+        return
+      self.verify_button.text = 'Opening checkout…'
+      self.status_label.text = 'Opening secure Stripe checkout…'
+      self.status_label.visible = True
+      try:
+        result = anvil.server.call_s('start_verification_checkout')
+      except (getattr(anvil.server, 'RuntimeUnavailableError'), anvil.server.AppOfflineError):
+        current = anvil.users.get_user()
+        if get_open_form() is self and current is not None and current.get_id() == account_id:
+          self.status_label.text = 'Checkout could not be opened. Please try again.'
+        return
+      current = anvil.users.get_user()
+      if get_open_form() is not self or current is None or current.get_id() != account_id:
         return
       if result['ok']:
         open_stripe_url(result['url'])
+      else:
+        self.status_label.text = result['message']
+        self.status_label.visible = True
     finally:
+      if self.account_id == account_id:
+        self.verify_button.text = button_text
+        if self.status_label.text == 'Opening secure Stripe checkout…':
+          self.status_label.visible = False
       self._set_busy(False)
 
   @handle('save_name_button', 'click')
