@@ -102,8 +102,17 @@ def allocation_snapshots(source, selected_symbols):
          for security in securities):
     return []
   end_indices = []
-  for index, day in enumerate(dates):
-    if index + 1 == len(dates) or _quarter(dates[index + 1])[0] != _quarter(day)[0]:
+  # Compute a quarter once per distinct month, rather than formatting quarter
+  # labels twice for every trading day in a multi-year history.
+  quarter_by_month = {}
+  quarters = []
+  for day in dates:
+    month = day[:7]
+    if month not in quarter_by_month:
+      quarter_by_month[month] = _quarter(day)[0]
+    quarters.append(quarter_by_month[month])
+  for index, quarter in enumerate(quarters):
+    if index + 1 == len(dates) or quarters[index + 1] != quarter:
       end_indices.append(index)
 
   snapshots = []
@@ -142,7 +151,7 @@ def allocation_snapshots(source, selected_symbols):
       group["weight"] = group["market_value"] / total_value if total_value else 0.0
       group["tickers"].sort()
     snapshots.append({
-      "key": key, "label": label, "date": dates[index],
+      "key": key, "label": label, "date": dates[index], "index": index,
       "holdings": holdings, "slices": slices, "total_value": total_value,
       "provisional": not source["series"][index].get("session_complete", True),
     })

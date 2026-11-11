@@ -7,4 +7,6 @@ class SectorAllocationRow(SectorAllocationRowTemplate):
     super().__init__(**properties)
     self.swatch.style["background-color"] = self.item["color"]
     self.weight_fill.style.update({"background-color": self.item["color"], "width": "%s%%" % (self.item["weight"] * 100)})
-    self.change_label.visible = self.item.get("change_pp") is not None
+    change = self.item.get("change_pp")
+    self.classes["is-positive"] = change is not None and change >= 0.05
+    self.classes["is-negative"] = change is not None and change <= -0.05

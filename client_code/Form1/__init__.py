@@ -22,6 +22,7 @@ from ..workspace_cache import account_workspace, invalidate_workspace
 
 SECTOR_COLORS = chart_theme.SECTOR_COLORS
 HEDGE_FUND_COMPARISONS_ENABLED = False
+HOLDINGS_MAP_ENABLED = False
 
 BENCHMARK_CHOICES = [
   ("S&P 500 index", "sp500"), ("Nasdaq Composite index", "nasdaq"),
@@ -82,6 +83,19 @@ class Form1(Form1Template):
     self._transactions_collapsed = False
     self._allocation_snapshots = []
     self._allocation_snapshot = None
+    self._allocation_data_ready = False
+    self._allocation_groups_cache = {}
+    self._allocation_history_key = None
+    self._allocation_highlight_key = None
+    self._allocation_security_rows = None
+    self._allocation_holdings_open = False
+    self.allocation_map_region.visible = HOLDINGS_MAP_ENABLED
+    self.allocation_history_plot.config = {"displayModeBar": False, "responsive": True, "scrollZoom": False}
+    self._retirement_context_key = None
+    self._tax_context_key = None
+    self._tax_context_source = None
+    self._income_context_key = None
+    self._income_context_history = None
     self._security_colors = {}
     self.allocation_view_dropdown.items = [("Sectors", "sector"), ("Securities", "security")]
     self.allocation_view_dropdown.selected_value = "sector"
@@ -286,8 +300,9 @@ class Form1(Form1Template):
       return [("performance", self.performance_plot), ("quarterly", self.quarterly_plot),
               ("drawdown", self.drawdown_plot)]
     if page == "allocation":
-      return [("sector", self.sector_plot), ("allocation_history", self.allocation_history_plot),
-              ("allocation_map", self.allocation_map_plot)]
+      return [("allocation_history", self.allocation_history_plot)] + (
+        [("allocation_map", self.allocation_map_plot)] if HOLDINGS_MAP_ENABLED else []
+      )
     return []
 
   def _plot_size(self, plot):
@@ -424,7 +439,10 @@ class Form1(Form1Template):
       value = source["metrics"]["market_value"]
       as_of = source["metadata"]["end_date"]
     portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
-    self.retirement_form.set_portfolio_context(value, as_of, portfolio_id=portfolio_id)
+    key = (portfolio_id, self.account_id, value, as_of)
+    if key != self._retirement_context_key:
+      self.retirement_form.set_portfolio_context(value, as_of, portfolio_id=portfolio_id)
+      self._retirement_context_key = key
 
   @handle("retirement_form", "x-use-portfolio-balance")
   def retirement_use_portfolio(self, **event_args):
@@ -443,11 +461,16 @@ class Form1(Form1Template):
     # and unsynced transaction drafts. Switching tabs never fetches prices.
     source = self._last_synced_analysis
     portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
-    self.tax_estimator_form.set_portfolio_context(
-      self._last_synced_transactions,
-      source["metadata"]["end_date"] if source is not None else None,
-      portfolio_id=portfolio_id, analysis=source,
-    )
+    key = (portfolio_id, self.account_id)
+    if self._tax_context_source is not source or self._tax_context_key != key:
+      self.tax_estimator_form.set_portfolio_context(
+        self._last_synced_transactions,
+        source["metadata"]["end_date"] if source is not None else None,
+        portfolio_id=portfolio_id, analysis=source,
+      )
+      self._tax_context_source, self._tax_context_key = source, key
+    if self._income_context_history is self._history and self._income_context_key == key:
+      return
     transactions = []
     as_of = None
     if self._history is not None and self._selected_symbols:
@@ -458,6 +481,7 @@ class Form1(Form1Template):
                       if self._security_key(row) in self._selected_symbols]
       as_of = self._history["metadata"]["end_date"]
     self.income_form.set_portfolio_context(transactions, as_of)
+    self._income_context_history, self._income_context_key = self._history, key
 
   @handle("dividends_tab_button", "click")
   def dividends_tab_click(self, **event_args):
@@ -1204,6 +1228,11 @@ class Form1(Form1Template):
     return True
 
   def _reset_autosave_scope(self):
+    self._retirement_context_key = None
+    self._tax_context_key = None
+    self._income_context_key = None
+    self._tax_context_source = None
+    self._income_context_history = None
     self._autosave_generation += 1
     self._edit_revision += 1
     self._refresh_requested = False
@@ -1483,6 +1512,11 @@ class Form1(Form1Template):
       self._analyzed_transactions = []
       self._allocation_snapshots = []
       self._allocation_snapshot = None
+      self._invalidate_allocation()
+      self._allocation_holdings_open = False
+      self.dom_nodes["allocation_holdings"].removeAttribute("open")
+      self.security_panel.items = []
+      self.allocation_filter_timer.interval = 0
       self._dirty_readout_pages.update(("overview", "allocation", "performance"))
       self._plot_sizes.clear()
       self.allocation_quarter_dropdown.selected_value = "latest"
@@ -2079,17 +2113,37 @@ class Form1(Form1Template):
     })
     self.quarterly_plot.config = {"displayModeBar": False, "responsive": True}
 
+  def _invalidate_allocation(self):
+    self._allocation_data_ready = False
+    self._allocation_groups_cache = {}
+    self._allocation_history_key = None
+    self._allocation_highlight_key = None
+    self._allocation_security_rows = None
+
+  def _allocation_groups_for_view(self):
+    security_view = self.allocation_view_dropdown.selected_value == "security"
+    if security_view not in self._allocation_groups_cache:
+      groups, previous = {}, None
+      for snapshot in self._allocation_snapshots:
+        groups[snapshot["key"]] = allocation_groups(snapshot, security_view, previous)
+        previous = snapshot
+      self._allocation_groups_cache[security_view] = groups
+    return self._allocation_groups_cache[security_view]
+
   def _render_sectors(self):
     if self._history is None or self._analysis_source is None:
       return
-    self._allocation_snapshots = allocation_snapshots(self._analysis_source, self._selected_symbols)
-    previous = self.allocation_quarter_dropdown.selected_value or "latest"
-    self.allocation_quarter_dropdown.items = [(snapshot["label"], snapshot["key"]) for snapshot in reversed(self._allocation_snapshots)] or [("Latest", "latest")]
-    keys = [snapshot["key"] for snapshot in self._allocation_snapshots]
-    self.allocation_quarter_dropdown.selected_value = previous if previous in keys else "latest"
+    if not self._allocation_data_ready:
+      self._allocation_snapshots = allocation_snapshots(self._analysis_source, self._selected_symbols)
+      previous = self.allocation_quarter_dropdown.selected_value or "latest"
+      self.allocation_quarter_dropdown.items = [(snapshot["label"], snapshot["key"]) for snapshot in reversed(self._allocation_snapshots)] or [("Latest", "latest")]
+      keys = {snapshot["key"] for snapshot in self._allocation_snapshots}
+      self.allocation_quarter_dropdown.selected_value = previous if previous in keys else "latest"
+      self._allocation_data_ready = True
     palette = list(SECTOR_COLORS.values())
     symbols = sorted(row["symbol"] for row in self._analysis_source["selection_data"]["securities"])
     self._security_colors = {symbol: palette[index % len(palette)] for index, symbol in enumerate(symbols)}
+    self._allocation_security_rows = None
     self._render_allocation_snapshot()
     self._render_allocation_history()
 
@@ -2107,7 +2161,9 @@ class Form1(Form1Template):
     snapshot_index = next((index for index, snapshot in enumerate(self._allocation_snapshots)
                            if snapshot["key"] == chosen), None)
     previous = self._allocation_snapshots[snapshot_index - 1] if snapshot_index is not None and snapshot_index > 0 else None
-    groups = allocation_groups(allocation, security_view, previous)
+    groups = self._allocation_groups_for_view().get(chosen)
+    if groups is None:
+      groups = allocation_groups(allocation, security_view, previous)
     colors = [self._security_colors.get(group["symbol"], chart_theme.MUTED) if security_view else SECTOR_COLORS.get(group["sector"], chart_theme.MUTED) for group in groups]
     provisional = (self._allocation_snapshot or {}).get("provisional", bool(self._history["metadata"].get("provisional_date")))
     self.sector_period_label.text = "%s · %s in open positions%s" % (
@@ -2120,48 +2176,34 @@ class Form1(Form1Template):
     equity_sectors = [group for group in slices if group["sector"] not in ("Funds / ETFs", "Unclassified") and group["market_value"] > 0]
     self.allocation_sector_count_label.text = str(len(equity_sectors))
     self.allocation_largest_sector_label.text = "%s · %.1f%%" % (equity_sectors[0]["sector"], equity_sectors[0]["weight"] * 100) if equity_sectors else "—"
-    self.allocation_legend_label.text = "Securities by weight" if security_view else "Sectors by weight"
+    self.allocation_legend_label.text = "Security allocation" if security_view else "Sector allocation"
     self.allocation_change_label.text = (
-      "Weight change vs %s · percentage points" % previous["date"]
-      if previous and previous["total_value"] > 0 else "Weights use the selected snapshot's market values."
+      "Change in percentage points since %s" % previous["label"].replace(" · latest", "")
+      if previous and previous["total_value"] > 0 else "Change unavailable: no earlier invested snapshot."
     )
     self.sector_empty_label.visible = not total
     self.sector_empty_label.text = (
       "Select a security below to see its allocation." if not self._selected_symbols
       else "No selected open positions at this snapshot. Closed trades and dividends still contribute to performance."
     )
-    self.sector_plot.visible = total > 0
     self.sector_panel.items = [dict(group,
       color=color,
       weight_text="%.1f%%" % (group["weight"] * 100),
       value_text=self._format_currency(group["market_value"]),
+      change_value_text=("—" if group["change_pp"] is None else "0.0"
+                         if abs(group["change_pp"]) < 0.05 else "%+.1f" % group["change_pp"]),
     ) for group, color in zip(groups, colors)]
-    self.sector_plot.data = [{
-      "type": "pie", "hole": 0.72, "sort": False, "direction": "clockwise",
-      "labels": [group["sector"] for group in groups],
-      "values": [group["market_value"] for group in groups],
-      "customdata": [group["tickers_text"] for group in groups],
-      "marker": {"colors": colors, "line": {"color": chart_theme.PANEL, "width": 3}},
-      "text": ["%.1f%%" % (group["weight"] * 100) if group["weight"] >= 0.04 else "" for group in groups],
-      "textinfo": "text", "textposition": "inside",
-      "insidetextfont": {"color": chart_theme.PIE_TEXT, "size": 13},
-      "hovertemplate": "%{label}: %{percent}<br>$%{value:,.2f}<br>%{customdata}<extra></extra>",
-    }] if total > 0 else []
-    self.sector_plot.layout = chart_theme.layout({
-      "margin": {"l": 8, "r": 8, "t": 15, "b": 15}, "showlegend": False,
-      "paper_bgcolor": chart_theme.PANEL, "font": {"family": "Inter, sans-serif", "size": 14, "color": chart_theme.TEXT},
-      "annotations": [{"text": str(len(groups)), "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.54, "showarrow": False, "font": {"size": 38, "color": chart_theme.TEXT}},
-                      {"text": "holdings" if security_view else "allocation groups", "xref": "paper", "yref": "paper", "x": 0.5, "y": 0.42, "showarrow": False, "font": {"size": 12, "color": chart_theme.MUTED}}],
-    })
-    self.sector_plot.config = {"displayModeBar": False, "responsive": True}
     unknown = [row["symbol"] for row in holdings if row["sector"] == "Unclassified"]
     self.sector_status_label.text = (
       "Choose a sector in the holdings table for %s. Their values remain included under Unclassified." % ", ".join(unknown)
       if unknown else "Folio classifications · Sector choices can be customized in the holdings table."
     )
-    self._render_allocation_map(allocation)
+    if HOLDINGS_MAP_ENABLED:
+      self._render_allocation_map(allocation)
 
   def _render_allocation_map(self, allocation):
+    if not HOLDINGS_MAP_ENABLED:
+      return
     total = allocation["total_value"]
     self.allocation_map_region.visible = total > 0
     self.allocation_map_plot.visible = total > 0
@@ -2198,44 +2240,72 @@ class Form1(Form1Template):
     })
     self.allocation_map_plot.config = {"displayModeBar": False, "responsive": True}
 
+  def _allocation_selection_outline(self):
+    selected = self.allocation_quarter_dropdown.selected_value
+    index = next((index for index, snapshot in enumerate(self._allocation_snapshots)
+                  if snapshot["key"] == selected), None)
+    return [] if index is None else [{
+      "type": "rect", "xref": "x", "yref": "paper",
+      "x0": index - 0.46, "x1": index + 0.46, "y0": 0, "y1": 1,
+      "fillcolor": "rgba(0,0,0,0)", "line": {"color": chart_theme.MUTED, "width": 1},
+      "layer": "below",
+    }]
+
   def _render_allocation_history(self):
     snapshots = self._allocation_snapshots
     security_view = self.allocation_view_dropdown.selected_value == "security"
+    key = (security_view, chart_theme.MODE)
+    selected = self.allocation_quarter_dropdown.selected_value
+    if self._allocation_history_key == key:
+      if snapshots and self._allocation_highlight_key != selected:
+        # Selecting a quarter only moves the outline; trace arrays stay intact.
+        self.allocation_history_plot.relayout({"shapes": self._allocation_selection_outline()})
+        self._allocation_highlight_key = selected
+      return
     self.allocation_history_title_label.text = "Security allocation over time" if security_view else "Sector allocation over time"
     self.allocation_history_plot.visible = bool(snapshots)
     self.allocation_history_status_label.text = (
-      "Quarter-end positions plus the latest snapshot. Select a bar to inspect it; the outlined bar is selected. Weights exclude cash."
-      if snapshots else "Select securities and sync history to see quarterly position weights."
+      "Quarterly weights · Select a bar to view its snapshot · Cash excluded"
+      if snapshots else "Refresh your portfolio to load quarterly position weights."
     )
-    grouped = [{group["sector"]: group for group in allocation_groups(snapshot, security_view)} for snapshot in snapshots]
+    cached = self._allocation_groups_for_view()
+    grouped = [{group["sector"]: group for group in cached[snapshot["key"]]} for snapshot in snapshots]
     names = set(name for groups in grouped for name in groups)
-    selected = self.allocation_quarter_dropdown.selected_value
-    current = next((groups for groups, snapshot in zip(grouped, snapshots) if snapshot["key"] == selected), {})
-    names = sorted(names, key=lambda name: (-current.get(name, {}).get("weight", 0), name))
-    self.allocation_history_plot.data = [
-      {"type": "bar", "name": name, "x": [snapshot["label"] for snapshot in snapshots],
+    latest = grouped[-1] if grouped else {}
+    # Anchor both stack order and colours to the latest allocation, so choosing
+    # another quarter never reshuffles the history or rebuilds its traces.
+    names = sorted(names, key=lambda name: (-latest.get(name, {}).get("weight", 0), name))
+    labels = [snapshot["label"].replace(" · latest", "") for snapshot in snapshots]
+    traces = [
+      {"type": "bar", "name": name, "x": labels,
        "y": [groups.get(name, {}).get("weight", 0) if snapshot["total_value"] else None for groups, snapshot in zip(grouped, snapshots)],
        "customdata": [snapshot["date"] for snapshot in snapshots],
-       "marker": {"color": self._security_colors.get(name, chart_theme.MUTED) if security_view else SECTOR_COLORS.get(name, chart_theme.MUTED),
-                  "line": {"color": chart_theme.TEXT, "width": [2 if snapshot["key"] == selected else 0 for snapshot in snapshots]}},
+       "marker": {"color": self._security_colors.get(name, chart_theme.MUTED) if security_view else SECTOR_COLORS.get(name, chart_theme.MUTED)},
        "hovertemplate": "%{x}<br>%{customdata}<br>%{y:.1%}<extra>" + name + "</extra>"}
       for name in names
     ]
-    self.allocation_history_plot.height = "%dpx" % (360 + 22 * ((len(names) + 2) // 3))
-    self.allocation_history_plot.layout = chart_theme.layout({
-      "barmode": "stack", "bargap": 0.25, "margin": {"l": 48, "r": 12, "t": 15, "b": 75 + 22 * ((len(names) + 2) // 3)},
+    tick_step = max(1, (len(snapshots) + 8) // 9)
+    ticks = list(range(0, len(snapshots), tick_step))
+    if snapshots and len(snapshots) - 1 not in ticks:
+      ticks.append(len(snapshots) - 1)
+    self.allocation_history_plot.figure = {"data": traces, "layout": chart_theme.layout({
+      "barmode": "stack", "bargap": 0.24, "margin": {"l": 45, "r": 8, "t": 12, "b": 40},
       "paper_bgcolor": chart_theme.PANEL, "plot_bgcolor": chart_theme.PANEL,
-      "font": {"family": "Inter, sans-serif", "size": 13, "color": chart_theme.MUTED},
-      "legend": {"orientation": "h", "y": -0.25, "traceorder": "normal"},
-      "xaxis": {"type": "category", "showgrid": False},
+      "font": {"family": "Inter, sans-serif", "size": 12, "color": chart_theme.MUTED},
+      "showlegend": False, "transition": {"duration": 0},
+      "shapes": self._allocation_selection_outline(),
+      "xaxis": {"type": "category", "showgrid": False, "fixedrange": True,
+                "tickmode": "array", "tickvals": [labels[index] for index in ticks],
+                "ticktext": ["Q%s '%s" % (labels[index][1], labels[index][-2:]) for index in ticks], "tickangle": 0},
       "yaxis": {"tickformat": ".0%", "dtick": 0.25, "range": [0, 1], "gridcolor": chart_theme.GRID, "fixedrange": True},
-    })
-    self.allocation_history_plot.config = {"displayModeBar": False, "responsive": True}
+    })}
+    self._allocation_history_key, self._allocation_highlight_key = key, selected
 
   @handle("allocation_view_dropdown", "change")
   @handle("allocation_quarter_dropdown", "change")
   def allocation_snapshot_change(self, **event_args):
     if not self._busy and self._history is not None:
+      self._allocation_security_rows = None
       self._render_allocation_snapshot()
       self._render_allocation_history()
       self._render_security_rows()
@@ -2251,49 +2321,52 @@ class Form1(Form1Template):
           return
 
   def _render_security_rows(self):
-    if self._analysis_source is None or self._history is None:
+    if not self._allocation_holdings_open or self._analysis_source is None or self._history is None:
       return
-    securities = self._analysis_source["selection_data"]["securities"]
-    allocation = self._allocation_snapshot or self._history["sector_allocation"]
-    total_value = allocation["total_value"]
-    snapshot_date = allocation.get("date", allocation.get("as_of"))
-    dates = self._analysis_source["selection_data"]["dates"]
-    index = dates.index(snapshot_date) if snapshot_date in dates else None
-    rows = []
-    for security in securities:
-      included = security["symbol"] in self._selected_symbols
-      position_day = security["days"][index] if index is not None else {}
-      shares = position_day.get("shares", security["shares"])
-      value = position_day.get("market_value", security["market_value"])
-      # Historical snapshots must use only trades/dividends through that date.
-      # An older analysis without daily stats shows blanks until the next sync.
-      stats = position_day if index is not None else security
-      buy_cost = stats.get("buy_cost")
-      profit = stats.get("profit") if buy_cost else None
-      profit_return = stats.get("profit_return") if buy_cost else None
-      average_buy = stats.get("average_buy_price")
-      average_sell = stats.get("average_sell_price")
-      shares_text = format(shares, ",.8f").rstrip("0").rstrip(".")
-      position = "%s shares" % shares_text if shares > 0 else "No open position at this snapshot"
-      if shares <= 0 and buy_cost is not None:
-        position = "Closed position" if buy_cost > 0 else "No trades by this snapshot"
-      count = security["transaction_count"]
-      rows.append(dict(security,
-        sector_options=self._analysis_source.get("sector_options", sorted(SECTOR_COLORS)),
-        shares_text=shares_text, is_open=shares > 0,
-        included=included, snapshot_value=value,
-        color=self._security_colors.get(security["symbol"], chart_theme.MUTED) if self.allocation_view_dropdown.selected_value == "security" else SECTOR_COLORS.get(security["sector"], chart_theme.MUTED),
-        detail_text="%s · %s · %d trade%s total" % (security["sector"], position, count, "" if count == 1 else "s"),
-        value_text=self._format_currency(value),
-        profit=profit,
-        profit_text=("—" if profit is None else ("+" if profit > 0 else "-" if profit < 0 else "") + self._format_currency(abs(profit))),
-        profit_return_text="—" if profit_return is None else self._format_percent(profit_return),
-        average_buy_text=self._format_average_price(average_buy),
-        average_sell_text=self._format_average_price(average_sell),
-        weight_percent=value / total_value * 100 if included and total_value else 0,
-        weight_text=("%.1f%% of snapshot" % (value / total_value * 100)
-                     if included and total_value else "0.0% of snapshot" if included else "Excluded"),
-      ))
+    if self._allocation_security_rows is None:
+      securities = self._analysis_source["selection_data"]["securities"]
+      allocation = self._allocation_snapshot or self._history["sector_allocation"]
+      total_value = allocation["total_value"]
+      snapshot_date = allocation.get("date", allocation.get("as_of"))
+      dates = self._analysis_source["selection_data"]["dates"]
+      index = self._allocation_snapshot["index"] if self._allocation_snapshot else len(dates) - 1 if dates and dates[-1] == snapshot_date else None
+      rows = []
+      for security in securities:
+        included = security["symbol"] in self._selected_symbols
+        position_day = security["days"][index] if index is not None else {}
+        shares = position_day.get("shares", security["shares"])
+        value = position_day.get("market_value", security["market_value"])
+        # Historical snapshots must use only trades/dividends through that date.
+        # An older analysis without daily stats shows blanks until the next sync.
+        stats = position_day if index is not None else security
+        buy_cost = stats.get("buy_cost")
+        profit = stats.get("profit") if buy_cost else None
+        profit_return = stats.get("profit_return") if buy_cost else None
+        average_buy = stats.get("average_buy_price")
+        average_sell = stats.get("average_sell_price")
+        shares_text = format(shares, ",.8f").rstrip("0").rstrip(".")
+        position = "%s shares" % shares_text if shares > 0 else "No open position at this snapshot"
+        if shares <= 0 and buy_cost is not None:
+          position = "Closed position" if buy_cost > 0 else "No trades by this snapshot"
+        count = security["transaction_count"]
+        rows.append(dict(security,
+          sector_options=self._analysis_source.get("sector_options", sorted(SECTOR_COLORS)),
+          shares_text=shares_text, is_open=shares > 0,
+          included=included, snapshot_value=value,
+          color=self._security_colors.get(security["symbol"], chart_theme.MUTED) if self.allocation_view_dropdown.selected_value == "security" else SECTOR_COLORS.get(security["sector"], chart_theme.MUTED),
+          detail_text="%s · %s · %d trade%s total" % (security["sector"], position, count, "" if count == 1 else "s"),
+          value_text=self._format_currency(value),
+          profit=profit,
+          profit_text=("—" if profit is None else ("+" if profit > 0 else "-" if profit < 0 else "") + self._format_currency(abs(profit))),
+          profit_return_text="—" if profit_return is None else self._format_percent(profit_return),
+          average_buy_text=self._format_average_price(average_buy),
+          average_sell_text=self._format_average_price(average_sell),
+          weight_percent=value / total_value * 100 if included and total_value else 0,
+          weight_text=("%.1f%% of snapshot" % (value / total_value * 100)
+                       if included and total_value else "0.0% of snapshot" if included else "Excluded"),
+        ))
+      self._allocation_security_rows = rows
+    rows = self._allocation_security_rows
     query = str(self.allocation_search_box.text or "").strip().lower()
     position = self.allocation_position_dropdown.selected_value or "all"
     filtered = [row for row in rows
@@ -2303,15 +2376,28 @@ class Form1(Form1Template):
     self.allocation_filter_empty_label.visible = bool(rows) and not filtered
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy, can_classify=self._user is not None)
     self.selection_status_label.text = (
-      "%d of %d securities selected · All metrics and charts use this selection." % (len(self._selected_symbols), len(securities))
+      "%d of %d securities selected · All metrics and charts use this selection." % (len(self._selected_symbols), len(rows))
       if self._selected_symbols else "No securities selected. Check a security or choose Select all."
     )
     if query or position != "all":
       self.selection_status_label.text += " Showing %d of %d holdings; filters do not change your selection." % (len(filtered), len(rows))
 
+  def allocation_holdings_toggle(self, event):
+    if event.target != self.dom_nodes["allocation_holdings"]:
+      return
+    self._allocation_holdings_open = event.target.hasAttribute("open")
+    if self._allocation_holdings_open and not self._busy:
+      self._render_security_rows()
+
   @handle("allocation_search_box", "change")
+  def allocation_search_change(self, **event_args):
+    if not self._busy:
+      self.allocation_filter_timer.interval = 0.12
+
+  @handle("allocation_filter_timer", "tick")
   @handle("allocation_position_dropdown", "change")
   def allocation_filter_change(self, **event_args):
+    self.allocation_filter_timer.interval = 0
     if not self._busy:
       self._render_security_rows()
 
@@ -2344,7 +2430,7 @@ class Form1(Form1Template):
     if self._history is None:
       return
     self._dirty_readout_pages.update(("overview", "allocation", "performance"))
-    self.portfolio_holdings_form.set_analysis(self._analysis_source, self._selected_symbols, self._analyzed_transactions)
+    self._invalidate_allocation()
     self._render_portfolio_summary()
     self._render_active_readout()
     self._update_readout_context()
@@ -2352,6 +2438,7 @@ class Form1(Form1Template):
   def _render_overview(self):
     if self._history is None:
       return
+    self.portfolio_holdings_form.set_analysis(self._analysis_source, self._selected_symbols, self._analyzed_transactions)
     self.portfolio_holdings_form.redraw()
     metrics = self._history["metrics"]
     for label, key in [(self.invested_label, "buy_cost"), (self.value_label, "market_value"),

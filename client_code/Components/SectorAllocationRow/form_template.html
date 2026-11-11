@@ -1,13 +1,11 @@
 <div class="sector-allocation-row">
-  <span anvil:name="swatch" class="sector-swatch" aria-hidden="true"></span>
-  <div class="sector-description">
-    <anvil-component type="Label" name="sector_label" bind:text="self.item['sector']" prop:role="sector-name"></anvil-component>
-    <anvil-component type="Label" name="tickers_label" bind:text="self.item['tickers_text']" prop:role="sector-tickers"></anvil-component>
-    <div class="allocation-weight-track" aria-hidden="true"><span anvil:name="weight_fill" class="allocation-weight-fill"></span></div>
-    <anvil-component type="Label" name="change_label" bind:text="self.item['change_text']" prop:role="allocation-change"></anvil-component>
+  <div class="sector-identity">
+    <span anvil:name="swatch" class="sector-swatch" aria-hidden="true"></span>
+    <anvil-component type="Label" name="sector_label" bind:text="self.item['sector']" bind:tooltip="self.item['tickers_text']" prop:role="sector-name" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
   </div>
   <div class="sector-amounts">
-    <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" prop:role="sector-weight"></anvil-component>
-    <anvil-component type="Label" name="value_label" bind:text="self.item['value_text']" prop:role="sector-tickers"></anvil-component>
+    <anvil-component type="Label" name="weight_label" bind:text="self.item['weight_text']" bind:tooltip="self.item['value_text']" prop:role="sector-weight" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+    <div class="allocation-weight-track" aria-hidden="true"><span anvil:name="weight_fill" class="allocation-weight-fill"></span></div>
   </div>
+  <anvil-component type="Label" name="change_label" bind:text="self.item['change_value_text']" bind:tooltip="self.item['change_text']" prop:role="allocation-change" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
 </div>

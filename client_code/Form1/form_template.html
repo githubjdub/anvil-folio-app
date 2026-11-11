@@ -264,13 +264,25 @@
           </details>
           </section>
           <section anvil:name="allocation_panel" class="readout-page allocation-page" aria-label="Portfolio structure">
-          <section class="detail-card sector-card" aria-label="Portfolio composition">
-            <div class="detail-heading allocation-heading"><div><div class="allocation-eyebrow">Portfolio insights</div><h3>Portfolio structure</h3><p>Sector exposure, position sizes, and concentration.</p></div><span class="allocation-badge">Market-value weighted</span></div>
-            <div class="structure-controls">
-              <div><div class="portfolio-field-caption">Snapshot</div><anvil-component type="DropDown" name="allocation_quarter_dropdown" prop:role="portfolio-picker"></anvil-component></div>
-              <div><div class="portfolio-field-caption">Break down by</div><anvil-component type="DropDown" name="allocation_view_dropdown" prop:role="portfolio-picker"></anvil-component></div>
-            </div>
-            <anvil-component type="Label" name="sector_period_label" prop:role="portfolio-help"></anvil-component>
+          <div class="detail-heading allocation-heading">
+            <h3><anvil-component type="Label" name="allocation_legend_label" prop:text="Sector allocation" prop:role="allocation-chart-title" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></h3>
+            <div class="allocation-view-control"><span>View</span><anvil-component type="DropDown" name="allocation_view_dropdown" prop:role="portfolio-picker" prop:tooltip="Show sectors or individual securities"></anvil-component></div>
+          </div>
+          <div class="allocation-comparison-grid">
+            <section class="detail-card allocation-table-card" aria-label="Allocation weights and changes">
+              <div class="allocation-table-heading"><anvil-component type="DropDown" name="allocation_quarter_dropdown" prop:role="allocation-snapshot-picker" prop:tooltip="Choose a quarter or the latest snapshot"></anvil-component><span>Weight</span><span>Change</span></div>
+              <anvil-component type="Label" name="sector_empty_label" prop:text="Refresh your portfolio to see its allocation." prop:role="portfolio-help"></anvil-component>
+              <anvil-component type="RepeatingPanel" name="sector_panel" prop:item_template="M3_App_1.Components.SectorAllocationRow"></anvil-component>
+              <anvil-component type="Label" name="allocation_change_label" prop:role="allocation-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+            </section>
+            <section class="detail-card allocation-history-card" aria-label="Allocation history">
+              <anvil-component type="Plot" name="allocation_history_plot" prop:height="440px" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+              <anvil-component type="Label" name="allocation_history_title_label" prop:text="Sector allocation over time" prop:visible="false"></anvil-component>
+              <anvil-component type="Label" name="allocation_history_status_label" prop:role="allocation-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+            </section>
+          </div>
+          <anvil-component type="Label" name="sector_period_label" prop:role="allocation-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+          <details class="detail-card allocation-notes"><summary>Portfolio totals &amp; methodology</summary>
             <div class="structure-summary allocation-summary">
               <div><span>Position value</span><anvil-component type="Label" name="allocation_value_label" prop:role="structure-value"></anvil-component></div>
               <div><span>Open holdings</span><anvil-component type="Label" name="allocation_count_label" prop:role="structure-value"></anvil-component></div>
@@ -279,25 +291,16 @@
               <div><span>Equity sectors</span><anvil-component type="Label" name="allocation_sector_count_label" prop:role="structure-value"></anvil-component></div>
               <div><span>Largest equity sector</span><anvil-component type="Label" name="allocation_largest_sector_label" prop:role="structure-sector-value"></anvil-component></div>
             </div>
-            <anvil-component type="Label" name="sector_empty_label" prop:text="No open holdings to chart. Add a buy transaction and sync history to see your sector allocation." prop:role="portfolio-help"></anvil-component>
-            <div class="structure-chart-grid">
-              <div class="allocation-donut"><anvil-component type="Plot" name="sector_plot" prop:height="350px"></anvil-component><p class="allocation-chart-caption">Share of selected open positions</p></div>
-              <div class="structure-legend"><div class="allocation-legend-heading"><anvil-component type="Label" name="allocation_legend_label" prop:role="structure-legend-title"></anvil-component><span>Weight / value</span></div><anvil-component type="Label" name="allocation_change_label" prop:role="allocation-caption"></anvil-component><anvil-component type="RepeatingPanel" name="sector_panel" prop:item_template="M3_App_1.Components.SectorAllocationRow"></anvil-component></div>
-            </div>
             <div class="allocation-source-note"><anvil-component type="Label" name="sector_status_label" prop:role="portfolio-help"></anvil-component><p>Cash is excluded. Funds / ETFs are a separate group; their underlying sectors are not estimated.</p></div>
-          </section>
-          <section class="detail-card allocation-history-card" aria-label="Allocation history">
-            <div class="detail-heading"><div role="heading" aria-level="3"><anvil-component type="Label" name="allocation_history_title_label" prop:text="Sector allocation over time" prop:role="allocation-chart-title"></anvil-component></div><span>Quarterly snapshots</span></div>
-            <anvil-component type="Label" name="allocation_history_status_label" prop:role="portfolio-help"></anvil-component>
-            <anvil-component type="Plot" name="allocation_history_plot" prop:height="380px"></anvil-component>
-          </section>
-          <section anvil:name="allocation_map_region" class="detail-card allocation-map-card" aria-label="Holdings map">
+          </details>
+          <section anvil:name="allocation_map_region" class="detail-card allocation-map-card" style="display: none;" aria-label="Holdings map">
             <div class="detail-heading"><h3>Holdings map</h3><span>Size = position weight</span></div>
             <p class="allocation-map-help">Each tile is a holding, grouped by sector. Select a sector to explore its holdings; use the chart's path to return.</p>
-            <anvil-component type="Plot" name="allocation_map_plot" prop:height="380px"></anvil-component>
+            <anvil-component type="Plot" name="allocation_map_plot" prop:height="380px" prop:visible="false"></anvil-component>
           </section>
-          <section class="detail-card allocation-securities-card" aria-label="Securities in this analysis">
-            <div class="security-breakdown-heading"><h4>Portfolio holdings</h4><anvil-component type="m3._Components.Button" name="select_all_securities_button" prop:text="Select all" prop:appearance="text"></anvil-component></div>
+          <details anvil:dom-node="allocation_holdings" anvil:on-dom:toggle="self.allocation_holdings_toggle" class="detail-card allocation-securities-card">
+            <summary>Portfolio holdings <span>Selection, sectors &amp; position details</span></summary>
+            <div class="security-breakdown-heading"><h4>Holdings at this snapshot</h4><anvil-component type="m3._Components.Button" name="select_all_securities_button" prop:text="Select all" prop:appearance="text"></anvil-component></div>
             <div class="holdings-filter"><anvil-component type="TextBox" name="allocation_search_box" prop:placeholder="Filter ticker, company, or sector" prop:role="portfolio-input" prop:tooltip="Filter holdings by ticker, company name, or sector"></anvil-component><anvil-component type="DropDown" name="allocation_position_dropdown" prop:role="portfolio-picker" prop:tooltip="Filter open or closed positions"></anvil-component></div>
             <p class="security-selection-help">Position values, P&amp;L and average trade prices follow the selected snapshot. Uncheck a security to recalculate your charts and totals instantly. Sign in to customize a sector; your choices are saved to your account and used across your portfolios.</p>
             <anvil-component type="Label" name="selection_status_label" prop:role="portfolio-help" prop:spacing_above="none" prop:spacing_below="small"></anvil-component>
@@ -307,7 +310,7 @@
             <p class="fine-print">Open positions at the selected price mark, weighted by market value; sold positions and dividend cash are excluded. Today's quote-based snapshot is provisional. Current sector classifications are used for every snapshot. Funds / ETFs are grouped separately, without looking through their holdings.</p>
             <p class="fine-print">For each security, total P&amp;L is position value plus sale proceeds and dividends minus all buy costs through the snapshot. Return on buys is P&amp;L divided by those buy costs. These figures include closed trades. Average buy and sell prices cover all trades on each side through that date, on the snapshot's split-adjusted share basis; they are not the cost basis of the remaining shares. Performance charts use time-weighted returns over their own selected period.</p>
             </details>
-          </section>
+          </details>
           </section>
           <section anvil:name="performance_panel" anvil:dom-node="performance_dialog" anvil:on-dom:keydown="self.performance_keydown" class="readout-page performance-chart-panel" role="region" tabindex="-1" aria-label="Performance and risk">
           <section class="detail-card comparison-card" aria-label="Risk and benchmark analyzer">
@@ -409,7 +412,8 @@
 
   <footer class="portfolio-footer"><span>Folio</span><span>Built for clearer decisions.</span><a class="disclosures-link" href="#?page=disclosures">Disclosures &amp; methods</a></footer>
   <p class="site-analytics-notice">Basic visit counts and approximate country statistics help us understand site usage. Browser privacy signals are respected.</p>
-  <anvil-component type="Timer" name="autosave_timer" prop:interval="0"></anvil-component>
+  <anvil-component type="Timer" name="allocation_filter_timer" prop:interval="0"></anvil-component>
+<anvil-component type="Timer" name="autosave_timer" prop:interval="0"></anvil-component>
   <anvil-component type="Timer" name="market_status_timer" prop:interval="1"></anvil-component>
   <anvil-component type="Timer" name="notification_badge_timer" prop:interval="60"></anvil-component>
 </section>
