@@ -528,12 +528,14 @@ class Form1(Form1Template):
 
   def _set_notification_unread_count(self, count):
     self._notification_badge_revision += 1
+    self._notification_badge_retry_interval = 5
     count = max(0, int(count or 0)) if self.account_id else 0
     self.notification_badge.visible = count > 0
     self.notification_badge_label.text = "99+" if count > 99 else str(count)
     description = "%s unread notification%s" % (count, "" if count == 1 else "s")
     self.notification_badge_accessible_label.text = description if self.account_id else ""
     self.notifications_tab_button.tooltip = description if self.account_id else "Sign in to view your notifications"
+    self.notification_badge_timer.interval = 60 if self.account_id else 0
 
   @handle("notifications_form", "x-notifications-unread")
   def notifications_unread_change(self, count, account_id, **event_args):
@@ -546,8 +548,21 @@ class Form1(Form1Template):
     account_id = self.account_id
     revision = self._notification_badge_revision
     self._notification_badge_loading = True
+    self.notification_badge_timer.interval = 0
     try:
-      count = anvil.server.call_s("get_notification_unread_count")
+      try:
+        count = anvil.server.call_s("get_notification_unread_count")
+      # The runtime exposes this exception; the client API stubs omit it.
+      except (getattr(anvil.server, "RuntimeUnavailableError"), anvil.server.AppOfflineError):
+        # This optional read must not interrupt the portfolio when the server
+        # restarts or the connection drops. Keep the last known count intact.
+        if account_id == self.account_id and revision == self._notification_badge_revision:
+          description = "Notification count temporarily unavailable. Retrying automatically."
+          self.notification_badge_accessible_label.text = description
+          self.notifications_tab_button.tooltip = description
+          self.notification_badge_timer.interval = self._notification_badge_retry_interval
+          self._notification_badge_retry_interval = min(60, self._notification_badge_retry_interval * 3)
+        return
       # A newer inbox response or account change takes precedence over a poll.
       if account_id == self.account_id and revision == self._notification_badge_revision:
         self._set_notification_unread_count(count)
@@ -556,8 +571,10 @@ class Form1(Form1Template):
 
   @handle("notification_badge_timer", "tick")
   def notification_badge_timer_tick(self, **event_args):
-    if not self._initializing and not self._busy:
-      self._refresh_notification_unread_count()
+    if self._initializing or self._busy or self._notification_badge_loading:
+      self.notification_badge_timer.interval = 1 if self.account_id else 0
+      return
+    self._refresh_notification_unread_count()
 
   @handle("income_form", "x-income-busy")
   def income_busy_change(self, busy, **event_args):
@@ -1067,7 +1084,9 @@ class Form1(Form1Template):
     self._apply_readout_page()
     self._refresh_portfolios(workspace["portfolios"] if workspace is not None else [])
 
-    self._refresh_notification_unread_count()
+    # Start the optional badge read after the workspace is visible and ready;
+    # it must never hold up Router's construction of this Form.
+    self.notification_badge_timer.interval = 0.1 if self.account_id else 0
 
   def resume_account(self):
     self.apply_appearance()
