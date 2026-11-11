@@ -124,6 +124,18 @@ input.anvil-text-box::placeholder, textarea.anvil-text-area::placeholder { color
 button.anvil-role-share-action { min-height: 40px; margin: 0; padding: 8px 14px; border-radius: 9px; font-size: 13px; white-space: nowrap; }
 button.anvil-role-share-tool { min-height: 36px; margin: 0; padding: 6px 10px; font-size: 13px; white-space: nowrap; }
 .share-composer { padding: 22px; margin: 20px 0; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-soft); }
+.share-composer-overlay { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center; padding: 20px; box-sizing: border-box; background: rgba(15, 23, 42, .42); }
+.share-composer-overlay .share-composer { width: min(760px, 100%); min-width: 0; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); margin: 0; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; background: var(--paper); box-shadow: 0 20px 65px rgba(0, 0, 0, .2); }
+.share-composer-overlay .share-composer:focus { outline: none; }
+.share-composer-overlay .share-create-actions > * { min-width: 0; }
+@media (max-width: 620px) {
+  .share-composer-overlay { padding: 8px; }
+  .share-composer-overlay .share-composer { max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); padding: 16px; border-radius: 12px; }
+  .share-composer-overlay .share-composer-heading { gap: 8px; }
+  .share-composer-overlay .share-composer-heading h3 { font-size: 17px; }
+  .share-composer-overlay .share-create-actions > * { flex: 1 1 150px; }
+  .share-composer-overlay .share-create-actions button { min-height: 44px; }
+}
 .share-composer-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
 .share-composer-heading h3 { margin: 0; font-size: 19px; }
 .share-composer-heading p, .share-disclosure { color: var(--muted); font-size: 13px; line-height: 1.65; }
@@ -849,6 +861,64 @@ button.anvil-role-import-toggle:focus-visible { outline: 2px solid var(--mint-st
   .transaction-card .holding-row .shares-field { grid-column: 1; grid-row: 3; }
   .transaction-card .holding-row .trade-price-field { grid-column: 2; grid-row: 3; }
   .transaction-card .holding-row .market-data-field { grid-column: 1 / -1; grid-row: 4; }
+}
+
+/* Performance history: compact research controls and a clear primary chart. */
+.performance-chart-panel { container-type: inline-size; container-name: performance; }
+.performance-chart-panel .comparison-card { padding: 20px; border-radius: 10px; }
+.performance-eyebrow { margin-bottom: 5px; color: var(--muted); font-size: 11px; }
+.anvil-role-performance-heading { margin: 0; color: var(--ink); font-size: 20px; line-height: 1.4; font-weight: 700; }
+.performance-chart-panel .chart-panel-heading { margin-bottom: 16px; }
+.performance-chart-panel .performance-controls { background: transparent; border-radius: 0; padding: 0; }
+.performance-primary-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 16px; }
+.performance-weighting-switch { display: flex; max-width: 100%; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--paper); }
+.performance-weighting-switch > * { flex: 1 1 auto; min-width: 0; margin: 0; }
+.performance-weighting-switch > * + * { border-left: 1px solid var(--line); }
+.performance-weighting-switch button { min-height: 38px; height: auto; padding: 8px 14px; border: 0; border-radius: 0; font-size: 13px; color: var(--muted); background: transparent; white-space: normal; }
+.performance-weighting-switch button.anvil-role-chart-range-active, .performance-weighting-switch .anvil-role-chart-range-active > button { color: var(--ink); font-weight: 650; background: var(--surface-soft); box-shadow: none; }
+.performance-chart-panel .performance-primary-ranges { display: grid; grid-template-columns: repeat(4, auto); width: auto; gap: 0; padding: 0; margin: 0; border-radius: 7px; background: var(--paper); overflow: hidden; }
+.performance-chart-panel .performance-primary-ranges > * + * { border-left: 1px solid var(--line); }
+.performance-chart-panel .performance-primary-ranges button { min-height: 38px; height: auto; padding: 8px 14px; border: 0; border-radius: 0; font-size: 13px; }
+.anvil-role-performance-method { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.anvil-label.anvil-role-performance-heading > span, .anvil-label.anvil-role-performance-method > span, .anvil-label.anvil-role-comparison-metric-label > span { padding-top: 0; padding-bottom: 0; }
+.performance-short-ranges { margin: 10px 0 14px; }
+.performance-short-ranges > summary { width: fit-content; color: var(--muted); cursor: pointer; font-size: 11px; line-height: 1.7; }
+.performance-short-ranges .chart-range-buttons { max-width: 520px; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 8px 0 0; }
+.performance-chart-panel .comparison-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 540px; margin: 10px 0; }
+.performance-chart-panel .portfolio-field-caption { font-size: 11px; margin-bottom: 4px; }
+.performance-chart-panel .comparison-custom-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 540px; }
+.performance-chart-panel .comparison-custom-dates > div { min-width: 0; }
+.performance-chart-panel .comparison-custom-dates .anvil-datepicker { width: 100%; }
+.performance-chart-panel .anvil-role-portfolio-help { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.performance-chart-panel .performance-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 16px 0 10px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.performance-chart-panel .performance-summary > div { display: block; min-width: 0; padding: 12px 16px; border: 0; border-radius: 0; background: var(--paper); }
+.performance-chart-panel .performance-summary > div + div { border-left: 1px solid var(--line); }
+.performance-chart-panel .performance-summary .comparison-metric-label { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.performance-chart-panel .performance-summary .anvil-role-comparison-value { display: block; max-width: none; margin: 4px 0 0; font-size: 22px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.performance-chart-panel .chart-trade-toolbar { margin-top: 12px; gap: 8px; flex-wrap: wrap; }
+.performance-chart-panel .chart-trade-toolbar .anvil-checkbox { font-size: 12px; }
+.performance-chart-panel .comparison-card > .performance-chart-block { padding-top: 0; margin-top: 6px; border: 0; }
+.anvil-role-performance-main-plot { width: 100%; min-width: 0; height: clamp(300px, 44cqw, 540px) !important; }
+.performance-chart-panel.is-expanded .anvil-role-performance-main-plot { height: min(65vh, 720px) !important; min-height: 300px; }
+.performance-secondary-details { margin-top: 20px; padding: 14px 0; border-top: 1px solid var(--line); }
+.performance-secondary-details > summary { cursor: pointer; color: var(--ink); font-size: 13px; font-weight: 650; line-height: 1.6; }
+.performance-short-ranges > summary:focus-visible, .performance-secondary-details > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+@container performance (max-width: 660px) {
+  .performance-chart-panel .performance-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .performance-chart-panel .performance-summary > div:nth-child(3) { border-left: 0; }
+  .performance-chart-panel .performance-summary > div:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  .performance-chart-panel .performance-summary > div { padding: 10px 12px; }
+  .performance-chart-panel .performance-summary .anvil-role-comparison-value { font-size: 21px; }
+}
+@container performance (max-width: 420px) {
+  .performance-chart-panel .comparison-card { padding: 14px 10px; }
+  .performance-primary-controls { align-items: stretch; gap: 10px; }
+  .performance-weighting-switch, .performance-chart-panel .performance-primary-ranges { width: 100%; }
+  .performance-chart-panel .performance-primary-ranges { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .performance-weighting-switch button, .performance-chart-panel .performance-primary-ranges button { font-size: 12px; padding: 8px; }
+  .performance-chart-panel .comparison-controls { grid-template-columns: minmax(0, 1fr); }
+  .performance-chart-panel .comparison-custom-dates { grid-template-columns: minmax(0, 1fr); }
+  .anvil-role-performance-heading { font-size: 18px; }
 }
 
 /* Shared performance cards and public pages load with the app theme. */
@@ -1941,12 +2011,14 @@ input.anvil-role-tax-field:disabled { opacity: .55; }
 .portfolio-app .portfolio-profile-header .anvil-role-portfolio-welcome-heading { font-size: clamp(25px, 2.7vw, 34px); letter-spacing: -.04em; margin: 0 0 5px; line-height: 1.16; }
 .portfolio-profile-header .anvil-role-portfolio-help { font-size: 14px; color: var(--muted); }
 .portfolio-profile-actions { display: flex; align-items: flex-start; justify-content: flex-end; flex-wrap: wrap; gap: 8px; flex: 0 1 auto; }
-.portfolio-profile-actions > * { flex: none; }
-.portfolio-refresh-action { display: flex; flex-direction: column; gap: 5px; }
-.portfolio-refresh-meta { color: var(--muted); font-size: 11px; line-height: 1.4; text-align: center; }
-.anvil-role-portfolio-refresh-date { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.portfolio-profile-actions > * { flex: none; margin: 0; }
+.portfolio-refresh-action { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+.portfolio-refresh-meta { display: grid; justify-items: center; gap: 1px; padding: 0 4px; color: var(--muted); font-size: 10px; line-height: 14px; text-align: center; }
+.anvil-role-portfolio-refresh-date { width: 100%; margin: 0; color: var(--muted); font-size: 11px; line-height: 14px; text-align: center; font-variant-numeric: tabular-nums; }
+.anvil-label.anvil-role-portfolio-refresh-date > span { padding-top: 0; padding-bottom: 0; }
 .portfolio-profile-actions .anvil-role-analyze-action { margin: 0; }
 .portfolio-profile-actions button, .portfolio-profile-actions .anvil-role-share-action button { min-height: 40px; height: 40px; padding: 0 15px; border-radius: 7px; font-size: 13px; white-space: nowrap; }
+.portfolio-profile-actions button.anvil-role-share-action:active, .portfolio-profile-actions .anvil-role-share-action > button:active { transform: translateY(1px); }
 .portfolio-summary-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--paper); margin-bottom: 16px; }
 .portfolio-summary-cell { padding: 15px 18px; min-width: 0; }
 .portfolio-summary-cell + .portfolio-summary-cell { border-left: 1px solid var(--line); }

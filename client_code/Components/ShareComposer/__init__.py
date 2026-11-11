@@ -17,6 +17,7 @@ class ShareComposer(ShareComposerTemplate):
     self._origin_message = ""
     self._account_id = None
     self._generation = 0
+    self._summary_generation = None
     self._loading_details = False
     self._links = []
     self._links_loaded_at = None
@@ -37,7 +38,7 @@ class ShareComposer(ShareComposerTemplate):
     return False
 
   def _missing_context(self):
-    raise ValueError("Sync your portfolio before sharing performance.")
+    raise ValueError("Refresh your portfolio before sharing performance.")
 
   def show_for(self, context_getter, ensure_signed_in):
     self._generation += 1
@@ -49,11 +50,53 @@ class ShareComposer(ShareComposerTemplate):
     self.result_region.visible = False
     self.preview_region.visible = False
     self.share_load_timer.interval = 0
+    self.share_prepare_timer.interval = 0
     self.dom_nodes["chart_options"].removeAttribute("open")
     self.dom_nodes["saved_links"].removeAttribute("open")
     self._set_status("")
-    self._update_summary()
+    self._summary = ""
+    self.summary_label.text = "Preparing your performance summary…"
     self._set_busy(False)
+    self._summary_generation = self._generation
+    self.share_prepare_timer.interval = .01
+    self.dom_nodes["share_dialog"].scrollTop = 0
+    self.focus_dialog()
+
+  def focus_dialog(self):
+    self.dom_nodes["share_dialog"].focus({"preventScroll": True})
+
+  @handle("share_prepare_timer", "tick")
+  def prepare_summary(self, **event_args):
+    self.share_prepare_timer.interval = 0
+    self._sync_account()
+    if self.visible and self._summary_generation == self._generation:
+      self._update_summary()
+
+  def backdrop_click(self, event):
+    if event.target == event.currentTarget and not self._busy:
+      self.close_click()
+
+  def share_keydown(self, event):
+    if event.key == "Escape" and not self._busy:
+      event.preventDefault()
+      event.stopPropagation()
+      self.close_click()
+    elif event.key == "Tab":
+      nodes = self.dom_nodes["share_dialog"].querySelectorAll(
+        "button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], summary, [tabindex='0']"
+      )
+      node_at = getattr(nodes, "item")
+      visible = [node_at(index) for index in range(nodes.length)
+                 if node_at(index).getClientRects().length]
+      active = anvil.js.window.document.activeElement
+      if visible and event.shiftKey and (active == visible[0] or active == self.dom_nodes["share_dialog"]):
+        event.preventDefault()
+        visible[-1].focus()
+      elif visible and not event.shiftKey and active == visible[-1]:
+        event.preventDefault()
+        visible[0].focus()
+      elif not visible:
+        event.preventDefault()
 
   def _sync_account(self):
     user = anvil.users.get_user()
@@ -114,13 +157,18 @@ class ShareComposer(ShareComposerTemplate):
     self._set_busy(self._busy)
 
   def _update_summary(self):
+    generation = self._generation
     try:
       context = self._context_getter()
     except ValueError as error:
+      if generation != self._generation or not self.visible:
+        return None
       self._summary = ""
       self.summary_label.text = str(error)
       self._set_status(str(error), is_error=True)
       self._set_busy(self._busy)
+      return None
+    if generation != self._generation or not self.visible:
       return None
     self._summary = context["summary"]
     self.summary_label.text = self._summary
@@ -182,6 +230,7 @@ class ShareComposer(ShareComposerTemplate):
   def close_click(self, **event_args):
     self._generation += 1
     self.share_load_timer.interval = 0
+    self.share_prepare_timer.interval = 0
     self.raise_event("x-close-sharing")
 
   @handle("create_button", "click")

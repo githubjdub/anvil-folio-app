@@ -1,9 +1,10 @@
 ---
 custom_component: true
 ---
-<section class="share-composer" aria-label="Share your performance">
-  <div class="share-composer-heading"><div><h3>Share your percentages</h3><p>Your returns and benchmark comparison. Holdings and dollar amounts stay private.</p></div><anvil-component type="m3._Components.Button" name="close_button" prop:text="Close" prop:appearance="text" prop:role="share-tool"></anvil-component></div>
-  <div class="share-summary"><anvil-component type="Label" name="summary_label" prop:role="share-summary-text" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
+<div class="share-composer-overlay" anvil:on-dom:click="self.backdrop_click">
+<section class="share-composer" role="dialog" aria-modal="true" aria-labelledby="share-composer-title" tabindex="-1" anvil:dom-node="share_dialog" anvil:on-dom:keydown="self.share_keydown">
+  <div class="share-composer-heading"><div><h3 id="share-composer-title">Share your percentages</h3><p>Your returns and benchmark comparison. Holdings and dollar amounts stay private.</p></div><anvil-component type="m3._Components.Button" name="close_button" prop:text="Close" prop:appearance="text" prop:role="share-tool"></anvil-component></div>
+  <div class="share-summary" role="status" aria-live="polite" aria-atomic="true"><anvil-component type="Label" name="summary_label" prop:role="share-summary-text" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
   <div class="share-create-actions"><anvil-component type="m3._Components.Button" name="copy_summary_button" prop:text="Copy percentages" prop:appearance="filled" prop:icon="mi:content_copy" prop:role="share-action"></anvil-component><anvil-component type="m3._Components.Button" name="native_share_button" prop:text="Share…" prop:appearance="outlined" prop:icon="mi:share" prop:role="share-tool"></anvil-component></div>
   <div anvil:name="status_region" class="share-composer-status" role="status" aria-live="polite"><anvil-component type="Label" name="share_status" prop:role="share-help" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
   <details class="share-chart-options" anvil:dom-node="chart_options" anvil:on-dom:toggle="self.details_toggle"><summary>Share a comparison chart</summary>
@@ -18,4 +19,6 @@ custom_component: true
   </details>
   <details class="share-saved-links" anvil:dom-node="saved_links" anvil:on-dom:toggle="self.details_toggle"><summary>Your shared snapshots</summary><anvil-component type="Label" name="links_empty_label" prop:role="share-help"></anvil-component><anvil-component type="RepeatingPanel" name="share_links_panel" prop:item_template="M3_App_1.Components.ShareLinkRow"></anvil-component></details>
   <anvil-component type="Timer" name="share_load_timer" prop:interval="0"></anvil-component>
+  <anvil-component type="Timer" name="share_prepare_timer" prop:interval="0"></anvil-component>
 </section>
+</div>

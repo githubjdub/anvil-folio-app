@@ -10,6 +10,7 @@ from .. import chart_theme
 from ..analysis_selection import analyze_selection, update_sector_classification
 from ..chart_trades import build_trade_markers
 from ..portfolio_periods import quarterly_returns, allocation_snapshots
+from ..performance_weighting import equal_weighted_history
 from ..portfolio_summary import summarize_portfolio
 from ..allocation_breakdown import allocation_groups
 from ..HoldingRow import HoldingRow
@@ -71,6 +72,12 @@ class Form1(Form1Template):
     self._comparison_window_source = None
     self._comparison_window_key = None
     self._comparison_window_data = None
+    self._performance_weighting = "manager"
+    self._equal_weight_source = None
+    self._equal_weight_history = None
+    self._performance_details_open = False
+    self._performance_details_dirty = True
+    self._performance_details_context = None
     self.hedge_fund_comparison.visible = HEDGE_FUND_COMPARISONS_ENABLED
     self._analysis_source = None
     self._last_synced_analysis = None
@@ -131,18 +138,20 @@ class Form1(Form1Template):
     self.regroup_button.visible = False
     self.timeframe_dropdown.items = [
       ("1 month", "1M"), ("3 months", "3M"), ("6 months", "6M"),
-      ("Year to date", "YTD"), ("1 year", "1Y"), ("3 years", "3Y"),
+      ("Year to date", "YTD"), ("1 year", "1Y"), ("3 years", "3Y"), ("5 years", "5Y"),
       ("All history", "ALL"), ("Custom dates", "CUSTOM"),
     ]
-    self.timeframe_dropdown.selected_value = "ALL"
+    self.timeframe_dropdown.selected_value = "3Y"
     self.timeframe_dropdown.visible = False
-    self.benchmark_dropdown.items = BENCHMARK_CHOICES
+    self.benchmark_dropdown.items = [("S&P 500 index", "sp500")]
     self.benchmark_dropdown.selected_value = "sp500"
     self.benchmark_return_dropdown.items = [
       ("Total return · dividends reinvested", "total"),
       ("Price return · excludes dividends", "price"),
     ]
     self.benchmark_return_dropdown.selected_value = "total"
+    for plot in (self.performance_plot, self.drawdown_plot, self.quarterly_plot):
+      plot.config = {"displayModeBar": False, "displaylogo": False, "responsive": True, "scrollZoom": False}
     self.custom_period_region.visible = False
     self._set_dates()
     self.portfolio_name_box.text = ""
@@ -302,8 +311,10 @@ class Form1(Form1Template):
 
   def _page_charts(self, page):
     if page == "performance":
-      return [("performance", self.performance_plot), ("quarterly", self.quarterly_plot),
-              ("drawdown", self.drawdown_plot)]
+      return [("performance", self.performance_plot)] + (
+        [("quarterly", self.quarterly_plot), ("drawdown", self.drawdown_plot)]
+        if self._performance_details_open else []
+      )
     if page == "allocation":
       return [("allocation_history", self.allocation_history_plot)] + (
         [("allocation_map", self.allocation_map_plot)] if HOLDINGS_MAP_ENABLED else []
@@ -942,6 +953,7 @@ class Form1(Form1Template):
       self.plans_button, self.subscription_button,
       self.portfolio_name_box, self.add_button, self.sample_button,
       self.analyze_button, self.as_of_date_picker, self.risk_free_box,
+      self.manager_weighted_button, self.equal_weighted_button,
       self.timeframe_dropdown, self.benchmark_dropdown,
       self.benchmark_return_dropdown, self.select_all_securities_button,
       self.allocation_view_dropdown, self.allocation_quarter_dropdown,
@@ -980,7 +992,8 @@ class Form1(Form1Template):
     self.retirement_form.raise_event("x-set-editable", editable=not self._busy)
     self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
     self.hedge_fund_comparison.raise_event("x-set-editable", editable=not self._busy)
-    self.benchmark_return_dropdown.enabled = not self._busy and len(self.benchmark_return_dropdown.items) > 1
+    self.benchmark_dropdown.enabled = False
+    self.benchmark_return_dropdown.enabled = False
     self._update_image_import_controls()
 
   def _set_busy(self, busy):
@@ -1514,6 +1527,13 @@ class Form1(Form1Template):
       self._comparison_window_source = None
       self._comparison_window_key = None
       self._comparison_window_data = None
+      self._equal_weight_source = None
+      self._equal_weight_history = None
+      self._performance_weighting = "manager"
+      self._performance_details_open = False
+      self._performance_details_dirty = True
+      self._performance_details_context = None
+      self.dom_nodes["performance_details"].removeAttribute("open")
       self._analysis_source = None
       self._selected_symbols = set()
       self._analyzed_transactions = []
@@ -1535,7 +1555,7 @@ class Form1(Form1Template):
 
   def _sharing_context(self):
     if self._history is None or not self._selected_symbols:
-      raise ValueError("Sync your portfolio and select at least one security before sharing performance.")
+      raise ValueError("Refresh your portfolio and select at least one security before sharing performance.")
     # Read cached comparison values directly; sharing never renders hidden plots.
     window = self._comparison_window()
     points = window["points"]
@@ -1555,7 +1575,7 @@ class Form1(Form1Template):
     summary_lines = [
       "My portfolio performance",
       "%s – %s" % (dates[0], dates[-1]),
-      "Portfolio: %s" % self._format_percent(portfolio_return),
+      "Portfolio (Manager-Weighted): %s" % self._format_percent(portfolio_return),
       "%s: %s" % (benchmark_label, self._format_percent(benchmark_return)),
       "Versus benchmark: %+.2f percentage points" % ((portfolio_return - benchmark_return) * 100),
       "Benchmark uses %s returns." % ("total" if self.benchmark_return_dropdown.selected_value == "total" else "price"),
@@ -1578,6 +1598,9 @@ class Form1(Form1Template):
   def share_performance_click(self, **event_args):
     if self._busy:
       return
+    if self.share_composer.visible:
+      self.share_composer.focus_dialog()
+      return
     self._set_charts_expanded(False, resize=False)
     self.share_composer.visible = True
     self.share_composer.show_for(self._sharing_context, self._ensure_signed_in)
@@ -1585,6 +1608,7 @@ class Form1(Form1Template):
   @handle("share_composer", "x-close-sharing")
   def close_sharing(self, **event_args):
     self.share_composer.visible = False
+    self._chart_button_node(self.share_performance_button).focus({"preventScroll": True})
 
   def _set_status(self, message, is_error=False):
     if is_error:
@@ -1679,7 +1703,7 @@ class Form1(Form1Template):
       return None, None
     daily_returns = [
       indices[index] / indices[index - 1] - 1
-      for index in range(1, len(indices)) if observed[index]
+      for index in range(1, len(indices)) if observed[index] and indices[index - 1] > 0
     ]
     if len(daily_returns) < 20:
       return None, None
@@ -1694,34 +1718,36 @@ class Form1(Form1Template):
 
   def _chart_layout(self):
     return chart_theme.layout({
-      "margin": {"l": 48, "r": 18, "t": 38, "b": 80},
+      "margin": {"l": 46, "r": 12, "t": 58, "b": 36},
       "paper_bgcolor": chart_theme.PANEL, "plot_bgcolor": chart_theme.PANEL,
-      "font": {"family": "Inter, sans-serif", "size": 13, "color": chart_theme.MUTED},
+      "font": {"family": "Inter, sans-serif", "size": 12, "color": chart_theme.MUTED},
       "hovermode": "closest" if self.show_trades_checkbox.checked else "x unified",
-      "legend": {"orientation": "h", "x": 0, "y": -0.25},
-      "xaxis": {"type": "date", "showgrid": False, "fixedrange": False},
-      "yaxis": {"tickformat": ".0%", "gridcolor": chart_theme.GRID, "zerolinecolor": chart_theme.ZERO_LINE, "fixedrange": False},
+      "legend": {"orientation": "h", "x": 1, "xanchor": "right", "y": 1.04, "yanchor": "bottom", "font": {"size": 11}},
+      "transition": {"duration": 0}, "dragmode": "zoom",
+      "xaxis": {"type": "date", "showgrid": False, "fixedrange": False, "nticks": 6, "automargin": True},
+      "yaxis": {"tickformat": ".0%", "gridcolor": chart_theme.GRID, "zerolinecolor": chart_theme.ZERO_LINE,
+                "fixedrange": False, "automargin": True, "nticks": 7},
     })
 
   def _set_chart(self, plot, dates, portfolio, benchmark, benchmark_name, markers):
-    plot.data = [
-      {"type": "scatter", "mode": "lines", "name": "Your portfolio", "x": dates,
-       "y": portfolio, "line": {"color": chart_theme.POSITIVE, "width": 2.5},
-       "hovertemplate": "%{y:.2%}<extra>Your portfolio</extra>"},
+    name = "Equal-Weighted" if self._performance_weighting == "equal" else "Your portfolio"
+    line = {"type": "scatter", "mode": "lines", "name": name, "x": dates,
+            "y": portfolio, "line": {"color": chart_theme.BENCHMARK, "width": 2.5},
+            "hovertemplate": "%{y:.2%}<extra>" + name + "</extra>"}
+    if plot is self.performance_plot:
+      rgb = tuple(int(chart_theme.BENCHMARK[index:index + 2], 16) for index in (1, 3, 5))
+      line.update(fill="tozeroy", fillcolor="rgba(%d,%d,%d,0.07)" % rgb)
+    plot.figure = {"data": [line,
       {"type": "scatter", "mode": "lines", "name": next((label.split(" · ")[0] for label, key in BENCHMARK_CHOICES
                       if key == self.benchmark_dropdown.selected_value), "Benchmark"), "x": dates,
-       "y": benchmark, "line": {"color": chart_theme.BENCHMARK, "width": 2},
+       "y": benchmark, "line": {"color": chart_theme.MUTED, "width": 1.3, "dash": "solid"},
        "hovertemplate": "%{y:.2%}<extra>" + benchmark_name + "</extra>"},
-    ] + markers
-    plot.layout = self._chart_layout()
-    plot.config = {"displayModeBar": True, "displaylogo": False, "responsive": True,
-                   "scrollZoom": False,
-                   "modeBarButtonsToRemove": ["select2d", "lasso2d"]}
+    ] + markers, "layout": self._chart_layout()}
 
   def _timeframe_buttons(self):
     return [("1M", self.range_1m_button), ("3M", self.range_3m_button),
             ("6M", self.range_6m_button), ("YTD", self.range_ytd_button),
-            ("1Y", self.range_1y_button), ("3Y", self.range_3y_button),
+            ("1Y", self.range_1y_button), ("3Y", self.range_3y_button), ("5Y", self.range_5y_button),
             ("ALL", self.range_all_button), ("CUSTOM", self.range_custom_button)]
 
   def _chart_button_node(self, button):
@@ -1823,7 +1849,7 @@ class Form1(Form1Template):
       node.removeAttribute("aria-modal")
     self.expand_charts_button.text = "Restore chart size" if expanded else "Expand charts"
     self.expand_charts_button.icon = "mi:fullscreen_exit" if expanded else "mi:fullscreen"
-    self.performance_plot.height = "480px" if expanded else "380px"
+    self.performance_plot.height = "620px" if expanded else "520px"
     self.drawdown_plot.height = "360px" if expanded else "300px"
     self.quarterly_plot.height = "390px" if expanded else "330px"
     if resize:
@@ -1872,6 +1898,7 @@ class Form1(Form1Template):
   @handle("range_ytd_button", "click")
   @handle("range_1y_button", "click")
   @handle("range_3y_button", "click")
+  @handle("range_5y_button", "click")
   @handle("range_all_button", "click")
   @handle("range_custom_button", "click")
   def timeframe_shortcut_click(self, sender, **event_args):
@@ -1892,6 +1919,9 @@ class Form1(Form1Template):
 
   def _clear_comparison(self, message):
     self._clear_chart_trades()
+    self._performance_details_context = None
+    self._performance_details_dirty = True
+    self.window_return_caption.text = "Portfolio return"
     self.hedge_fund_comparison.reset_context()
     self.trade_markers_status_label.text = "No transactions to show in this period."
     self.comparison_period_label.text = message
@@ -1911,36 +1941,45 @@ class Form1(Form1Template):
     if self._analysis_source is None:
       return
     benchmarks = self._analysis_source["benchmarks"]
-    available = [(label, key) for label, key in BENCHMARK_CHOICES
-                 if benchmarks.get(key + "_price", {}).get("series")
-                 or benchmarks.get(key + "_total", {}).get("series")]
-    selected = self.benchmark_dropdown.selected_value
-    self.benchmark_dropdown.items = available
-    available_keys = [key for label, key in available]
-    fallback = "sp500" if "sp500" in available_keys else available_keys[0] if available_keys else None
-    self.benchmark_dropdown.selected_value = selected if selected in available_keys else fallback
-    selected = self.benchmark_dropdown.selected_value
-    modes = []
-    for label, mode in [("Total return · dividends reinvested", "total"),
-                        ("Price return · excludes dividends", "price")]:
-      if selected and benchmarks.get(selected + "_" + mode, {}).get("series"):
-        modes.append((label, mode))
-    previous_mode = self.benchmark_return_dropdown.selected_value
-    self.benchmark_return_dropdown.items = modes
-    self.benchmark_return_dropdown.selected_value = (
-      previous_mode if previous_mode in [mode for label, mode in modes]
-      else modes[0][1] if modes else None
-    )
-    self.benchmark_return_dropdown.enabled = not self._busy and len(modes) > 1
+    self.benchmark_dropdown.items = [("S&P 500 index", "sp500")]
+    self.benchmark_dropdown.selected_value = "sp500"
+    # Prefer total return; older saved analyses can still use S&P 500 price
+    # history. Never substitute another index when S&P 500 is unavailable.
+    mode = "total" if benchmarks.get("sp500_total", {}).get("series") else "price" if benchmarks.get("sp500_price", {}).get("series") else "total"
+    label = "Total return · dividends reinvested" if mode == "total" else "Price return · excludes dividends"
+    self.benchmark_return_dropdown.items = [(label, mode)]
+    self.benchmark_return_dropdown.selected_value = mode
+    self.benchmark_dropdown.enabled = False
+    self.benchmark_return_dropdown.enabled = False
 
-  def _comparison_window(self):
-    """Reuse the active date/benchmark window without constructing any charts."""
-    source = self._history
+  def _performance_source(self, weighting):
+    if weighting == "manager":
+      return self._history
+    if self._history is None:
+      return None
+    if self._equal_weight_source is not self._history:
+      self._equal_weight_history = equal_weighted_history(self._history, self._selected_symbols)
+      self._equal_weight_source = self._history
+    return self._equal_weight_history
+
+  @handle("manager_weighted_button", "click")
+  @handle("equal_weighted_button", "click")
+  def performance_weighting_click(self, sender, **event_args):
+    if self._busy:
+      return
+    weighting = "equal" if sender is self.equal_weighted_button else "manager"
+    if weighting != self._performance_weighting:
+      self._performance_weighting = weighting
+      self._render_comparison()
+
+  def _comparison_window(self, weighting="manager"):
+    """Use actual weights by default, including when creating shared charts."""
+    source = self._performance_source(weighting)
     if source is None or not source["series"]:
       raise ValueError("Select at least one synced security to compare returns.")
     timeframe = self.timeframe_dropdown.selected_value or "ALL"
-    benchmark_key = "%s_%s" % (self.benchmark_dropdown.selected_value,
-                               self.benchmark_return_dropdown.selected_value)
+    self._update_benchmark_options()
+    benchmark_key = "sp500_%s" % self.benchmark_return_dropdown.selected_value
     custom_start = self.comparison_start_picker.date if timeframe == "CUSTOM" else None
     custom_end = self.comparison_end_picker.date if timeframe == "CUSTOM" else None
     key = (timeframe, benchmark_key, custom_start, custom_end)
@@ -1956,14 +1995,14 @@ class Form1(Form1Template):
     elif timeframe == "YTD":
       start = date(end.year, 1, 1)
     elif timeframe != "ALL":
-      start = self._months_before(end, {"1M": 1, "3M": 3, "6M": 6, "1Y": 12, "3Y": 36}[timeframe])
+      start = self._months_before(end, {"1M": 1, "3M": 3, "6M": 6, "1Y": 12, "3Y": 36, "5Y": 60}[timeframe])
     first, last = start.isoformat(), end.isoformat()
     selected = [point for point in series if first <= point["date"] <= last]
     if not selected:
       raise ValueError("No portfolio history is available in this period.")
     benchmark_data = source["benchmarks"].get(benchmark_key)
     if not benchmark_data or not benchmark_data.get("series"):
-      raise ValueError("No matching benchmark data is available yet. Choose another benchmark or sync prices.")
+      raise ValueError("S&P 500 data is unavailable in this saved analysis. Refresh your portfolio to try again.")
     benchmark_by_date = {point["date"]: point["index"] for point in benchmark_data["series"]}
     benchmark_complete = {point["date"]: point.get("session_complete", True) for point in benchmark_data["series"]}
     first_benchmark, last_benchmark = min(benchmark_by_date), max(benchmark_by_date)
@@ -1971,20 +2010,15 @@ class Form1(Form1Template):
     if not common:
       raise ValueError("No overlapping portfolio and benchmark dates. Choose another period.")
     if any(point["date"] not in benchmark_by_date for point in common):
-      raise ValueError("This benchmark has missing daily closes. Choose another benchmark or sync prices.")
+      raise ValueError("S&P 500 has missing daily closes in this period. Refresh your portfolio to update it.")
     if common[0]["portfolio_index"] <= 0 or benchmark_by_date[common[0]["date"]] <= 0:
       raise ValueError("Choose a period with a positive return baseline.")
-    notice = "Nasdaq Composite is a price index; it excludes dividends." if benchmark_key == "nasdaq_price" else ""
+    notice = "S&P 500 price returns are shown; dividends are excluded." if benchmark_key == "sp500_price" else ""
     if len(common) < len(selected):
       notice += " Both lines use their overlapping dates: %s – %s." % (common[0]["date"], common[-1]["date"])
-    missing = [label for label, choice in BENCHMARK_CHOICES
-               if not source["benchmarks"].get(choice + "_price", {}).get("series")
-               and not source["benchmarks"].get(choice + "_total", {}).get("series")]
-    if missing:
-      notice += " Unavailable this sync: %s." % ", ".join(missing)
     result = {"points": common, "benchmark_by_date": benchmark_by_date,
               "benchmark_complete": benchmark_complete, "benchmark_data": benchmark_data,
-              "notice": notice.strip()}
+              "notice": notice.strip(), "requested_start": first, "requested_end": last}
     self._comparison_window_source = source
     self._comparison_window_key = key
     self._comparison_window_data = result
@@ -1993,6 +2027,15 @@ class Form1(Form1Template):
   def _render_comparison(self):
     if self._history is None or self._analysis_source is None:
       return
+    for weighting, button in (("manager", self.manager_weighted_button), ("equal", self.equal_weighted_button)):
+      active = weighting == self._performance_weighting
+      button.role = "chart-range-active" if active else "chart-range"
+      self._chart_button_node(button).setAttribute("aria-pressed", "true" if active else "false")
+    self.weighting_method_label.text = (
+      "Equal dollars in securities held each day · Daily rebalancing · Illustrative; no rebalancing costs or taxes · Share uses actual weights."
+      if self._performance_weighting == "equal" else
+      "Your actual position sizes and trades · Dividends held as cash · Time-weighted returns"
+    )
     timeframe = self.timeframe_dropdown.selected_value or "ALL"
     for value, button in self._timeframe_buttons():
       button.role = "chart-range-active" if value == timeframe else "chart-range"
@@ -2000,7 +2043,7 @@ class Form1(Form1Template):
     self._clear_chart_trades()
     self.custom_period_region.visible = timeframe == "CUSTOM"
     try:
-      window = self._comparison_window()
+      window = self._comparison_window(self._performance_weighting)
     except ValueError as error:
       self.benchmark_status_label.text = str(error)
       self._clear_comparison(str(error))
@@ -2010,6 +2053,9 @@ class Form1(Form1Template):
     benchmark_complete = window["benchmark_complete"]
     benchmark_name = window["benchmark_data"]["name"]
     self.benchmark_status_label.text = window["notice"]
+    short_name = next((label.split(" · ")[0] for label, key in BENCHMARK_CHOICES
+                       if key == self.benchmark_dropdown.selected_value), "benchmark")
+    self.performance_heading_label.text = "Performance vs %s" % short_name
     if HEDGE_FUND_COMPARISONS_ENABLED:
       self.hedge_fund_comparison.configure_context([{
         "date": point["date"], "index": point["portfolio_index"],
@@ -2029,6 +2075,11 @@ class Form1(Form1Template):
     provisional = not completed[-1]
     self.comparison_period_label.text = "%s – %s · %d completed daily returns%s" % (
       dates[0], dates[-1], observations, " · provisional endpoint" if provisional else "")
+    limited = (self._date_from_iso(dates[0]) - self._date_from_iso(window["requested_start"])).days > 7
+    if limited:
+      self.comparison_period_label.text += " · Showing available history"
+    self.window_return_caption.text = ("Available-period return" if limited else
+      {"3Y": "3-year return", "5Y": "5-year return"}.get(timeframe, "Portfolio return"))
     self.window_return_label.text = self._format_percent(portfolio_returns[-1])
     self.benchmark_return_label.text = self._format_percent(benchmark_returns[-1])
     self.window_excess_label.text = "%.2f pp" % ((portfolio_returns[-1] - benchmark_returns[-1]) * 100)
@@ -2079,16 +2130,35 @@ class Form1(Form1Template):
       "%d trade%s in this period · Green arrows: buys. Red arrows: sells. Hover for details; click to open. Same-day trades are grouped." % (count, "" if count == 1 else "s")
       if self.show_trades_checkbox.checked and count
       else "No trades in this period for the selected securities." if self.show_trades_checkbox.checked
-      else "Trade arrows hidden. View trades still opens transactions in this period."
+      else "Transactions are hidden on the chart. View transactions to see activity in this period."
     )
     self._set_chart(self.performance_plot, dates, portfolio_returns, benchmark_returns, benchmark_name,
                     markers["performance_traces"] if self.show_trades_checkbox.checked else [])
-    self._set_chart(self.drawdown_plot, dates, drawdowns, self._drawdowns(benchmark), benchmark_name,
+    self._performance_details_context = (selected, benchmark_by_date, benchmark_name, dates,
+                                         drawdowns, self._drawdowns(benchmark), markers)
+    self._performance_details_dirty = True
+    self._render_performance_details()
+
+  def performance_details_toggle(self, event):
+    if event.target != self.dom_nodes["performance_details"]:
+      return
+    self._performance_details_open = event.target.hasAttribute("open")
+    if self._performance_details_open and not self._busy:
+      self._render_performance_details()
+      self._resize_readout_charts()
+
+  def _render_performance_details(self):
+    if not self._performance_details_open or not self._performance_details_dirty or self._performance_details_context is None:
+      return
+    selected, benchmark_by_date, benchmark_name, dates, drawdowns, benchmark_drawdowns, markers = self._performance_details_context
+    self._set_chart(self.drawdown_plot, dates, drawdowns, benchmark_drawdowns, benchmark_name,
                     markers["drawdown_traces"] if self.show_trades_checkbox.checked else [])
     self._render_quarterly(selected, benchmark_by_date, benchmark_name)
+    self._performance_details_dirty = False
 
   def _render_quarterly(self, points, benchmark_by_date, benchmark_name):
     rows = quarterly_returns(points, benchmark_by_date)
+    portfolio_name = "Equal-Weighted" if self._performance_weighting == "equal" else "Your portfolio"
     short_benchmark_name = next((label.split(" · ")[0] for label, key in BENCHMARK_CHOICES
                                  if key == self.benchmark_dropdown.selected_value), "Benchmark")
     self.quarterly_panel.items = [dict(row,
@@ -2097,14 +2167,14 @@ class Form1(Form1Template):
       benchmark_text="—" if row["benchmark_return"] is None else self._format_percent(row["benchmark_return"]),
       excess_text="—" if row["excess_return"] is None else "%.2f pp" % (row["excess_return"] * 100),
     ) for row in reversed(rows)]
-    self.quarterly_period_label.text = "Calendar quarters within the displayed period · %s. Window edges may be partial; the latest quarter is provisional when it includes current-session prices." % benchmark_name
+    self.quarterly_period_label.text = "%s vs %s · Calendar quarters within the displayed period. Window edges may be partial; the latest quarter is provisional when it includes current-session prices." % (portfolio_name, benchmark_name)
     data = [[row["start_date"], row["end_date"], row["observations"]] for row in rows]
     labels = [row["label"] for row in rows]
     self.quarterly_plot.data = [
-      {"type": "bar", "name": "Your portfolio", "x": labels,
+      {"type": "bar", "name": portfolio_name, "x": labels,
        "y": [row["portfolio_return"] for row in rows], "customdata": data,
        "marker": {"color": [chart_theme.NEGATIVE if (row["portfolio_return"] or 0) < 0 else chart_theme.POSITIVE for row in rows]},
-       "hovertemplate": "%{x}<br>%{y:.2%}<br>%{customdata[0]} – %{customdata[1]}<br>%{customdata[2]} daily intervals<extra>Your portfolio</extra>"},
+       "hovertemplate": "%{x}<br>%{y:.2%}<br>%{customdata[0]} – %{customdata[1]}<br>%{customdata[2]} daily intervals<extra>" + portfolio_name + "</extra>"},
       {"type": "bar", "name": short_benchmark_name, "x": labels,
        "y": [row["benchmark_return"] for row in rows], "customdata": data,
        "marker": {"color": chart_theme.BENCHMARK},
@@ -2507,6 +2577,8 @@ class Form1(Form1Template):
       return
     self._dirty_readout_pages.update(("overview", "allocation", "performance"))
     self._invalidate_allocation()
+    self._equal_weight_source = None
+    self._equal_weight_history = None
     self._render_portfolio_summary()
     self._render_active_readout()
     self._update_readout_context()

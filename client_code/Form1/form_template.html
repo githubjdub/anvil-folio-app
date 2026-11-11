@@ -54,7 +54,7 @@
           <anvil-component type="m3._Components.Button" name="analyze_button" prop:text="Refresh" prop:appearance="filled" prop:icon="mi:sync" prop:role="analyze-action"></anvil-component>
           <div class="portfolio-refresh-meta" role="status" aria-live="polite" aria-atomic="true">
             <span>Last refreshed</span>
-            <anvil-component type="Label" name="last_refreshed_label" prop:text="—" prop:role="portfolio-refresh-date" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+            <anvil-component type="Label" name="last_refreshed_label" prop:text="—" prop:align="center" prop:role="portfolio-refresh-date" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
           </div>
         </div>
       </div>
@@ -162,7 +162,7 @@
 <div anvil:name="status_region" class="status-region is-hidden">
           <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
         </div>
-<anvil-component type="M3_App_1.Components.ShareComposer" name="share_composer"></anvil-component>
+<anvil-component type="M3_App_1.Components.ShareComposer" name="share_composer" prop:visible="false"></anvil-component>
 
     <section anvil:name="workspace_region" class="workspace-grid">
       <div anvil:name="transactions_column" anvil:dom-node="transactions_workspace" class="input-column">
@@ -314,23 +314,32 @@
           </section>
           <section anvil:name="performance_panel" anvil:dom-node="performance_dialog" anvil:on-dom:keydown="self.performance_keydown" class="readout-page performance-chart-panel" role="region" tabindex="-1" aria-label="Performance and risk">
           <section class="detail-card comparison-card" aria-label="Risk and benchmark analyzer">
-            <div class="detail-heading chart-panel-heading"><h3>Performance history</h3><anvil-component type="m3._Components.Button" name="expand_charts_button" prop:text="Expand charts" prop:icon="mi:fullscreen" prop:appearance="outlined" prop:role="chart-tool"></anvil-component></div>
+            <div class="detail-heading chart-panel-heading"><div><div class="performance-eyebrow">Performance history</div><h3><anvil-component type="Label" name="performance_heading_label" prop:text="Performance vs S&amp;P 500" prop:role="performance-heading" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></h3></div><anvil-component type="m3._Components.Button" name="expand_charts_button" prop:text="Expand charts" prop:icon="mi:fullscreen" prop:appearance="outlined" prop:role="chart-tool"></anvil-component></div>
             <div class="performance-controls">
-            <div class="chart-range-caption">Period <span>Daily history + latest prices</span></div>
-            <nav class="chart-range-buttons" aria-label="Chart time frame">
-              <anvil-component type="m3._Components.Button" name="range_1m_button" prop:text="1M" prop:appearance="text" prop:role="chart-range"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="range_3m_button" prop:text="3M" prop:appearance="text" prop:role="chart-range"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="range_6m_button" prop:text="6M" prop:appearance="text" prop:role="chart-range"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="range_ytd_button" prop:text="YTD" prop:appearance="text" prop:role="chart-range"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="range_1y_button" prop:text="1Y" prop:appearance="text" prop:role="chart-range"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="range_3y_button" prop:text="3Y" prop:appearance="text" prop:role="chart-range"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="range_all_button" prop:text="All" prop:appearance="text" prop:role="chart-range-active"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="range_custom_button" prop:text="Custom" prop:appearance="text" prop:role="chart-range"></anvil-component>
-            </nav>
+              <div class="performance-primary-controls">
+                <div class="performance-weighting-switch" role="group" aria-label="Portfolio weighting">
+                  <anvil-component type="m3._Components.Button" name="manager_weighted_button" prop:text="Manager-Weighted" prop:appearance="text" prop:role="chart-range-active" prop:tooltip="Use your actual position sizes and trades"></anvil-component>
+                  <anvil-component type="m3._Components.Button" name="equal_weighted_button" prop:text="Equal-Weighted" prop:appearance="text" prop:role="chart-range" prop:tooltip="Compare equal dollars in the securities held each day"></anvil-component>
+                </div>
+                <nav class="chart-range-buttons performance-primary-ranges" aria-label="Chart time frame">
+                  <anvil-component type="m3._Components.Button" name="range_3y_button" prop:text="3 Years" prop:appearance="text" prop:role="chart-range-active"></anvil-component>
+                  <anvil-component type="m3._Components.Button" name="range_5y_button" prop:text="5 Years" prop:appearance="text" prop:role="chart-range"></anvil-component>
+                  <anvil-component type="m3._Components.Button" name="range_all_button" prop:text="All" prop:appearance="text" prop:role="chart-range"></anvil-component>
+                  <anvil-component type="m3._Components.Button" name="range_custom_button" prop:text="Custom" prop:appearance="text" prop:role="chart-range"></anvil-component>
+                </nav>
+              </div>
+              <anvil-component type="Label" name="weighting_method_label" prop:role="performance-method" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+              <details class="performance-short-ranges"><summary>Shorter ranges</summary><nav class="chart-range-buttons" aria-label="Shorter chart ranges">
+                <anvil-component type="m3._Components.Button" name="range_1m_button" prop:text="1M" prop:appearance="text" prop:role="chart-range"></anvil-component>
+                <anvil-component type="m3._Components.Button" name="range_3m_button" prop:text="3M" prop:appearance="text" prop:role="chart-range"></anvil-component>
+                <anvil-component type="m3._Components.Button" name="range_6m_button" prop:text="6M" prop:appearance="text" prop:role="chart-range"></anvil-component>
+                <anvil-component type="m3._Components.Button" name="range_ytd_button" prop:text="YTD" prop:appearance="text" prop:role="chart-range"></anvil-component>
+                <anvil-component type="m3._Components.Button" name="range_1y_button" prop:text="1Y" prop:appearance="text" prop:role="chart-range"></anvil-component>
+              </nav></details>
             <anvil-component type="DropDown" name="timeframe_dropdown" prop:visible="False"></anvil-component>
-            <div class="comparison-controls">
-              <div><div class="portfolio-field-caption">Compare against</div><anvil-component type="DropDown" name="benchmark_dropdown" prop:role="portfolio-picker"></anvil-component></div>
-              <div class="benchmark-return-choice"><div class="portfolio-field-caption">Benchmark return</div><anvil-component type="DropDown" name="benchmark_return_dropdown" prop:role="portfolio-picker"></anvil-component></div>
+            <div class="comparison-controls" style="display: none;">
+              <div><div class="portfolio-field-caption">Compare against</div><anvil-component type="DropDown" name="benchmark_dropdown" prop:role="portfolio-picker" prop:visible="false"></anvil-component></div>
+              <div class="benchmark-return-choice"><div class="portfolio-field-caption">Benchmark return</div><anvil-component type="DropDown" name="benchmark_return_dropdown" prop:role="portfolio-picker" prop:visible="false"></anvil-component></div>
             </div>
             <anvil-component type="Label" name="benchmark_status_label" prop:role="portfolio-help"></anvil-component>
             <div anvil:name="custom_period_region" class="comparison-custom-dates">
@@ -340,14 +349,14 @@
             <anvil-component type="Label" name="comparison_period_label" prop:role="portfolio-help"></anvil-component>
             </div>
             <div class="comparison-metrics performance-summary">
-              <div><span class="comparison-metric-label">Portfolio return</span><anvil-component type="Label" name="window_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
-              <div><span class="comparison-metric-label">Benchmark return</span><anvil-component type="Label" name="benchmark_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><anvil-component type="Label" name="window_return_caption" prop:text="Portfolio return" prop:role="comparison-metric-label" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="window_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
+              <div><span class="comparison-metric-label">S&amp;P 500 return</span><anvil-component type="Label" name="benchmark_return_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
               <div><span class="comparison-metric-label">Difference</span><anvil-component type="Label" name="window_excess_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
               <div><span class="comparison-metric-label">Portfolio annualized</span><anvil-component type="Label" name="window_annualized_label" prop:text="—" prop:role="comparison-value"></anvil-component></div>
             </div>
             <div class="chart-trade-toolbar">
-              <anvil-component type="CheckBox" name="show_trades_checkbox" prop:text="Show trades" prop:checked="True" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-              <anvil-component type="m3._Components.Button" name="view_chart_trades_button" prop:text="View trades" prop:appearance="outlined" prop:role="chart-tool"></anvil-component>
+              <anvil-component type="CheckBox" name="show_trades_checkbox" prop:text="Show transactions" prop:checked="False" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+              <anvil-component type="m3._Components.Button" name="view_chart_trades_button" prop:text="View transactions" prop:appearance="outlined" prop:role="chart-tool"></anvil-component>
               <anvil-component type="m3._Components.Button" name="reset_chart_zoom_button" prop:text="Reset zoom" prop:appearance="text" prop:role="chart-tool"></anvil-component>
             </div>
             <anvil-component type="Label" name="trade_markers_status_label" prop:role="portfolio-help"></anvil-component>
@@ -356,9 +365,9 @@
               <anvil-component type="RepeatingPanel" name="chart_trade_panel" prop:item_template="M3_App_1.Components.ChartTradeRow"></anvil-component>
             </div>
             <section class="performance-chart-block" aria-label="Cumulative return chart">
-            <h4 class="chart-title">Cumulative return</h4>
-            <anvil-component type="Plot" name="performance_plot" prop:height="380px"></anvil-component>
+            <anvil-component type="Plot" name="performance_plot" prop:height="520px" prop:role="performance-main-plot" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
             </section>
+            <details anvil:dom-node="performance_details" anvil:on-dom:toggle="self.performance_details_toggle" class="performance-secondary-details"><summary>Quarterly returns &amp; drawdown</summary>
             <section class="performance-chart-block" aria-label="Quarterly return chart">
             <h4 class="chart-title">Quarterly returns</h4>
             <anvil-component type="Label" name="quarterly_period_label" prop:role="portfolio-help"></anvil-component>
@@ -375,6 +384,7 @@
             <h4 class="chart-title">Drawdown from period high</h4>
             <anvil-component type="Plot" name="drawdown_plot" prop:height="300px"></anvil-component>
             </section>
+            </details>
             <details class="performance-risk-details">
             <summary>Volatility &amp; Sharpe ratios</summary>
             <div class="comparison-metrics risk-metrics">
@@ -386,7 +396,7 @@
             <anvil-component type="Label" name="risk_status_label" prop:role="portfolio-help"></anvil-component>
             </details>
             <details class="readout-notes"><summary>Chart notes</summary>
-            <p class="fine-print">Range buttons update every performance chart and risk metric. Quarterly returns compound the same time-weighted series, retaining dividends as cash. The first price mark is the baseline; first and last quarterly bars may cover part of a quarter. Today's endpoint is provisional when it uses regular-session quotes. Risk metrics use completed daily returns. Comparisons use matching benchmark dates. Trade arrows link to transactions. The total-return benchmark reinvests dividends.</p>
+            <p class="fine-print">Range and weighting controls update every performance chart and risk metric. Manager-Weighted uses your actual trades and position sizes, retaining dividends as cash. Equal-Weighted is a hypothetical daily-rebalanced, equal-dollar basket of the securities held each session; dividend income is included, accumulated cash is excluded from invested weights, and rebalancing costs and taxes are not modeled. Quarterly returns compound the selected series. The first price mark is the baseline; first and last quarterly bars may cover part of a quarter. Today's endpoint is provisional when it uses regular-session quotes. Risk metrics use completed daily returns. Comparisons use matching benchmark dates. Arrows mark your logged transactions, not hypothetical rebalances, and link to those transactions. The total-return benchmark reinvests dividends.</p>
             </details>
           </section>
           </section>
