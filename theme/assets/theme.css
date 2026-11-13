@@ -645,13 +645,11 @@ button.anvil-role-chart-trade-open, .anvil-role-chart-trade-open > button { min-
 .performance-chart-panel.is-expanded { position: fixed; inset: 12px; z-index: 2000; overflow: auto; padding: 20px; box-sizing: border-box; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.7), 0 15px 60px rgba(0,0,0,.3); }
 .performance-chart-panel.is-expanded > .comparison-card { max-width: 1400px; margin: 0 auto; }
 .performance-chart-panel.is-expanded .chart-panel-heading { position: sticky; top: -20px; z-index: 2; padding: 10px 0; background: var(--paper); }
-.performance-chart-panel.is-expanded .chart-range-buttons { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 .performance-chart-panel.is-expanded .comparison-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .performance-chart-panel.is-expanded .benchmark-return-choice { grid-column: auto; }
 @media (max-width: 620px) {
   .performance-chart-panel.is-expanded { inset: 5px; padding: 10px; border-radius: 10px; }
   .performance-chart-panel.is-expanded .chart-panel-heading { top: -10px; }
-  .performance-chart-panel.is-expanded .chart-range-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .performance-chart-panel.is-expanded .comparison-controls { grid-template-columns: 1fr; }
   .performance-chart-panel.is-expanded .comparison-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .chart-trade-choice { align-items: flex-start; flex-direction: column; gap: 6px; }
@@ -876,14 +874,13 @@ button.anvil-role-import-toggle:focus-visible { outline: 2px solid var(--mint-st
 .performance-weighting-switch > * + * { border-left: 1px solid var(--line); }
 .performance-weighting-switch button { min-height: 38px; height: auto; padding: 8px 14px; border: 0; border-radius: 0; font-size: 13px; color: var(--muted); background: transparent; white-space: normal; }
 .performance-weighting-switch button.anvil-role-chart-range-active, .performance-weighting-switch .anvil-role-chart-range-active > button { color: var(--ink); font-weight: 650; background: var(--surface-soft); box-shadow: none; }
-.performance-chart-panel .performance-primary-ranges { display: grid; grid-template-columns: repeat(4, auto); width: auto; gap: 0; padding: 0; margin: 0; border-radius: 7px; background: var(--paper); overflow: hidden; }
-.performance-chart-panel .performance-primary-ranges > * + * { border-left: 1px solid var(--line); }
-.performance-chart-panel .performance-primary-ranges button { min-height: 38px; height: auto; padding: 8px 14px; border: 0; border-radius: 0; font-size: 13px; }
+.performance-chart-panel .performance-primary-ranges { display: grid; grid-template-columns: repeat(9, minmax(0, auto)); width: auto; max-width: 100%; gap: 1px; padding: 0; margin: 0; border-radius: 7px; background: var(--line); overflow: hidden; }
+.performance-chart-panel .performance-primary-ranges > * { min-width: 0; margin: 0; background: var(--paper); }
+.performance-chart-panel .performance-primary-ranges button { min-height: 38px; height: auto; padding: 8px 12px; border: 0; border-radius: 0; font-size: 13px; white-space: nowrap; }
+.performance-primary-ranges button.anvil-role-chart-range-active, .performance-primary-ranges .anvil-role-chart-range-active > button { background: var(--surface-soft); color: var(--mint-strong); font-weight: 650; }
+.performance-primary-ranges button:focus-visible { outline: 2px solid var(--blue); outline-offset: -3px; }
 .anvil-role-performance-method { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
 .anvil-label.anvil-role-performance-heading > span, .anvil-label.anvil-role-performance-method > span, .anvil-label.anvil-role-comparison-metric-label > span { padding-top: 0; padding-bottom: 0; }
-.performance-short-ranges { margin: 10px 0 14px; }
-.performance-short-ranges > summary { width: fit-content; color: var(--muted); cursor: pointer; font-size: 11px; line-height: 1.7; }
-.performance-short-ranges .chart-range-buttons { max-width: 520px; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 8px 0 0; }
 .performance-chart-panel .comparison-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 540px; margin: 10px 0; }
 .performance-chart-panel .portfolio-field-caption { font-size: 11px; margin-bottom: 4px; }
 .performance-chart-panel .comparison-custom-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 540px; }
@@ -902,8 +899,10 @@ button.anvil-role-import-toggle:focus-visible { outline: 2px solid var(--mint-st
 .performance-chart-panel.is-expanded .anvil-role-performance-main-plot { height: min(65vh, 720px) !important; min-height: 300px; }
 .performance-secondary-details { margin-top: 20px; padding: 14px 0; border-top: 1px solid var(--line); }
 .performance-secondary-details > summary { cursor: pointer; color: var(--ink); font-size: 13px; font-weight: 650; line-height: 1.6; }
-.performance-short-ranges > summary:focus-visible, .performance-secondary-details > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+.performance-secondary-details > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
 @container performance (max-width: 660px) {
+  .performance-chart-panel .performance-primary-ranges { width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .performance-weighting-switch button, .performance-chart-panel .performance-primary-ranges button { min-height: 44px; }
   .performance-chart-panel .performance-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .performance-chart-panel .performance-summary > div:nth-child(3) { border-left: 0; }
   .performance-chart-panel .performance-summary > div:nth-child(n + 3) { border-top: 1px solid var(--line); }
@@ -914,7 +913,6 @@ button.anvil-role-import-toggle:focus-visible { outline: 2px solid var(--mint-st
   .performance-chart-panel .comparison-card { padding: 14px 10px; }
   .performance-primary-controls { align-items: stretch; gap: 10px; }
   .performance-weighting-switch, .performance-chart-panel .performance-primary-ranges { width: 100%; }
-  .performance-chart-panel .performance-primary-ranges { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .performance-weighting-switch button, .performance-chart-panel .performance-primary-ranges button { font-size: 12px; padding: 8px; }
   .performance-chart-panel .comparison-controls { grid-template-columns: minmax(0, 1fr); }
   .performance-chart-panel .comparison-custom-dates { grid-template-columns: minmax(0, 1fr); }

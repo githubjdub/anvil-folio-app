@@ -322,6 +322,11 @@
                   <anvil-component type="m3._Components.Button" name="equal_weighted_button" prop:text="Equal-Weighted" prop:appearance="text" prop:role="chart-range" prop:tooltip="Compare equal dollars in the securities held each day"></anvil-component>
                 </div>
                 <nav class="chart-range-buttons performance-primary-ranges" aria-label="Chart time frame">
+                  <anvil-component type="m3._Components.Button" name="range_1m_button" prop:text="1M" prop:appearance="text" prop:role="chart-range" prop:tooltip="Last month"></anvil-component>
+                  <anvil-component type="m3._Components.Button" name="range_3m_button" prop:text="3M" prop:appearance="text" prop:role="chart-range" prop:tooltip="Last 3 months"></anvil-component>
+                  <anvil-component type="m3._Components.Button" name="range_6m_button" prop:text="6M" prop:appearance="text" prop:role="chart-range" prop:tooltip="Last 6 months"></anvil-component>
+                  <anvil-component type="m3._Components.Button" name="range_ytd_button" prop:text="YTD" prop:appearance="text" prop:role="chart-range" prop:tooltip="Year to date"></anvil-component>
+                  <anvil-component type="m3._Components.Button" name="range_1y_button" prop:text="1Y" prop:appearance="text" prop:role="chart-range" prop:tooltip="Last year"></anvil-component>
                   <anvil-component type="m3._Components.Button" name="range_3y_button" prop:text="3 Years" prop:appearance="text" prop:role="chart-range-active"></anvil-component>
                   <anvil-component type="m3._Components.Button" name="range_5y_button" prop:text="5 Years" prop:appearance="text" prop:role="chart-range"></anvil-component>
                   <anvil-component type="m3._Components.Button" name="range_all_button" prop:text="All" prop:appearance="text" prop:role="chart-range"></anvil-component>
@@ -329,13 +334,6 @@
                 </nav>
               </div>
               <anvil-component type="Label" name="weighting_method_label" prop:role="performance-method" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
-              <details class="performance-short-ranges"><summary>Shorter ranges</summary><nav class="chart-range-buttons" aria-label="Shorter chart ranges">
-                <anvil-component type="m3._Components.Button" name="range_1m_button" prop:text="1M" prop:appearance="text" prop:role="chart-range"></anvil-component>
-                <anvil-component type="m3._Components.Button" name="range_3m_button" prop:text="3M" prop:appearance="text" prop:role="chart-range"></anvil-component>
-                <anvil-component type="m3._Components.Button" name="range_6m_button" prop:text="6M" prop:appearance="text" prop:role="chart-range"></anvil-component>
-                <anvil-component type="m3._Components.Button" name="range_ytd_button" prop:text="YTD" prop:appearance="text" prop:role="chart-range"></anvil-component>
-                <anvil-component type="m3._Components.Button" name="range_1y_button" prop:text="1Y" prop:appearance="text" prop:role="chart-range"></anvil-component>
-              </nav></details>
             <anvil-component type="DropDown" name="timeframe_dropdown" prop:visible="False"></anvil-component>
             <div class="comparison-controls" style="display: none;">
               <div><div class="portfolio-field-caption">Compare against</div><anvil-component type="DropDown" name="benchmark_dropdown" prop:role="portfolio-picker" prop:visible="false"></anvil-component></div>
