@@ -2,6 +2,7 @@ import anvil.server
 from anvil import *
 from ._anvil_designer import IncomeTrackerTemplate
 from ... import chart_theme
+from ...dividend_periods import dividend_window, RANGES
 
 
 class IncomeTracker(IncomeTrackerTemplate):
@@ -19,6 +20,13 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._attempted = False
     self._view = "dividends"
     self._ledger_page = 0
+    self._dividend_range = "YTD"
+    self._dividend_window = None
+    self._dividend_plot_size = None
+    self._dividend_chart_mode = None
+    self.dividend_basis_dropdown.items = [("Payment date · modeled cash", "payment"), ("Ex-dividend date · earned", "ex")]
+    self.dividend_basis_dropdown.selected_value = "payment"
+    self.dividend_history_plot.config = {"responsive": True, "displayModeBar": False}
     self._loss_page = 0
     self._lots = []
     self._plot_size = None
@@ -50,6 +58,9 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._lots = []
     self._plot_size = None
     self.income_plot.data = []
+    self._dividend_window = None
+    self._dividend_plot_size = None
+    self.dividend_history_plot.data = []
     for panel in (self.securities_panel, self.quarters_panel, self.upcoming_panel, self.ledger_panel, self.losses_panel, self.terms_panel, self.positions_panel):
       panel.items = []
     self.report_region.visible = False
@@ -87,7 +98,11 @@ class IncomeTracker(IncomeTrackerTemplate):
     self.loss_term_dropdown.enabled = enabled
     self.account_type_dropdown.enabled = enabled
     setattr(self.ledger_previous_button, "enabled", enabled and self._ledger_page > 0)
-    ledger_count = len(self._report["dividends"]["ledger"]) if self._report else 0
+    for value, button in self._dividend_range_buttons():
+      button.enabled = enabled and self._report is not None
+    for control in (self.dividend_basis_dropdown, self.dividend_start_picker, self.dividend_end_picker):
+      control.enabled = enabled and self._report is not None
+    ledger_count = len(self._dividend_window["rows"]) if self._dividend_window else 0
     setattr(self.ledger_next_button, "enabled", enabled and (self._ledger_page + 1) * self.PAGE_SIZE < ledger_count)
     setattr(self.loss_previous_button, "enabled", enabled and self._loss_page > 0)
     setattr(self.loss_next_button, "enabled", enabled and (self._loss_page + 1) * self.PAGE_SIZE < len(self._filtered_lots()))
@@ -140,19 +155,15 @@ class IncomeTracker(IncomeTrackerTemplate):
     self.quarter_label.text = self.money(totals["quarterly_average"])
     self.monthly_label.text = self.money(totals["annual_estimate"] / 12 if totals["annual_estimate"] is not None else None)
     self.yield_label.text = self.percent(totals["yield_on_cost"])
-    self.paid_label.text = self.money(totals["paid_ytd"])
     self.coverage_label.text = dividends["metadata"].get("coverage_note", "")
     self.unresolved_label.text = "%s dividend records have unconfirmed payment dates. Received-cash totals exclude them." % totals["unresolved_count"] if totals["unresolved_count"] else "Payment dates are matched automatically. Received-cash totals are modeled from those dates."
-    self.dividend_unresolved_label.text = self.unresolved_label.text
-    ledger_count = len(dividends["ledger"])
-    self.payment_coverage_label.text = "%s / %s records" % (ledger_count - totals["unresolved_count"], ledger_count)
     self.securities_panel.items = dividends["securities"]
     self.quarters_panel.items = dividends["quarterly_history"]
     upcoming_as_of = dividends["metadata"].get("upcoming_as_of", "today")
     self.upcoming_context_label.text = "Published dates checked as of %s. Estimated amounts use your selected holdings snapshot." % upcoming_as_of
     self.upcoming_panel.items = [self._dividend_item(row, True) for row in dividends["upcoming"]]
     self.upcoming_empty_label.visible = not bool(dividends["upcoming"])
-    self._render_ledger()
+    self._render_dividends()
     tax = report["tax"]
     summary = tax["summary"]
     self.tax_context_label.text = "%s · FIFO estimate through %s" % (summary["tax_year"], self._as_of)
@@ -184,23 +195,113 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._apply_view()
     self._draw_chart()
 
+  def _dividend_range_buttons(self):
+    return [(value, getattr(self, "dividend_range_%s_button" % value.lower())) for value, label in RANGES]
+
+  @handle("dividend_range_1m_button", "click")
+  @handle("dividend_range_3m_button", "click")
+  @handle("dividend_range_6m_button", "click")
+  @handle("dividend_range_ytd_button", "click")
+  @handle("dividend_range_1y_button", "click")
+  @handle("dividend_range_3y_button", "click")
+  @handle("dividend_range_5y_button", "click")
+  @handle("dividend_range_all_button", "click")
+  @handle("dividend_range_custom_button", "click")
+  def dividend_range_click(self, sender, **event_args):
+    if self._busy or not self._parent_editable or self._report is None:
+      return
+    for value, button in self._dividend_range_buttons():
+      if sender is button:
+        if value == "CUSTOM" and self._dividend_range != "CUSTOM" and self._dividend_window:
+          self.dividend_start_picker.date = self._dividend_window["start"]
+          self.dividend_end_picker.date = self._dividend_window["end"]
+        self._dividend_range = value
+        self._ledger_page = 0
+        self._render_dividends()
+        return
+
+  @handle("dividend_basis_dropdown", "change")
+  @handle("dividend_start_picker", "change")
+  @handle("dividend_end_picker", "change")
+  def dividend_period_change(self, **event_args):
+    if not self._busy and self._parent_editable and self._report is not None:
+      self._ledger_page = 0
+      self._render_dividends()
+
+  def _render_dividends(self):
+    if self._report is None:
+      return
+    basis = self.dividend_basis_dropdown.selected_value
+    payment = basis == "payment"
+    self.dividend_custom_region.visible = self._dividend_range == "CUSTOM"
+    self.dividend_start_picker.max_date = self._as_of
+    self.dividend_end_picker.max_date = self._as_of
+    for value, button in self._dividend_range_buttons():
+      button.role = "chart-range-active" if value == self._dividend_range else "chart-range"
+    starts = [str(row["trade_date"]) for row in self._transactions if row.get("trade_date")]
+    try:
+      self._dividend_window = dividend_window(
+        self._report["dividends"]["ledger"], self._as_of, self._dividend_range, basis,
+        self.dividend_start_picker.date, self.dividend_end_picker.date,
+        min(starts) if starts else None)
+    except ValueError as error:
+      self._dividend_window = None
+      self.dividend_period_label.text = str(error)
+      self.dividend_period_region.classes["is-error"] = True
+      self.dividend_summary_region.visible = False
+      self.dividend_unresolved_label.visible = False
+      self.dividend_history_plot.visible = False
+      self.dividend_history_plot.data = []
+      self.ledger_panel.items = []
+      self.ledger_page_label.text = "Choose a valid period to see dividends."
+      self.ledger_navigation.visible = False
+      self._update_controls()
+      return
+    window = self._dividend_window
+    self.dividend_period_region.classes["is-error"] = False
+    self.dividend_summary_region.visible = True
+    self.dividend_history_plot.visible = bool(window["chart"])
+    self.dividend_total_caption.text = "Expected cash received" if payment else "Dividends earned"
+    self.dividend_total_note.text = "By confirmed payment date · before tax" if payment else "By ex-dividend date · before tax"
+    self.paid_label.text = self.money(window["total"])
+    self.payment_coverage_label.text = str(len(window["rows"]))
+    self.dividend_count_note.text = "%s securities · %s" % (window["security_count"], "Modeled payments" if payment else "Earned distributions")
+    self.dividend_period_label.text = "%s – %s · %s · %s" % (
+      window["start"], window["end"], dict(RANGES)[self._dividend_range],
+      "Payment dates" if payment else "Ex-dividend dates")
+    if window["limited_history"]:
+      self.dividend_period_label.text += " · Available portfolio history begins %s" % window["history_start"]
+    notices = []
+    if window["unconfirmed_count"]:
+      notices.append("%s distributions with ex-dates in this period have unconfirmed payment dates or require review. They are excluded from cash receipts; choose Ex-dividend date to review them." % window["unconfirmed_count"])
+    if window["unavailable_count"]:
+      notices.append("%s distributions have unconfirmed cash amounts and are excluded from the total." % window["unavailable_count"])
+    self.dividend_unresolved_label.text = " ".join(notices)
+    self.dividend_unresolved_label.visible = bool(notices)
+    self.dividend_chart_heading.text = "%s by %s" % ("Expected cash" if payment else "Dividends earned", window["grouping"])
+    self.dividend_ledger_heading.text = "Payments in this period" if payment else "Earned dividends in this period"
+    self._render_ledger()
+    self._draw_dividend_chart()
+    self.redraw()
+
   def _dividend_item(self, row, upcoming=False):
     amount = row.get("estimated_cash") if upcoming else row.get("earned")
     source = row.get("source") or "Unconfirmed source"
     per_share = "Amount not confirmed" if row.get("amount") is None else "$%.6f per share" % row["amount"]
-    return {"headline": "%s · ex-dividend %s" % (row["symbol"], row["ex_date"]),
-      "amount": "Cash amount unavailable" if amount is None else self.money(amount) + (" estimated" if upcoming else " earned"),
-      "detail": "%s · payment %s" % (per_share, row.get("payment_date") or "not confirmed"),
+    return {"headline": row["symbol"],
+      "amount": "Amount unavailable" if amount is None else self.money(amount) + (" estimated" if upcoming else ""),
+      "dates": "Ex-date %s · Payment %s" % (row["ex_date"], row.get("payment_date") or "unconfirmed"),
+      "detail": per_share,
       "status": ("Published upcoming ex-date" if upcoming else row["status"]) + " · " + source,
       "source_url": row.get("source_url") or "", "note": row.get("note", "")}
 
   def _render_ledger(self):
     report = self._report
     assert report is not None
-    rows = report["dividends"]["ledger"]
+    rows = self._dividend_window["rows"] if self._dividend_window else []
     start = self._ledger_page * self.PAGE_SIZE
     self.ledger_panel.items = [self._dividend_item(row) for row in rows[start:start + self.PAGE_SIZE]]
-    self.ledger_page_label.text = "%s–%s of %s dividends" % (start + 1, min(start + self.PAGE_SIZE, len(rows)), len(rows)) if rows else "No earned dividends in this transaction history."
+    self.ledger_page_label.text = "%s–%s of %s distributions" % (start + 1, min(start + self.PAGE_SIZE, len(rows)), len(rows)) if rows else ("No matched payments in this period. Try another range or choose Ex-dividend date." if self.dividend_basis_dropdown.selected_value == "payment" else "No earned dividends in this period. Try a longer range.")
     self.ledger_navigation.visible = len(rows) > self.PAGE_SIZE
     self._update_controls()
 
@@ -237,6 +338,8 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._apply_view()
 
   def _apply_view(self):
+    self.classes["is-dividends"] = self._view == "dividends"
+    self.dividend_custom_region.visible = self._dividend_range == "CUSTOM"
     self.view_title_label.text = {"dividends": "Dividends", "passive": "Passive Income", "tax": "Tax Harvester"}[self._view]
     self.view_intro_label.text = {
       "dividends": "Follow upcoming ex-dividend dates and review the payments earned by your selected holdings.",
@@ -246,7 +349,7 @@ class IncomeTracker(IncomeTrackerTemplate):
     self.dividends_region.visible = self._view == "dividends"
     self.passive_region.visible = self._view == "passive"
     self.tax_region.visible = self._view == "tax"
-    self.income_coverage_region.visible = self._view != "tax"
+    self.income_coverage_region.visible = self._view == "passive"
     taxable = self.account_type_dropdown.selected_value == "taxable"
     self.taxable_region.visible = taxable
     self.retirement_note.visible = not taxable
@@ -280,7 +383,7 @@ class IncomeTracker(IncomeTrackerTemplate):
     if self._busy or not self._parent_editable or self._report is None:
       return
     if kind == "ledger":
-      maximum = max(0, (len(self._report["dividends"]["ledger"]) - 1) // self.PAGE_SIZE)
+      maximum = max(0, (len(self._dividend_window["rows"]) - 1) // self.PAGE_SIZE) if self._dividend_window else 0
       self._ledger_page = max(0, min(maximum, self._ledger_page + direction))
       self._render_ledger()
     else:
@@ -300,7 +403,26 @@ class IncomeTracker(IncomeTrackerTemplate):
     self._chart_mode = chart_theme.MODE
     self._plot_size = None
 
+  def _draw_dividend_chart(self):
+    if self._dividend_window is None:
+      return
+    rows = self._dividend_window["chart"]
+    self.dividend_history_plot.data = [{"type": "bar", "x": [row["date"] for row in rows],
+      "y": [row["amount"] for row in rows], "marker": {"color": chart_theme.POSITIVE},
+      "hovertemplate": "%{x|%b %Y}<br>$%{y:,.2f}<extra></extra>"}]
+    step = {"month": "M1", "quarter": "M3", "year": "M12"}[self._dividend_window["grouping"]]
+    self.dividend_history_plot.layout = chart_theme.layout({
+      "margin": {"l": 60, "r": 16, "t": 12, "b": 48}, "showlegend": False,
+      "xaxis": {"type": "date", "tickformat": "%b '%y", "dtick": step, "showgrid": False, "fixedrange": True},
+      "yaxis": {"tickprefix": "$", "rangemode": "tozero", "fixedrange": True}, "bargap": .35})
+    self._dividend_chart_mode = chart_theme.MODE
+    self._dividend_plot_size = None
+
   def redraw(self):
+    if self._report is not None and self._view == "dividends" and self._dividend_window is not None:
+      if self._dividend_chart_mode != chart_theme.MODE:
+        self._draw_dividend_chart()
+      self._dividend_plot_size = chart_theme.redraw(self.dividend_history_plot, self._dividend_plot_size)
     if self._report is not None and self._view == "passive":
       if self._chart_mode != chart_theme.MODE:
         self._draw_chart()
@@ -308,4 +430,5 @@ class IncomeTracker(IncomeTrackerTemplate):
 
   def apply_appearance(self):
     self._draw_chart()
+    self._draw_dividend_chart()
     self.redraw()
