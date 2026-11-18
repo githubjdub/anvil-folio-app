@@ -16,6 +16,7 @@ class MySubscription(MySubscriptionTemplate):
     self._pending_refresh = False
     self._checkout_return_seen = False
     self._loaded = False
+    self._billing_workspace = None
     self.account_id = None
     self.plan_comparison.set_managed()
     self.account_region.visible = False
@@ -88,6 +89,7 @@ class MySubscription(MySubscriptionTemplate):
       if workspace['account_id'] != account_id:
         return
       self.account_id = account_id
+      self._billing_workspace = workspace
       self.plan_comparison.set_billing_context(workspace)
       self._loaded = True
       refreshed = workspace['refresh_result']

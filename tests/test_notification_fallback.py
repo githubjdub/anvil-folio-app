@@ -26,6 +26,7 @@ class InboxHarness:
         self.now = 1000
         self.calls = []
         self.hook = None
+        self.events = []
         harness = self
         names = re.findall(r'(?:anvil:name|name)="([^"]+)"', (FORM / "form_template.html").read_text())
 
@@ -38,12 +39,12 @@ class InboxHarness:
                 pass
 
             def raise_event(self, *args, **kwargs):
-                pass
+                harness.events.append((args, kwargs))
 
         tree = ast.parse((FORM / "__init__.py").read_text())
         tree.body = [node for node in tree.body if not isinstance(node, (ast.Import, ast.ImportFrom))]
         namespace = dict(NotificationsTemplate=Template, handle=lambda *args: lambda method: method,
-                         time=lambda: harness.now, anvil=SimpleNamespace(server=SimpleNamespace(call=self.call)))
+                         time=lambda: harness.now, anvil=SimpleNamespace(server=SimpleNamespace(call=self.call, call_s=self.call)))
         exec(compile(tree, str(FORM / "__init__.py"), "exec"), namespace)
         self.form = namespace["Notifications"]()
 
@@ -109,13 +110,42 @@ class NotificationPollingTests(unittest.TestCase):
     def test_slow_source_waits_a_minute_after_completion(self):
         h = InboxHarness()
         h.form.set_account_context("account-a")
+        h.form.set_active(True)
         h.hook = lambda: setattr(h, "now", h.now + 120)
         h.form.refresh_click()
         h.form.ensure_loaded()
         self.assertEqual(len(h.calls), 1)
         h.now += 61
         h.form.ensure_loaded()
+        self.assertEqual(len(h.calls), 1)
+        h.form.check_timer_tick()
         self.assertEqual(len(h.calls), 2)
+
+    def test_startup_reads_saved_inbox_then_navigation_defers_external_poll(self):
+        h = InboxHarness()
+        h.form.set_account_context("account-a")
+        h.form.preload()
+        self.assertEqual(h.calls, [('get_notification_workspace', dict(before=None, check_for_updates=False))])
+        self.assertTrue(h.form._loaded)
+        h.form.preload()
+        h.form.set_active(True)
+        h.form.ensure_loaded()
+        self.assertEqual(len(h.calls), 1)
+        self.assertEqual(h.form.check_timer.interval, .1)
+        h.events.clear()
+        h.form.check_timer_tick()
+        self.assertEqual(len(h.calls), 2)
+        self.assertFalse(any(args[0] == 'x-notifications-busy' for args, kwargs in h.events))
+
+    def test_leaving_inbox_before_deferred_poll_skips_external_request(self):
+        h = InboxHarness()
+        h.form.set_account_context("account-a")
+        h.form.preload()
+        h.form.set_active(True)
+        h.form.ensure_loaded()
+        h.form.set_active(False)
+        h.form.check_timer_tick()
+        self.assertEqual(len(h.calls), 1)
 
     def test_account_change_discards_inflight_inbox(self):
         h = InboxHarness()

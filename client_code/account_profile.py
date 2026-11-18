@@ -5,6 +5,7 @@ import anvil.users
 from anvil import alert
 from .Components.UsernameSetup import UsernameSetup
 from .Components.SignIn import SignIn
+from .workspace_cache import account_workspace, invalidate_workspace
 
 
 _checking_profile = False
@@ -37,10 +38,11 @@ def ensure_username():
     if user is None:
       return False
     account_id = user.get_id()
-    profile = anvil.server.call("get_my_profile")
+    workspace = account_workspace()
     current_user = anvil.users.get_user()
-    if current_user is None or current_user.get_id() != account_id:
+    if workspace is None or current_user is None or current_user.get_id() != account_id:
       return False
+    profile = workspace["profile"]
     if profile["username"]:
       return True
     saved = alert(
@@ -49,6 +51,8 @@ def ensure_username():
       role="username-setup-dialog",
     )
     current_user = anvil.users.get_user()
+    if saved:
+      invalidate_workspace()
     return bool(saved and current_user is not None and current_user.get_id() == account_id)
   finally:
     _checking_profile = False

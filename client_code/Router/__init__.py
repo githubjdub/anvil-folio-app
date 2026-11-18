@@ -12,7 +12,7 @@ from ..Disclosures import Disclosures
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, username_prompt_open
 from ..appearance import initialize
-from ..workspace_cache import CACHE_SECONDS, workspace_revision, invalidate_workspace
+from ..workspace_cache import CACHE_SECONDS, workspace_revision
 
 
 class Router(RouterTemplate):
@@ -29,6 +29,7 @@ class Router(RouterTemplate):
     self._editor_owner = None
     self._editor_stamp = None
     self._page_forms = {}
+    self._navigation_prepared = False
     self._hash_listener = anvil.js.report_exceptions(self.hash_changed)
 
   @handle("", "show")
@@ -71,6 +72,7 @@ class Router(RouterTemplate):
         self._editor_owner = None
       self._editor_stamp = None
       self._page_forms.clear()
+      self._navigation_prepared = False
       self._username_account_id = None
       self._cache_account_id = account_id
     workspace_revision()
@@ -79,14 +81,58 @@ class Router(RouterTemplate):
     return workspace_revision(), time()
 
   def _needs_refresh(self, stamp):
-    return (stamp is None or stamp[0] != workspace_revision()
-            or time() - stamp[1] >= CACHE_SECONDS)
+    # workspace_revision schedules expired metadata for a silent refresh.
+    # Rebind retained pages only when a new snapshot is actually available.
+    return stamp is None or stamp[0] != workspace_revision()
 
   def _is_current(self, generation, route, account_id):
     if self._current_account_id() != account_id:
       self._route_pending = True
       return False
     return generation == self._route_generation and self._route_key() == route
+
+  def _prepare_navigation(self, account_id):
+    """Retain one prepared instance per private page for this account."""
+    # Public links and the plans/disclosures landing pages stay lightweight.
+    if self._navigation_prepared or account_id is None:
+      return
+    self._navigation_prepared = True
+    self.startup_status.text = "Loading your portfolio…"
+    if self._editor_form is None:
+      editor = Form1()
+    else:
+      editor = self._editor_form
+      editor.resume_account()
+    if self._current_account_id() != account_id:
+      self._route_pending = True
+      return
+    self._editor_form = editor
+    self._editor_owner = account_id
+    if editor._busy:
+      self._navigation_prepared = False
+      return
+    self.startup_status.text = "Preparing charts, income and planning tools…"
+    editor.prepare_navigation()
+    if self._current_account_id() != account_id:
+      self._route_pending = True
+      return
+    self._editor_stamp = self._stamp()
+    self.startup_status.text = "Preparing your profile and membership pages…"
+    billing = None
+    for page, form_type in (("profile", ProfileHome), ("subscription", MySubscription),
+                            ("subscribe", Subscribe), ("disclosures", Disclosures)):
+      if page in self._page_forms:
+        continue
+      destination = form_type()
+      if isinstance(destination, MySubscription):
+        destination.load_details()
+        billing = destination._billing_workspace
+      elif isinstance(destination, Subscribe) and billing is not None:
+        destination.plan_comparison.set_billing_context(billing)
+      if self._current_account_id() != account_id:
+        self._route_pending = True
+        return
+      self._page_forms[page] = {"form": destination, "stamp": self._stamp()}
 
   def _open_route(self):
     self._route_generation += 1
@@ -119,6 +165,10 @@ class Router(RouterTemplate):
         return
     route = self._route_key()
     page, token = route
+    if page in ("dashboard", "notifications", "profile"):
+      self._prepare_navigation(account_id)
+      if not self._is_current(generation, route, account_id):
+        return
     active = get_open_form()
     if page == "shared":
       if isinstance(active, PublicPerformance) and active.share_token == token:
@@ -172,6 +222,8 @@ class Router(RouterTemplate):
   def _open_account_page(self, page, route, generation, account_id):
     entry = self._page_forms.get(page)
     refreshed = entry is None or (page != "disclosures" and self._needs_refresh(entry["stamp"]))
+    if entry is not None and page in ("subscription", "subscribe"):
+      refreshed = refreshed or time() - entry["stamp"][1] >= CACHE_SECONDS
     if entry is None:
       form_type = {"subscribe": Subscribe, "subscription": MySubscription,
                    "profile": ProfileHome, "disclosures": Disclosures}[page]
@@ -190,9 +242,10 @@ class Router(RouterTemplate):
       return
     # Reconciled billing can change membership. Refresh shared account metadata
     # once, while keeping billing checks out of ordinary page-to-page switches.
-    if page == "subscription" and refreshed:
-      invalidate_workspace()
-    self._page_forms[page] = {"form": destination, "stamp": self._stamp() if refreshed else entry["stamp"]}
+    # MySubscription invalidates only after an explicit billing reconciliation;
+    # merely visiting the page must not force every other page to refetch.
+    stamp = self._stamp() if refreshed or entry is None else entry["stamp"]
+    self._page_forms[page] = {"form": destination, "stamp": stamp}
     if self._is_current(generation, route, account_id) and get_open_form() is not destination:
       open_form(destination)
       record_page(page)

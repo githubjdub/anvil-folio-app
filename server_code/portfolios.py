@@ -251,12 +251,12 @@ def load_portfolio(portfolio_id):
 @anvil.server.callable(require_user=True)
 def get_portfolio_workspace():
   """One small bootstrap response; analyses are fetched only when opened."""
-  from account_profiles import get_my_profile
+  from account_profiles import _profile_for_user
   from creator_portfolios import get_creator_access
   user = _current_user()
   portfolios = _portfolios_for(user)
   membership = membership_for(user)
-  return {"profile": get_my_profile(), "membership": membership,
+  return {"profile": _profile_for_user(user, portfolios), "membership": membership,
           "creator": get_creator_access(), "portfolios": portfolios,
           "usage": {"count": len(portfolios), "limit": membership["portfolio_limit"],
                     "plan": membership["label"], "can_create": len(portfolios) < membership["portfolio_limit"]}}

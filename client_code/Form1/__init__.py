@@ -167,6 +167,22 @@ class Form1(Form1Template):
         self._set_busy(False)
     self._initializing = False
 
+  def prepare_navigation(self):
+    """Pay the first-visit cost while Router is showing the startup screen."""
+    account_id = self.account_id
+    for prepare in (self.income_form.ensure_loaded, self.tax_estimator_form.redraw,
+                    self.retirement_form.redraw, self.notifications_form.preload):
+      user = anvil.users.get_user()
+      if (user.get_id() if user is not None else None) != account_id:
+        return
+      prepare()
+
+  def _prepare_portfolio_views(self):
+    # Prepare the initial views when restoring/syncing an analysis. Ordinary
+    # filter edits keep rendering only the active view for responsive inputs.
+    for page in ("overview", "allocation", "performance"):
+      self._ensure_readout_rendered(page)
+
   @handle("", "show")
   def form_show(self, **event_args):
     # Router may prepare a retained workspace while detached. Once visible,
@@ -2771,3 +2787,4 @@ class Form1(Form1Template):
     self._show_results(True)
     self._update_benchmark_options()
     self._render_readout()
+    self._prepare_portfolio_views()

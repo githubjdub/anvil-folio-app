@@ -138,13 +138,14 @@ def _percentile(value, values):
           'rank': 1 + sum(v > value for v in values), 'count': len(values)}
 
 
-def profile_summary_for(user):
+def profile_summary_for(user, entries=None):
   from portfolios import _owned_portfolio, _portfolios_for
   profile = _profile_for(user)
   # Navigation normally reads only the small profile and directory records.
   # Decompress the selected analysis only on first use or quarter rollover;
   # subsequent save/sync hooks keep the materialized metrics current.
-  entries = _portfolios_for(user)
+  if entries is None:
+    entries = _portfolios_for(user)
   primary = next((p for p in entries if p['portfolio_id'] == profile['primary_portfolio_id']), None)
   if primary is None:
     primary = entries[0] if entries else None

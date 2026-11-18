@@ -25,6 +25,7 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._context_account_id = None
     self._analysis = None
     self._context = None
+    self._synced_context_rendered = False
     self._tax_year = 2026
     self._loaded_scope = None
     self._inputs_dirty = False
@@ -44,6 +45,7 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._context_account_id = user.get_id() if user else None
     self._analysis = None
     self._context = None
+    self._synced_context_rendered = False
     self._loaded_scope = None
     self._inputs_dirty = False
     self._year_drafts = {}
@@ -96,6 +98,7 @@ class TaxEstimator(TaxEstimatorTemplate):
     self._portfolio_id = portfolio_id
     self._analysis = analysis
     self._context = analysis.get('planning_context') if analysis else None
+    self._synced_context_rendered = False
     self._transactions = [dict(row) for row in transactions or []]
     self._as_of = date.fromisoformat(as_of) if isinstance(as_of, str) else as_of
     year = self._as_of.year if self._as_of else date.today().year
@@ -130,6 +133,9 @@ class TaxEstimator(TaxEstimatorTemplate):
     return self._context.get('tax_by_year', {}).get(str(self._tax_year))
 
   def _render_synced_context(self):
+    if self._synced_context_rendered:
+      return
+    self._synced_context_rendered = True
     report = self._year_report()
     self._positions = report['positions'] if report else {}
     self.holding_dropdown.items = [('%s · %s shares · %s' % (symbol, '{:,.6f}'.format(position['shares']).rstrip('0').rstrip('.'), self._money(position['current_price'])), symbol)
@@ -221,7 +227,7 @@ class TaxEstimator(TaxEstimatorTemplate):
     self.assumptions_label.text = '%s · %s · %s. %s' % (income, state, dividends, scenario)
 
   def _auto_estimate(self):
-    if self._busy or not self._parent_editable or not self._portfolio_id or self._context is None or not self._catalog or self._tax_year not in self._catalog['tax_years']:
+    if self._result is not None or self._busy or not self._parent_editable or not self._portfolio_id or self._context is None or not self._catalog or self._tax_year not in self._catalog['tax_years']:
       return
     key = (self._generation, str(self._input_document()))
     if self._result is None and key != self._auto_estimate_key:
@@ -417,6 +423,7 @@ class TaxEstimator(TaxEstimatorTemplate):
       return
     self._year_drafts[self._tax_year] = self._input_document()
     self._tax_year = year
+    self._synced_context_rendered = False
     self._generation += 1
     self._loaded_scope = None
     self._inputs_dirty = year in self._year_drafts

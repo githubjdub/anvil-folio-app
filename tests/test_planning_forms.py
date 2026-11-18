@@ -73,6 +73,8 @@ class Harness:
                 return harness.responses[method]
             if method == 'get_tax_estimator_catalog':
                 return dict(tax_years=[2025,2026], filing_statuses=[('Single','single')], states=[('Federal','federal')], presets={})
+            if method == 'estimate_saved_trade_taxes':
+                return {'ok': False, 'message': 'No estimate fixture for this input-state test.'}
             if method == 'get_planning_inputs':
                 key = (harness.user, *args)
                 return {'ok': True, 'plan': {'inputs': harness.plans[key]} if key in harness.plans else None}
@@ -95,7 +97,7 @@ class Harness:
 
 
 def analysis(year=2026, value=1000):
-    position = dict(shares=10, current_price=value/10)
+    position = dict(shares=10, current_price=value/10, current_value=value)
     report = dict(positions={'TEST':position}, lots=[{}], summary=dict(realized_short_term=0, realized_long_term=100))
     return {'planning_context': dict(tax_by_year={str(year):report}, earned_dividends_by_year={str(year):10})}
 
@@ -109,7 +111,7 @@ class PlanningFormTests(unittest.TestCase):
         form.redraw()
         self.assertTrue(form.estimate_button.enabled)
         self.assertEqual(form._tax_year, 2026)
-        self.assertIn('long-term $100.00', form.synced_summary_label.text)
+        self.assertIn('$100.00 recorded gains / losses in 2026', form.synced_summary_label.text)
         count = len(harness.calls)
         form.redraw()
         self.assertEqual(len(harness.calls), count)

@@ -64,7 +64,14 @@ class Notifications(NotificationsTemplate):
     if not self._loaded and not self._auto_load_attempted and self._can_act():
       self.refresh_click()
     elif self._loaded and self._can_act() and time() - self._last_check_at >= 60:
-      self.refresh_click()
+      # Display the retained inbox first. SEC checks run after the page paints.
+      if self._active:
+        self.check_timer.interval = 0.1
+
+  def preload(self):
+    """Read the saved inbox at startup without polling an external source."""
+    if not self._loaded and self._can_act():
+      self._load_page(0, None)
 
   def set_active(self, active):
     """Parent controls polling so other portfolio tabs make no SEC requests."""
@@ -73,8 +80,10 @@ class Notifications(NotificationsTemplate):
 
   @handle("check_timer", "tick")
   def check_timer_tick(self, **event_args):
+    self.check_timer.interval = 60 if self._active and self._account_id else 0
     if self._active and self._can_act():
-      self.ensure_loaded()
+      if time() - self._last_check_at >= 60:
+        self._load_page(0, None, check_for_updates=True, background=True)
 
   def form_hide(self, **event_args):
     self.check_timer.interval = 0
@@ -165,7 +174,7 @@ class Notifications(NotificationsTemplate):
     self._update_controls()
     self.raise_event("x-notifications-unread", count=self._unread_count, account_id=self._account_id)
 
-  def _load_page(self, page, cursor, check_for_updates=False):
+  def _load_page(self, page, cursor, check_for_updates=False, background=False):
     if not self._can_act():
       return
     generation = self._generation
@@ -174,10 +183,15 @@ class Notifications(NotificationsTemplate):
     self._auto_load_attempted = True
     if check_for_updates:
       self._last_check_at = time()
-    self._set_busy(True)
+    if background:
+      self._busy = True
+      self._update_controls()
+    else:
+      self._set_busy(True)
     self._set_status("Loading your notifications…")
     try:
-      result = anvil.server.call("get_notification_workspace", before=cursor, check_for_updates=check_for_updates)
+      call = anvil.server.call_s if background else anvil.server.call
+      result = call("get_notification_workspace", before=cursor, check_for_updates=check_for_updates)
       if generation != self._generation:
         return
       self._page = page
@@ -193,7 +207,11 @@ class Notifications(NotificationsTemplate):
         # A slow source request must not make the parent immediately start
         # another poll when its busy state is released.
         self._last_check_at = time()
-      self._set_busy(False)
+      if background:
+        self._busy = False
+        self._update_controls()
+      else:
+        self._set_busy(False)
 
   @handle("refresh_button", "click")
   def refresh_click(self, **event_args):

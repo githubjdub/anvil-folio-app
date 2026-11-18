@@ -38,19 +38,24 @@ class NavigationHarness:
 
         class Template:
             def __init__(self, **properties):
-                pass
+                self.startup_status = SimpleNamespace(text='')
 
         class Page:
             def __init__(self, **properties):
                 self.account_id = harness.account_id()
                 self.refresh_count = 1
-                self.plan_comparison = SimpleNamespace(refresh_plan=self._refresh)
+                self.plan_comparison = SimpleNamespace(refresh_plan=self._refresh,
+                                                       set_billing_context=lambda workspace: None)
+                self._billing_workspace = None
                 harness.instances.setdefault(type(self).__name__, []).append(self)
 
             def _refresh(self):
                 self.refresh_count += 1
 
             _refresh_details = _refresh
+
+            def load_details(self):
+                self._billing_workspace = {'account_id': harness.account_id()}
 
         class Editor(Page):
             def __init__(self, **properties):
@@ -62,6 +67,7 @@ class NavigationHarness:
                 self.draft = ['unsaved trade']
                 self.portfolio_id = 'p1'
                 self.load_count = 0
+                self.prepared_count = 0
                 if harness.constructor_hook:
                     hook = harness.constructor_hook
                     harness.constructor_hook = None
@@ -74,6 +80,9 @@ class NavigationHarness:
 
             def apply_appearance(self):
                 pass
+
+            def prepare_navigation(self):
+                self.prepared_count += 1
 
             def open_profile_portfolio(self, portfolio_id):
                 if self.portfolio_id != portfolio_id:
@@ -130,6 +139,27 @@ class NavigationHarness:
 
 
 class RetainedNavigationTests(unittest.TestCase):
+    def test_startup_prepares_all_private_pages_before_opening_editor(self):
+        h = NavigationHarness()
+        h.navigate('portfolio')
+        self.assertEqual(h.active.prepared_count, 1)
+        self.assertEqual(set(h.router._page_forms), {'profile', 'subscription', 'subscribe', 'disclosures'})
+        self.assertEqual(h.opened, [h.active])
+        for page in ('profile', 'subscription', 'subscribe', 'disclosures', 'portfolio'):
+            h.navigate(page)
+        self.assertEqual(h.active.prepared_count, 1)
+        self.assertEqual(h.active.resume_count, 0)
+
+    def test_public_and_guest_landing_pages_do_not_preload_private_workspace(self):
+        for route in ({'share': 'public-token'}, {'page': 'subscribe'}, {'page': 'disclosures'}):
+            h = NavigationHarness()
+            h.navigate(route)
+            self.assertEqual(h.editors(), [])
+        h = NavigationHarness(account_id=None)
+        h.navigate('portfolio')
+        self.assertEqual(h.active.prepared_count, 0)
+        self.assertEqual(h.router._page_forms, {})
+
     def test_portfolio_analysis_and_draft_survive_all_account_pages(self):
         h = NavigationHarness()
         h.navigate('portfolio')
@@ -191,7 +221,7 @@ class RetainedNavigationTests(unittest.TestCase):
         self.assertEqual(len(h.router._page_forms), 4)
         self.assertEqual(sum(len(forms) for forms in h.instances.values()), 5)
 
-    def test_quick_visits_do_not_extend_metadata_expiry_forever(self):
+    def test_expired_pages_wait_for_new_metadata_without_blocking_navigation(self):
         h = NavigationHarness()
         h.navigate('profile')
         profile = h.active
@@ -200,6 +230,11 @@ class RetainedNavigationTests(unittest.TestCase):
         h.navigate('profile')
         self.assertEqual(profile.refresh_count, 1)
         h.now += 25
+        h.navigate('portfolio')
+        h.navigate('profile')
+        self.assertEqual(profile.refresh_count, 1)
+        # The asynchronous cache refresh publishes a new revision on completion.
+        h.invalidate()
         h.navigate('portfolio')
         h.navigate('profile')
         self.assertEqual(profile.refresh_count, 2)
@@ -245,7 +280,7 @@ class RetainedNavigationTests(unittest.TestCase):
         h.navigate('portfolio')
         self.assertEqual(len(h.editors()), 1)
         self.assertIs(h.active, h.editors()[0])
-        self.assertEqual(h.instances.get('ProfileHome', []), [])
+        self.assertEqual(len(h.instances.get('ProfileHome', [])), 1)
 
     def test_account_change_during_constructor_never_opens_stale_editor(self):
         h = NavigationHarness()
@@ -265,6 +300,7 @@ class WorkspaceCacheTests(unittest.TestCase):
         self.now = 100
         self.calls = 0
         self.hook = None
+        self.pending = []
         def call(name):
             self.assertEqual(name, 'get_portfolio_workspace')
             self.calls += 1
@@ -275,16 +311,55 @@ class WorkspaceCacheTests(unittest.TestCase):
         self.cache = source_namespace(CLIENT / 'workspace_cache.py', {
             'time': lambda: self.now,
             'anvil': SimpleNamespace(users=SimpleNamespace(get_user=lambda: self.user),
-                                     server=SimpleNamespace(call=call)),
+                                     server=SimpleNamespace(call=call, call_s=call),
+                                     js=SimpleNamespace(report_exceptions=lambda fn: fn,
+                                        window=SimpleNamespace(setTimeout=lambda fn, ms: self.pending.append(fn)))),
         })
 
-    def test_cached_workspace_has_fixed_sixty_second_expiry(self):
+    def test_expired_workspace_returns_immediately_and_refreshes_once(self):
         first = self.cache['account_workspace']()
         self.now += 40
         self.assertIs(self.cache['account_workspace'](), first)
         self.now += 21
+        for _ in range(5):
+            self.assertIs(self.cache['account_workspace'](), first)
+        self.assertEqual(self.calls, 1)
+        self.assertEqual(len(self.pending), 1)
+        revision = self.cache['workspace_revision']()
+        self.pending.pop(0)()
         self.assertIsNot(self.cache['account_workspace'](), first)
         self.assertEqual(self.calls, 2)
+        self.assertGreater(self.cache['workspace_revision'](), revision)
+
+    def test_expired_account_response_cannot_replace_explicit_refresh(self):
+        self.cache['account_workspace']()
+        self.now += 61
+        self.cache['account_workspace']()
+        self.hook = lambda: self.cache['account_workspace'](force=True)
+        self.pending.pop(0)()
+        self.assertEqual(self.calls, 3)
+        self.assertEqual(self.cache['_workspace']['request'], 3)
+
+    def test_scheduled_refresh_is_discarded_after_logout(self):
+        self.cache['account_workspace']()
+        self.now += 61
+        self.cache['account_workspace']()
+        self.user = None
+        self.pending.pop(0)()
+        self.assertEqual(self.calls, 1)
+        self.assertIsNone(self.cache['account_workspace']())
+
+    def test_background_error_keeps_previous_snapshot_and_propagates(self):
+        first = self.cache['account_workspace']()
+        self.now += 61
+        self.cache['account_workspace']()
+        def fail():
+            raise RuntimeError('unexpected read failure')
+        self.hook = fail
+        with self.assertRaisesRegex(RuntimeError, 'unexpected read failure'):
+            self.pending.pop(0)()
+        self.assertIs(self.cache['_workspace'], first)
+        self.assertIsNone(self.cache['_refresh_pending'])
 
     def test_invalidated_inflight_response_is_not_cached(self):
         self.hook = self.cache['invalidate_workspace']
