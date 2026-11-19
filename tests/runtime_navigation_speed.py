@@ -18,7 +18,7 @@ import subscriptions
 original_user = anvil.users.get_user
 original_directory = portfolios._directory_for
 original_fetch = portfolio_analytics._fetch_history
-original_poll = notifications._poll_for_visit
+original_poll = notifications._poll_on_visit
 users = []
 directory_calls = []
 tag = uuid.uuid4().hex[:12]
@@ -42,7 +42,7 @@ try:
     user = users[0]
     anvil.users.get_user = lambda: user
     portfolio_analytics._fetch_history = forbidden_external
-    notifications._poll_for_visit = forbidden_external
+    notifications._poll_on_visit = forbidden_external
     saved = portfolios.save_portfolio(None, 'Navigation fixture', [dict(
         ticker='AAPL', trade_date='2026-01-02', action='Buy', shares=1, trade_price=100)], date.today(), 2.5)
     assert saved['ok'], saved
@@ -92,7 +92,7 @@ finally:
     anvil.users.get_user = original_user
     portfolios._directory_for = original_directory
     portfolio_analytics._fetch_history = original_fetch
-    notifications._poll_for_visit = original_poll
+    notifications._poll_on_visit = original_poll
     for user in users:
         for name in ('notification_settings', 'portfolio_plans', 'investor_profiles', 'portfolio_directory', 'portfolios'):
             for row in getattr(app_tables, name).search(owner=user):

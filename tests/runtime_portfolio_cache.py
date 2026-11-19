@@ -1,6 +1,7 @@
 """Persistence contract checks in the disposable DB: anvil repl - < this file."""
 from datetime import date, datetime, timedelta, timezone
 import copy
+import base64
 import gzip
 import json
 import uuid
@@ -98,11 +99,12 @@ try:
   assert row['analysis_cache'] is None, 'Slow old analysis replaced a changed portfolio'
   fingerprint = portfolios._analysis_fingerprint(changed, as_of, 2.5)
   compressed = gzip.compress(json.dumps(analysis).encode())
-  portfolios._staged_analysis = lambda: (fingerprint, compressed, datetime.now(), users[1].get_id())
+  staged = base64.b64encode(compressed).decode('ascii')
+  portfolios._staged_analysis = lambda: (fingerprint, staged, datetime.now(), users[1].get_id())
   assert portfolios.save_portfolio(portfolio_id, 'Changed fixture', changed, as_of, 2.5)['ok']
   row = app_tables.portfolios.get_by_id(portfolio_id)
   assert row['analysis_cache'] is None, 'Other account staged data leaked into save'
-  portfolios._staged_analysis = lambda: (fingerprint, compressed, datetime.now(), user.get_id())
+  portfolios._staged_analysis = lambda: (fingerprint, staged, datetime.now(), user.get_id())
   assert portfolios.save_portfolio(portfolio_id, 'Changed fixture', changed, as_of, 2.5)['ok']
   assert portfolios.load_portfolio(portfolio_id)['analysis']['metrics']['market_value'] == 150
   print('PASS: edit invalidation, stale-analysis race guard, account-bound staging, matching staged analysis reused')
@@ -115,16 +117,20 @@ try:
   assert portfolios.save_portfolio(portfolio_id, 'Date edit', changed, as_of-timedelta(days=1), 3)['ok']
   row = app_tables.portfolios.get_by_id(portfolio_id)
   assert row['analysis_cache'] is None
+  invalid = portfolios.save_portfolio(portfolio_id, 'Invalid', [dict(changed[0], shares=-1)], as_of, 3)
+  row = app_tables.portfolios.get_by_id(portfolio_id)
+  assert not invalid['ok'] and row['name'] == 'Date edit'
+  # Autosave deliberately supports a portfolio whose last trade was removed.
   empty = portfolios.save_portfolio(portfolio_id, 'Empty', [], as_of, 3)
   row = app_tables.portfolios.get_by_id(portfolio_id)
-  assert not empty['ok'] and row['name'] == 'Date edit'
+  assert empty['ok'] and row['transactions'] == [] and row['analysis_cache'] is None
   anvil.users.get_user = lambda: None
   try:
     portfolios.list_portfolios()
     raise AssertionError('Anonymous portfolio access succeeded')
   except anvil.users.AuthenticationFailed:
     pass
-  print('PASS: risk/date changes invalidate cache, invalid saves preserve prior state, anonymous access rejected')
+  print('PASS: risk/date changes invalidate cache, invalid saves preserve prior state, empty drafts autosave, anonymous access rejected')
 finally:
   anvil.users.get_user = original_get_user
   portfolios._staged_analysis = original_staged

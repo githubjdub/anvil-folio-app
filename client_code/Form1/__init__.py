@@ -34,7 +34,7 @@ BENCHMARK_CHOICES = [
 
 
 class Form1(Form1Template):
-  def __init__(self, **properties):
+  def __init__(self, initial_portfolio_id=None, **properties):
     self._initializing = True
     super().__init__(**properties)
 
@@ -64,6 +64,7 @@ class Form1(Form1Template):
     self._refresh_requested = False
     self._refreshing = False
     self._busy = False
+    self._preparing_navigation = False
     self.transactions = []
     self._collapsed_transaction_years = {}
     self._collapsed_transaction_dates = {}
@@ -162,20 +163,26 @@ class Form1(Form1Template):
     if self._user is not None:
       self._set_busy(True)
       try:
-        self._restore_last_portfolio()
+        self._restore_last_portfolio(initial_portfolio_id)
       finally:
         self._set_busy(False)
     self._initializing = False
 
   def prepare_navigation(self):
-    """Pay the first-visit cost while Router is showing the startup screen."""
+    """Pay first-visit costs at startup and when loading a new snapshot."""
+    if self._busy or self._preparing_navigation:
+      return
     account_id = self.account_id
-    for prepare in (self.income_form.ensure_loaded, self.tax_estimator_form.redraw,
-                    self.retirement_form.redraw, self.notifications_form.preload):
-      user = anvil.users.get_user()
-      if (user.get_id() if user is not None else None) != account_id:
-        return
-      prepare()
+    self._preparing_navigation = True
+    try:
+      for prepare in (self.income_form.ensure_loaded, self.tax_estimator_form.redraw,
+                      self.retirement_form.redraw, self.notifications_form.preload):
+        user = anvil.users.get_user()
+        if (user.get_id() if user is not None else None) != account_id:
+          return
+        prepare()
+    finally:
+      self._preparing_navigation = False
 
   def _prepare_portfolio_views(self):
     # Prepare the initial views when restoring/syncing an analysis. Ordinary
@@ -1152,9 +1159,10 @@ class Form1(Form1Template):
         self._set_portfolio_status(result["message"], is_error=True)
         return False
       self._apply_portfolio(result["portfolio"], result.get("analysis"))
-      return True
     finally:
       self._set_busy(False)
+    self.prepare_navigation()
+    return True
 
   @handle("subscription_button", "click")
   def subscription_click(self, **event_args):
@@ -1248,8 +1256,9 @@ class Form1(Form1Template):
     self.summary_concentration_label.text = "—" if summary["top20_weight"] is None else "%.1f%%" % (summary["top20_weight"] * 100)
     self._update_profile_ranking()
 
-  def _restore_last_portfolio(self):
-    result = anvil.server.call("get_last_portfolio")
+  def _restore_last_portfolio(self, portfolio_id=None):
+    result = (anvil.server.call("load_portfolio", portfolio_id) if portfolio_id is not None
+              else anvil.server.call("get_last_portfolio"))
     if not result["ok"]:
       self._set_portfolio_status(result["message"], is_error=True)
       return
@@ -1317,6 +1326,11 @@ class Form1(Form1Template):
     self.autosave_timer.interval = 0
     if self._initializing or self._busy or self._autosaving or not self._portfolio_dirty or self._user is None:
       return
+    account_id = self.account_id
+    portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+    generation = self._autosave_generation
+    if not self._workspace_matches(account_id, portfolio_id):
+      return
     try:
       transactions = self._read_transactions(allow_empty=True)
       name = str(self.portfolio_name_box.text or "").strip()
@@ -1340,9 +1354,11 @@ class Form1(Form1Template):
     except ValueError as error:
       self._set_portfolio_status('Not saved yet: %s' % error, is_error=True)
       return
-    account_id = self.account_id
-    portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
-    generation, revision = self._autosave_generation, self._edit_revision
+    # Committing a pending editor can change state. Never send the captured
+    # document if its account or portfolio changed while inputs were read.
+    if generation != self._autosave_generation or not self._workspace_matches(account_id, portfolio_id):
+      return
+    revision = self._edit_revision
     self._autosaving = True
     self._set_portfolio_status("Saving changes…")
     try:
@@ -2711,6 +2727,11 @@ class Form1(Form1Template):
       self._set_portfolio_status("Finishing the automatic save, then refreshing prices…")
       self._update_controls()
       return
+    original_account_id = self.account_id
+    original_portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+    original_generation = self._autosave_generation
+    if not self._workspace_matches(original_account_id, original_portfolio_id):
+      return
     self._refresh_requested = False
     self.autosave_timer.interval = 0
     try:
@@ -2734,7 +2755,13 @@ class Form1(Form1Template):
         if not self._ensure_signed_in():
           return
       account_id = self.account_id
-      portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+      # Guest drafts can be adopted at first sign-in. A draft already owned by
+      # an account must never be submitted under a different account or target.
+      if ((original_account_id is not None and account_id != original_account_id)
+          or original_generation != self._autosave_generation
+          or not self._workspace_matches(account_id, original_portfolio_id)):
+        return
+      portfolio_id = original_portfolio_id
       generation, revision = self._autosave_generation, self._edit_revision
       self._set_status("Refreshing prices through today and saving your portfolio…")
       result = anvil.server.call("refresh_portfolio", portfolio_id, name, document, risk_free_rate)
@@ -2765,6 +2792,7 @@ class Form1(Form1Template):
     finally:
       self._refreshing = False
       self._set_busy(False)
+    self.prepare_navigation()
 
 
   def _apply_analysis(self, result, transactions):

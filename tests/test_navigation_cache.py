@@ -60,12 +60,15 @@ class NavigationHarness:
         class Editor(Page):
             def __init__(self, **properties):
                 super().__init__(**properties)
+                self.initial_portfolio_id = properties.get('initial_portfolio_id')
                 self._busy = False
                 self._restore_on_resume = False
                 self.resume_count = 0
                 self.analysis = object()
                 self.draft = ['unsaved trade']
                 self.portfolio_id = 'p1'
+                if self.initial_portfolio_id is not None:
+                    self.portfolio_id = self.initial_portfolio_id
                 self.load_count = 0
                 self.prepared_count = 0
                 if harness.constructor_hook:
@@ -188,7 +191,8 @@ class RetainedNavigationTests(unittest.TestCase):
         editor = h.active
         h.navigate('profile')
         h.navigate({'page': 'portfolio', 'portfolio': 'p2'})
-        self.assertEqual(editor.load_count, 1)
+        self.assertEqual(editor.initial_portfolio_id, 'p2')
+        self.assertEqual(editor.load_count, 0)
         self.assertEqual(len(h.editors()), 1)
 
     def test_invalidation_refreshes_metadata_without_resetting_portfolio(self):

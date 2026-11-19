@@ -91,7 +91,7 @@ class Router(RouterTemplate):
       return False
     return generation == self._route_generation and self._route_key() == route
 
-  def _prepare_navigation(self, account_id):
+  def _prepare_navigation(self, account_id, portfolio_id=None):
     """Retain one prepared instance per private page for this account."""
     # Public links and the plans/disclosures landing pages stay lightweight.
     if self._navigation_prepared or account_id is None:
@@ -99,7 +99,7 @@ class Router(RouterTemplate):
     self._navigation_prepared = True
     self.startup_status.text = "Loading your portfolio…"
     if self._editor_form is None:
-      editor = Form1()
+      editor = Form1(initial_portfolio_id=portfolio_id)
     else:
       editor = self._editor_form
       editor.resume_account()
@@ -166,7 +166,7 @@ class Router(RouterTemplate):
     route = self._route_key()
     page, token = route
     if page in ("dashboard", "notifications", "profile"):
-      self._prepare_navigation(account_id)
+      self._prepare_navigation(account_id, token if page == "dashboard" else None)
       if not self._is_current(generation, route, account_id):
         return
     active = get_open_form()
@@ -240,8 +240,6 @@ class Router(RouterTemplate):
     if self._current_account_id() != account_id:
       self._route_pending = True
       return
-    # Reconciled billing can change membership. Refresh shared account metadata
-    # once, while keeping billing checks out of ordinary page-to-page switches.
     # MySubscription invalidates only after an explicit billing reconciliation;
     # merely visiting the page must not force every other page to refetch.
     stamp = self._stamp() if refreshed or entry is None else entry["stamp"]
