@@ -34,6 +34,7 @@ class Control:
         self.selected_value = self.date = self.file = None
         self.interval = self.redraw_count = self.reset_count = self.loaded_count = 0
         self.view = None
+        self._inputs_dirty = False
 
     def redraw(self):
         self.redraw_count += 1
@@ -90,7 +91,7 @@ class Portfolio(dict):
 
 
 class WorkspaceHarness:
-    def __init__(self, saved=True, account_id='a'):
+    def __init__(self, saved=True, account_id='a', defer_load=False):
         self.user = User(account_id) if account_id else None
         self.calls, self.rendered = [], []
         self.invalidations = 0
@@ -98,6 +99,8 @@ class WorkspaceHarness:
         self.analysis_error = self.save_error = None
         self.save_ok = True
         self.documents = {}
+        self.pending = []
+        self.account_reads = 0
         self.result = {
             'ok': True,
             'selection_data': {'securities': [{'symbol': 'TEST'}]},
@@ -129,6 +132,7 @@ class WorkspaceHarness:
             'invalidate_workspace': self.invalidate,
             'analyze_selection': lambda result, selected: dict(result),
             'record_page': lambda page: None,
+            'defer': self.defer,
         }
         tree = ast.parse(path.read_text())
         tree.body = [node for node in tree.body if isinstance(node, (ast.Assign, ast.ClassDef))]
@@ -150,7 +154,9 @@ class WorkspaceHarness:
                              ('_render_security_rows', 'security rows'), ('_render_comparison', 'performance')):
             setattr(cls, method, lambda form, page=page: self.rendered.append(page))
         self.statuses, self.portfolio_statuses = [], []
-        self.form = form = cls()
+        self.form = form = cls(defer_load=defer_load)
+        if defer_load:
+            return
         form._current_portfolio = Portfolio('p1') if saved else None
         form._portfolio_dirty = True
         form._readout_page = form._portfolio_readout_page = 'allocation'
@@ -166,9 +172,23 @@ class WorkspaceHarness:
         self.portfolio_statuses.clear()
 
     def refresh_account(self, form):
+        self.account_reads += 1
         form._user = self.user
         form.account_id = self.user.get_id() if self.user else None
         form._username = 'owner' if self.user else ''
+
+    def defer(self, callback, is_current=None, priority=False):
+        job = (callback, is_current)
+        if priority:
+            self.pending.insert(0, job)
+        else:
+            self.pending.append(job)
+
+    def run_idle(self):
+        while self.pending:
+            callback, current = self.pending.pop(0)
+            if current is None or current():
+                callback()
 
     def invalidate(self):
         self.invalidations += 1

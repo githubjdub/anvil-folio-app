@@ -19,6 +19,7 @@ from ..transaction_groups import group_transactions_by_date, group_transactions_
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, sign_in
 from ..workspace_cache import account_workspace, invalidate_workspace
+from ..deferred_work import defer
 
 
 SECTOR_COLORS = chart_theme.SECTOR_COLORS
@@ -34,7 +35,7 @@ BENCHMARK_CHOICES = [
 
 
 class Form1(Form1Template):
-  def __init__(self, initial_portfolio_id=None, **properties):
+  def __init__(self, initial_portfolio_id=None, defer_load=False, startup_ready=None, **properties):
     self._initializing = True
     super().__init__(**properties)
 
@@ -64,7 +65,15 @@ class Form1(Form1Template):
     self._refresh_requested = False
     self._refreshing = False
     self._busy = False
-    self._preparing_navigation = False
+    self._background_tool = None
+    self._navigation_job = None
+    self._navigation_history = None
+    self._navigation_scope = None
+    self._startup_loading = False
+    self._startup_scheduled = False
+    self._initial_portfolio_id = initial_portfolio_id
+    self._startup_ready = startup_ready
+    self.startup_region.visible = False
     self.transactions = []
     self._collapsed_transaction_years = {}
     self._collapsed_transaction_dates = {}
@@ -159,6 +168,20 @@ class Form1(Form1Template):
     self._refresh_transactions()
     self._set_status("Add your first security to start building your portfolio.")
     self._show_results(False)
+    user = anvil.users.get_user()
+    if defer_load and user is not None:
+      # Attach the page before account/database requests, so the first visible
+      # screen never waits for a portfolio or any secondary tools.
+      self._user = user
+      self.account_id = user.get_id()
+      self._startup_loading = True
+      self.startup_region.visible = True
+      self.guest_hero.visible = False
+      self.welcome_region.visible = False
+      self.workspace_region.visible = False
+      self._set_busy(True)
+      self._initializing = False
+      return
     self._refresh_account()
     if self._user is not None:
       self._set_busy(True)
@@ -169,29 +192,65 @@ class Form1(Form1Template):
     self._initializing = False
 
   def prepare_navigation(self):
-    """Pay first-visit costs at startup and when loading a new snapshot."""
-    if self._busy or self._preparing_navigation:
+    """Prepare secondary views after the requested page is already visible."""
+    if self._startup_loading or self.account_id is None:
       return
-    account_id = self.account_id
-    self._preparing_navigation = True
-    try:
-      for prepare in (self.income_form.ensure_loaded, self.tax_estimator_form.redraw,
-                      self.retirement_form.redraw, self.notifications_form.preload):
-        user = anvil.users.get_user()
-        if (user.get_id() if user is not None else None) != account_id:
-          return
-        prepare()
-    finally:
-      self._preparing_navigation = False
+    scope = (self.account_id, self._autosave_generation)
+    if self._navigation_scope == scope and self._navigation_history is self._history:
+      return
+    self._navigation_scope, self._navigation_history = scope, self._history
+    job = self._navigation_job = object()
+    history = self._history
 
-  def _prepare_portfolio_views(self):
-    # Prepare the initial views when restoring/syncing an analysis. Ordinary
-    # filter edits keep rendering only the active view for responsive inputs.
+    def current():
+      return (job is self._navigation_job and self._history is history
+              and self._workspace_matches(scope[0], self._current_portfolio.get_id()
+                if self._current_portfolio is not None else None)
+              and scope[1] == self._autosave_generation and not self._busy
+              and not self._autosaving)
+
     for page in ("overview", "allocation", "performance"):
-      self._ensure_readout_rendered(page)
+      defer(lambda page=page: self._ensure_readout_rendered(page), current)
+    for tool, prepare in (("retirement", self.retirement_form.redraw),
+                          ("tax", self.tax_estimator_form.redraw),
+                          ("notifications", self.notifications_form.preload),
+                          ("income", self.income_form.ensure_loaded)):
+      defer(lambda tool=tool, prepare=prepare: self._prepare_tool(tool, prepare), current)
+
+  def _prepare_tool(self, tool, prepare):
+    if tool == "tax" and self.tax_estimator_form._inputs_dirty:
+      return
+    self._background_tool = tool
+    try:
+      prepare()
+    finally:
+      self._background_tool = None
+
+  def _load_startup(self):
+    account_id = self.account_id
+    try:
+      if not self._workspace_matches(account_id, None):
+        return
+      self._refresh_account()
+      if self._workspace_matches(account_id, None):
+        self._restore_last_portfolio(self._initial_portfolio_id)
+    finally:
+      self._startup_loading = False
+      self.startup_region.visible = False
+      self.workspace_region.visible = True
+      self._set_busy(False)
+    self._apply_readout_page(redraw=True)
+    self.prepare_navigation()
+    if self._startup_ready is not None:
+      self._startup_ready(self)
 
   @handle("", "show")
   def form_show(self, **event_args):
+    if self._startup_loading:
+      if not self._startup_scheduled:
+        self._startup_scheduled = True
+        defer(self._load_startup, priority=True)
+      return
     # Router may prepare a retained workspace while detached. Once visible,
     # resize its existing plots without fetching data or resetting the editor.
     if not self._initializing and not self._busy:
@@ -547,7 +606,8 @@ class Form1(Form1Template):
 
   @handle("notifications_form", "x-notifications-busy")
   def notifications_busy_change(self, busy, **event_args):
-    self._set_busy(busy)
+    if self._background_tool != "notifications":
+      self._set_busy(busy)
 
   def _set_notification_unread_count(self, count):
     self._notification_badge_revision += 1
@@ -601,7 +661,8 @@ class Form1(Form1Template):
 
   @handle("income_form", "x-income-busy")
   def income_busy_change(self, busy, **event_args):
-    self._set_busy(busy)
+    if self._background_tool != "income":
+      self._set_busy(busy)
 
   @handle("tax_estimator_tab_button", "click")
   def tax_estimator_tab_click(self, **event_args):
@@ -609,7 +670,8 @@ class Form1(Form1Template):
 
   @handle("tax_estimator_form", "x-tax-estimator-busy")
   def tax_estimator_busy_change(self, busy, **event_args):
-    self._set_busy(busy)
+    if self._background_tool != "tax":
+      self._set_busy(busy)
 
   def _security_key(self, transaction):
     parts = str(transaction.get("ticker") or "").strip().upper().split(":", 1)
@@ -1257,8 +1319,13 @@ class Form1(Form1Template):
     self._update_profile_ranking()
 
   def _restore_last_portfolio(self, portfolio_id=None):
+    account_id = self.account_id
+    current_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
+    generation = self._autosave_generation
     result = (anvil.server.call("load_portfolio", portfolio_id) if portfolio_id is not None
               else anvil.server.call("get_last_portfolio"))
+    if generation != self._autosave_generation or not self._workspace_matches(account_id, current_id):
+      return
     if not result["ok"]:
       self._set_portfolio_status(result["message"], is_error=True)
       return
@@ -2633,6 +2700,7 @@ class Form1(Form1Template):
     self._render_portfolio_summary()
     self._render_active_readout()
     self._update_readout_context()
+    self.prepare_navigation()
 
   def _render_overview(self):
     if self._history is None:
@@ -2815,4 +2883,4 @@ class Form1(Form1Template):
     self._show_results(True)
     self._update_benchmark_options()
     self._render_readout()
-    self._prepare_portfolio_views()
+    self.prepare_navigation()

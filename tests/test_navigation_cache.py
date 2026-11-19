@@ -34,6 +34,7 @@ class NavigationHarness:
         self.instances = {}
         self.constructor_hook = None
         self.router = None
+        self.pending = []
         harness = self
 
         class Template:
@@ -62,6 +63,7 @@ class NavigationHarness:
                 super().__init__(**properties)
                 self.initial_portfolio_id = properties.get('initial_portfolio_id')
                 self._busy = False
+                self._startup_loading = False
                 self._restore_on_resume = False
                 self.resume_count = 0
                 self.analysis = object()
@@ -71,6 +73,7 @@ class NavigationHarness:
                     self.portfolio_id = self.initial_portfolio_id
                 self.load_count = 0
                 self.prepared_count = 0
+                self.notifications_opened = 0
                 if harness.constructor_hook:
                     hook = harness.constructor_hook
                     harness.constructor_hook = None
@@ -85,7 +88,8 @@ class NavigationHarness:
                 pass
 
             def prepare_navigation(self):
-                self.prepared_count += 1
+                if self.account_id is not None and not self.prepared_count:
+                    self.prepared_count += 1
 
             def open_profile_portfolio(self, portfolio_id):
                 if self.portfolio_id != portfolio_id:
@@ -94,7 +98,8 @@ class NavigationHarness:
                 return True
 
             def open_notifications(self):
-                pass
+                if not self._busy:
+                    self.notifications_opened += 1
 
             def open_portfolio_page(self):
                 pass
@@ -119,9 +124,28 @@ class NavigationHarness:
             CACHE_SECONDS=60,
             workspace_revision=lambda: self.revision,
             invalidate_workspace=self.invalidate,
+            defer=self.defer,
         )
         self.namespace = source_namespace(CLIENT / 'Router' / '__init__.py', namespace)
+        self.namespace['_create_page'] = lambda page, **props: (
+            Editor if page == 'dashboard' else pages[{
+                'profile': 'ProfileHome', 'subscription': 'MySubscription',
+                'subscribe': 'Subscribe', 'disclosures': 'Disclosures',
+                'shared': 'PublicPerformance'}[page]])(**props)
         self.router = self.namespace['Router']()
+
+    def defer(self, callback, is_current=None, priority=False):
+        job = (callback, is_current)
+        if priority:
+            self.pending.insert(0, job)
+        else:
+            self.pending.append(job)
+
+    def run_idle(self):
+        while self.pending:
+            callback, current = self.pending.pop(0)
+            if current is None or current():
+                callback()
 
     def account_id(self):
         return self.user.get_id() if self.user else None
@@ -142,16 +166,67 @@ class NavigationHarness:
 
 
 class RetainedNavigationTests(unittest.TestCase):
-    def test_startup_prepares_all_private_pages_before_opening_editor(self):
+    def test_startup_opens_editor_before_preparing_secondary_pages(self):
         h = NavigationHarness()
         h.navigate('portfolio')
         self.assertEqual(h.active.prepared_count, 1)
-        self.assertEqual(set(h.router._page_forms), {'profile', 'subscription', 'subscribe', 'disclosures'})
+        self.assertEqual(h.router._page_forms, {})
         self.assertEqual(h.opened, [h.active])
+        h.run_idle()
+        self.assertEqual(set(h.router._page_forms), {'profile', 'subscription', 'subscribe', 'disclosures'})
         for page in ('profile', 'subscription', 'subscribe', 'disclosures', 'portfolio'):
             h.navigate(page)
         self.assertEqual(h.active.prepared_count, 1)
         self.assertEqual(h.active.resume_count, 0)
+
+    def test_profile_first_route_does_not_construct_portfolio_editor(self):
+        h = NavigationHarness()
+        h.navigate('profile')
+        self.assertEqual(h.editors(), [])
+        h.run_idle()
+        self.assertEqual(h.editors(), [])
+        self.assertEqual(type(h.active).__name__, 'ProfileHome')
+
+    def test_queued_private_pages_are_discarded_after_logout(self):
+        h = NavigationHarness()
+        h.navigate('portfolio')
+        h.user = None
+        h.navigate('disclosures')
+        h.run_idle()
+        self.assertEqual(set(h.router._page_forms), {'disclosures'})
+
+    def test_background_preparation_does_not_duplicate_a_page_opened_early(self):
+        h = NavigationHarness()
+        h.navigate('portfolio')
+        h.navigate('profile')
+        profile = h.active
+        h.run_idle()
+        self.assertIs(h.active, profile)
+        self.assertEqual(len(h.instances['ProfileHome']), 1)
+
+    def test_route_changed_during_startup_is_applied_when_data_is_ready(self):
+        h = NavigationHarness()
+        h.navigate('portfolio')
+        editor = h.active
+        editor._startup_loading = editor._busy = True
+        h.navigate({'page': 'portfolio', 'portfolio': 'p2'})
+        self.assertEqual(editor.load_count, 0)
+        editor._startup_loading = editor._busy = False
+        h.router._editor_ready(editor)
+        self.assertIs(h.active, editor)
+        self.assertEqual(editor.portfolio_id, 'p2')
+        self.assertEqual(editor.load_count, 1)
+
+    def test_notification_link_waits_for_core_data_then_opens_inbox(self):
+        h = NavigationHarness()
+        h.navigate('portfolio')
+        editor = h.active
+        editor._startup_loading = editor._busy = True
+        h.navigate('notifications')
+        self.assertEqual(editor.notifications_opened, 0)
+        editor._startup_loading = editor._busy = False
+        h.router._editor_ready(editor)
+        self.assertEqual(editor.notifications_opened, 1)
 
     def test_public_and_guest_landing_pages_do_not_preload_private_workspace(self):
         for route in ({'share': 'public-token'}, {'page': 'subscribe'}, {'page': 'disclosures'}):
@@ -284,7 +359,7 @@ class RetainedNavigationTests(unittest.TestCase):
         h.navigate('portfolio')
         self.assertEqual(len(h.editors()), 1)
         self.assertIs(h.active, h.editors()[0])
-        self.assertEqual(len(h.instances.get('ProfileHome', [])), 1)
+        self.assertEqual(h.instances.get('ProfileHome', []), [])
 
     def test_account_change_during_constructor_never_opens_stale_editor(self):
         h = NavigationHarness()

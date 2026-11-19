@@ -3,16 +3,35 @@ import anvil.js
 import anvil.users
 from ._anvil_designer import RouterTemplate
 from anvil import *
-from ..Form1 import Form1
-from ..PublicPerformance import PublicPerformance
-from ..Subscribe import Subscribe
-from ..MySubscription import MySubscription
-from ..ProfileHome import ProfileHome
-from ..Disclosures import Disclosures
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, username_prompt_open
 from ..appearance import initialize
 from ..workspace_cache import CACHE_SECONDS, workspace_revision
+from ..deferred_work import defer
+
+
+def _create_page(page, **properties):
+  # Import only the requested route. Optional pages do not belong on the
+  # startup import path; their modules load during idle preparation instead.
+  if page == "dashboard":
+    from ..Form1 import Form1
+    return Form1(**properties)
+  if page == "shared":
+    from ..PublicPerformance import PublicPerformance
+    return PublicPerformance(**properties)
+  if page == "profile":
+    from ..ProfileHome import ProfileHome
+    return ProfileHome(**properties)
+  if page == "subscription":
+    from ..MySubscription import MySubscription
+    return MySubscription(**properties)
+  if page == "subscribe":
+    from ..Subscribe import Subscribe
+    return Subscribe(**properties)
+  if page == "disclosures":
+    from ..Disclosures import Disclosures
+    return Disclosures(**properties)
+  raise ValueError("Unknown page")
 
 
 class Router(RouterTemplate):
@@ -30,6 +49,7 @@ class Router(RouterTemplate):
     self._editor_stamp = None
     self._page_forms = {}
     self._navigation_prepared = False
+    self._warming_pages = set()
     self._hash_listener = anvil.js.report_exceptions(self.hash_changed)
 
   @handle("", "show")
@@ -91,48 +111,42 @@ class Router(RouterTemplate):
       return False
     return generation == self._route_generation and self._route_key() == route
 
-  def _prepare_navigation(self, account_id, portfolio_id=None):
-    """Retain one prepared instance per private page for this account."""
-    # Public links and the plans/disclosures landing pages stay lightweight.
+  def _prepare_navigation(self, account_id):
+    """Retain secondary pages after the requested page is visible."""
     if self._navigation_prepared or account_id is None:
       return
     self._navigation_prepared = True
-    self.startup_status.text = "Loading your portfolio…"
-    if self._editor_form is None:
-      editor = Form1(initial_portfolio_id=portfolio_id)
-    else:
-      editor = self._editor_form
-      editor.resume_account()
-    if self._current_account_id() != account_id:
-      self._route_pending = True
+    for page in ("profile", "subscription", "subscribe", "disclosures"):
+      defer(lambda page=page: self._prepare_page(page, account_id),
+            lambda: self._current_account_id() == account_id and self._cache_account_id == account_id)
+
+  def _prepare_page(self, page, account_id):
+    key = (account_id, page)
+    if page in self._page_forms or key in self._warming_pages:
       return
-    self._editor_form = editor
-    self._editor_owner = account_id
-    if editor._busy:
-      self._navigation_prepared = False
-      return
-    self.startup_status.text = "Preparing charts, income and planning tools…"
-    editor.prepare_navigation()
-    if self._current_account_id() != account_id:
-      self._route_pending = True
-      return
-    self._editor_stamp = self._stamp()
-    self.startup_status.text = "Preparing your profile and membership pages…"
-    billing = None
-    for page, form_type in (("profile", ProfileHome), ("subscription", MySubscription),
-                            ("subscribe", Subscribe), ("disclosures", Disclosures)):
-      if page in self._page_forms:
-        continue
-      destination = form_type()
-      if isinstance(destination, MySubscription):
-        destination.load_details()
-        billing = destination._billing_workspace
-      elif isinstance(destination, Subscribe) and billing is not None:
-        destination.plan_comparison.set_billing_context(billing)
-      if self._current_account_id() != account_id:
-        self._route_pending = True
+    self._warming_pages.add(key)
+    try:
+      destination = _create_page(page)
+      if self._current_account_id() != account_id or self._cache_account_id != account_id:
         return
       self._page_forms[page] = {"form": destination, "stamp": self._stamp()}
+      if page == "subscription":
+        getattr(destination, "load_details")()
+      elif page == "subscribe":
+        subscription = self._page_forms.get("subscription")
+        billing = getattr(subscription["form"], "_billing_workspace") if subscription is not None else None
+        if billing is not None:
+          getattr(destination, "plan_comparison").set_billing_context(billing)
+    finally:
+      self._warming_pages.discard(key)
+    if self._current_account_id() == account_id and self._route_key()[0] == page:
+      self._open_route()
+
+  def _editor_ready(self, editor):
+    if editor is self._editor_form and editor.account_id == self._current_account_id():
+      self._editor_stamp = self._stamp()
+      # Apply the latest route if a hash changed during the initial data read.
+      self._open_route()
 
   def _open_route(self):
     self._route_generation += 1
@@ -146,6 +160,9 @@ class Router(RouterTemplate):
         self._open_latest_route(self._route_generation)
     finally:
       self._routing = False
+    if (self._route_key()[0] in ("dashboard", "notifications", "profile")
+        and (self._editor_form is None or not self._editor_form._startup_loading)):
+      self._prepare_navigation(self._current_account_id())
 
   def _open_latest_route(self, generation):
     # Serialize yielding constructors: rapid hash changes reuse the first
@@ -165,15 +182,11 @@ class Router(RouterTemplate):
         return
     route = self._route_key()
     page, token = route
-    if page in ("dashboard", "notifications", "profile"):
-      self._prepare_navigation(account_id, token if page == "dashboard" else None)
-      if not self._is_current(generation, route, account_id):
-        return
     active = get_open_form()
     if page == "shared":
-      if isinstance(active, PublicPerformance) and active.share_token == token:
+      if getattr(active, "share_token", None) == token:
         return
-      reader = PublicPerformance(token=token)
+      reader = _create_page("shared", token=token)
       if self._is_current(generation, route, account_id):
         open_form(reader)
         record_page("shared")
@@ -185,7 +198,8 @@ class Router(RouterTemplate):
     editor = self._editor_form
     refreshed = False
     if editor is None:
-      editor = Form1()
+      editor = _create_page("dashboard", initial_portfolio_id=token, defer_load=True,
+                            startup_ready=self._editor_ready)
       refreshed = True
     elif (self._editor_owner != account_id or self._needs_refresh(self._editor_stamp)
           or editor._restore_on_resume):
@@ -207,7 +221,7 @@ class Router(RouterTemplate):
       self._editor_stamp = self._stamp()
     if not self._is_current(generation, route, account_id):
       return
-    if token is not None and not editor.open_profile_portfolio(token):
+    if token is not None and not editor._startup_loading and not editor.open_profile_portfolio(token):
       set_url_hash({"page": "profile"})
       return
     if self._is_current(generation, route, account_id):
@@ -218,6 +232,7 @@ class Router(RouterTemplate):
         editor.open_notifications()
       else:
         editor.open_portfolio_page()
+      editor.prepare_navigation()
 
   def _open_account_page(self, page, route, generation, account_id):
     entry = self._page_forms.get(page)
@@ -225,9 +240,9 @@ class Router(RouterTemplate):
     if entry is not None and page in ("subscription", "subscribe"):
       refreshed = refreshed or time() - entry["stamp"][1] >= CACHE_SECONDS
     if entry is None:
-      form_type = {"subscribe": Subscribe, "subscription": MySubscription,
-                   "profile": ProfileHome, "disclosures": Disclosures}[page]
-      destination = form_type()
+      if (account_id, page) in self._warming_pages:
+        return
+      destination = _create_page(page)
     else:
       destination = entry["form"]
       if refreshed:

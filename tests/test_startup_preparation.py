@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import unittest
 
 from test_planning_forms import Harness, analysis
+from test_portfolio_workspace import WorkspaceHarness, User
 
 
 APP = Path(__file__).resolve().parents[1]
@@ -15,73 +16,139 @@ def workspace_methods(user, call=None):
     path = APP / 'client_code/Form1/__init__.py'
     tree = ast.parse(path.read_text())
     cls = next(node for node in tree.body if isinstance(node, ast.ClassDef))
-    methods = {'prepare_navigation', '_prepare_portfolio_views', '_render_readout',
+    methods = {'prepare_navigation', '_prepare_tool', '_render_readout',
                '_ensure_readout_rendered', '_render_active_readout',
                'open_profile_portfolio', '_restore_last_portfolio', 'analyze_button_click'}
     cls.bases = []
     cls.body = [node for node in cls.body if isinstance(node, ast.FunctionDef) and node.name in methods]
     for node in cls.body:
         node.decorator_list = []
-    namespace = dict(date=date, anvil=SimpleNamespace(users=SimpleNamespace(get_user=user),
+    pending = []
+    def defer(callback, current=None, priority=False):
+        pending.append((callback, current))
+    namespace = dict(date=date, defer=defer, anvil=SimpleNamespace(users=SimpleNamespace(get_user=user),
                                                      server=SimpleNamespace(call=call)))
     exec(compile(ast.Module(body=[cls], type_ignores=[]), str(path), 'exec'), namespace)
     form = namespace['Form1']()
     form._busy = False
     form._preparing_navigation = False
+    form._background_tool = None
+    form._startup_loading = False
+    form._navigation_scope = form._navigation_history = form._navigation_job = None
+    form._autosaving = False
+    form._autosave_generation = 0
+    form._current_portfolio = None
+    form._history = None
+    form.account_id = user().get_id() if user() is not None else None
+    form._workspace_matches = lambda account, portfolio: (user().get_id() if user() is not None else None) == account
+    form._dirty_readout_pages = set()
+    form._plot_sizes = {}
+    form._page_charts = lambda page: []
+    def run_idle():
+        while pending:
+            callback, current = pending.pop(0)
+            if current is None or current():
+                callback()
+    form.run_idle = run_idle
+    form.pending = pending
     return form
 
 
 class StartupPreparationTests(unittest.TestCase):
-    def test_tools_prepare_at_startup_and_stop_on_account_change(self):
+    def test_tools_prepare_after_first_page_and_stop_on_account_change(self):
         current = ['a']
         form = workspace_methods(lambda: SimpleNamespace(get_id=lambda: current[0]))
         form.account_id = 'a'
         prepared = []
         form.income_form = SimpleNamespace(ensure_loaded=lambda: prepared.append('income'))
-        form.tax_estimator_form = SimpleNamespace(redraw=lambda: prepared.append('tax'))
+        form.tax_estimator_form = SimpleNamespace(redraw=lambda: prepared.append('tax'), _inputs_dirty=False)
         form.retirement_form = SimpleNamespace(redraw=lambda: prepared.append('retirement'))
         form.notifications_form = SimpleNamespace(preload=lambda: prepared.append('notifications'))
         form.prepare_navigation()
-        self.assertEqual(prepared, ['income', 'tax', 'retirement', 'notifications'])
+        self.assertEqual(prepared, [])
+        form.run_idle()
+        self.assertEqual(prepared, ['retirement', 'tax', 'notifications', 'income'])
         prepared.clear()
         def switch_account():
             prepared.append('income')
             current[0] = 'b'
-        form.income_form.ensure_loaded = switch_account
+        form.retirement_form.redraw = switch_account
+        form._history = object()
         form.prepare_navigation()
+        form.run_idle()
         self.assertEqual(prepared, ['income'])
 
     def test_initial_views_render_once_and_clean_tab_switches_do_no_work(self):
-        form = workspace_methods(lambda: None)
+        h = WorkspaceHarness()
+        form = h.form
         form._history = object()
         form._dirty_readout_pages = {'overview', 'allocation', 'performance'}
         rendered = []
         for method in ('_render_overview', '_render_sectors', '_render_security_rows', '_render_comparison'):
             setattr(form, method, lambda method=method: rendered.append(method))
         form._page_charts = lambda page: []
-        form._prepare_portfolio_views()
+        # Keep the real ensure/render methods while deferring their execution.
+        form.prepare_navigation()
+        self.assertEqual(rendered, [])
+        h.run_idle()
         self.assertEqual(len(rendered), 4)
         self.assertEqual(form._dirty_readout_pages, set())
         for page in ('performance', 'allocation', 'overview', 'performance'):
             form._ensure_readout_rendered(page)
         self.assertEqual(len(rendered), 4)
 
-    def test_preparation_cannot_reenter_and_failure_releases_guard(self):
+    def test_preparation_is_deduplicated_and_failure_releases_background_state(self):
         form = workspace_methods(lambda: SimpleNamespace(get_id=lambda: 'a'))
         form.account_id = 'a'
         prepared = []
         form.income_form = SimpleNamespace(ensure_loaded=lambda: (prepared.append('income'), form.prepare_navigation()))
-        form.tax_estimator_form = SimpleNamespace(redraw=lambda: prepared.append('tax'))
+        form.tax_estimator_form = SimpleNamespace(redraw=lambda: prepared.append('tax'), _inputs_dirty=False)
         form.retirement_form = SimpleNamespace(redraw=lambda: prepared.append('retirement'))
         form.notifications_form = SimpleNamespace(preload=lambda: prepared.append('notifications'))
         form.prepare_navigation()
-        self.assertEqual(prepared, ['income', 'tax', 'retirement', 'notifications'])
+        form.prepare_navigation()
+        form.run_idle()
+        self.assertEqual(prepared, ['retirement', 'tax', 'notifications', 'income'])
         def fail():
             raise RuntimeError('unexpected tool error')
         form.income_form.ensure_loaded = fail
+        form._history = object()
+        form.prepare_navigation()
         with self.assertRaisesRegex(RuntimeError, 'unexpected tool error'):
-            form.prepare_navigation()
-        self.assertFalse(form._preparing_navigation)
+            form.run_idle()
+        self.assertIsNone(form._background_tool)
+
+    def test_constructor_attaches_page_before_reading_account_data(self):
+        h = WorkspaceHarness(defer_load=True)
+        self.assertEqual(h.account_reads, 0)
+        self.assertEqual(h.calls, [])
+        self.assertTrue(h.form.startup_region.visible)
+        self.assertTrue(h.form._startup_loading)
+        h.form.form_show()
+        self.assertEqual(h.account_reads, 0)
+        h.run_idle()
+        self.assertEqual(h.account_reads, 1)
+        self.assertFalse(h.form._startup_loading)
+        self.assertFalse(h.form._busy)
+        self.assertFalse(h.form.startup_region.visible)
+
+    def test_account_change_before_initial_read_cannot_load_old_portfolio(self):
+        h = WorkspaceHarness(defer_load=True)
+        h.form.form_show()
+        h.user = User('b')
+        h.run_idle()
+        self.assertEqual(h.account_reads, 0)
+        self.assertEqual(h.calls, [])
+
+    def test_hidden_tool_busy_events_do_not_disable_navigation(self):
+        h = WorkspaceHarness()
+        for tool, handler in [('income', h.form.income_busy_change),
+                              ('tax', h.form.tax_estimator_busy_change),
+                              ('notifications', h.form.notifications_busy_change)]:
+            h.form._prepare_tool(tool, lambda: (handler(True), handler(False)))
+            self.assertFalse(h.form._busy)
+        h.form.income_busy_change(True)
+        self.assertTrue(h.form._busy)
 
     def test_requested_portfolio_restores_without_loading_previous_portfolio(self):
         calls, applied = [], []
