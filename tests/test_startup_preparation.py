@@ -46,6 +46,7 @@ def workspace_methods(user, call=None):
     form._dirty_readout_pages = set()
     form._plot_sizes = {}
     form._page_charts = lambda page: []
+    form._ensure_transaction_rows = lambda: None
     def run_idle():
         while pending:
             callback, current = pending.pop(0)

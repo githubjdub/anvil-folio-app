@@ -6,7 +6,7 @@ from pathlib import Path
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "client_code"))
-from holdings_dashboard import build_dashboard, filter_holdings, quarter_periods, quarterly_share_history, display_share_history
+from holdings_dashboard import build_dashboard, filter_holdings, quarter_periods, quarterly_share_history, display_share_history, remaining_fifo_basis
 
 
 def point(value, shares, bought=0, sold=0, cost=100):
@@ -103,6 +103,20 @@ def trade(day, action, shares, price=None):
 
 
 class HoldingsHistoryAndBasisTests(unittest.TestCase):
+  def test_unchanged_days_preserve_basis_but_still_validate_daily_quantities(self):
+    dates = ['2026-01-%02d' % day for day in range(1, 21)]
+    days = [dict(shares=10) for _ in dates]
+    trades = {dates[0]: [dict(action='Buy', shares=10, price=15, estimated=False,
+                             entered_date=dates[0], row=0)]}
+    self.assertEqual(remaining_fifo_basis(days, dates, 19, trades), (150, False))
+    for invalid in (None, True, float('nan'), float('inf'), -1, 'invalid'):
+      with self.subTest(invalid=invalid):
+        changed = [dict(day) for day in days]
+        changed[10]['shares'] = invalid
+        self.assertEqual(remaining_fifo_basis(changed, dates, 19, trades), (None, False))
+    days[-1]['shares'] = 20  # Last-day split still reconciles the endpoint.
+    self.assertEqual(remaining_fifo_basis(days, dates, 19, trades), (150, False))
+
   def fixture(self, dates, shares, trades, prices=None):
     days = [point(quantity * 10, quantity) for quantity in shares]
     payload = dict(selection_data=dict(dates=dates, securities=[dict(

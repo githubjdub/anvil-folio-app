@@ -5,10 +5,12 @@ from datetime import date
 from html.parser import HTMLParser
 import math
 from pathlib import Path
+import runpy
 from types import SimpleNamespace
 import unittest
 
 APP = Path(__file__).resolve().parents[1]
+GROUPING = runpy.run_path(str(APP / 'client_code/transaction_groups.py'))
 
 
 class Names(HTMLParser):
@@ -30,7 +32,8 @@ class Control:
         self.visible = self.enabled = True
         self.classes, self.attrs = {}, {}
         self.text = ''
-        self.items, self.children, self.contexts = [], [], []
+        self._items, self.children, self.contexts = [], [], []
+        self.items_assignments = 0
         self.selected_value = self.date = self.file = None
         self.interval = self.redraw_count = self.reset_count = self.loaded_count = 0
         self.view = None
@@ -39,6 +42,20 @@ class Control:
 
     def redraw(self):
         self.redraw_count += 1
+
+    @property
+    def items(self):
+        return self._items
+
+    @items.setter
+    def items(self, value):
+        self.items_assignments += 1
+        self._items = value
+
+    def raise_event_on_children(self, name, **args):
+        for child in self.children:
+            if hasattr(child, 'raise_event'):
+                child.raise_event(name, **args)
 
     def reset_workspace(self):
         self.reset_count += 1
@@ -78,6 +95,9 @@ class Control:
     def prepare(self):
         pass
 
+    def clear(self):
+        self.file = None
+
 
 class Node:
     def __init__(self):
@@ -105,7 +125,7 @@ class Portfolio(dict):
 
 
 class WorkspaceHarness:
-    def __init__(self, saved=True, account_id='a', defer_load=False):
+    def __init__(self, saved=True, account_id='a', defer_load=False, transaction_render=False):
         self.user = User(account_id) if account_id else None
         self.calls, self.rendered = [], []
         self.invalidations = 0
@@ -149,6 +169,8 @@ class WorkspaceHarness:
             'record_page': lambda page: None,
             'defer': self.defer,
             '_create_tool': self.create_tool,
+            'group_transactions_by_date': GROUPING['group_transactions_by_date'],
+            'group_transactions_by_year': GROUPING['group_transactions_by_year'],
             'startup_performance': SimpleNamespace(mark=lambda *a: None,
                 after_frame=lambda *a: None, complete=lambda: None),
         }
@@ -164,7 +186,9 @@ class WorkspaceHarness:
         cls._ensure_signed_in = lambda form: self.ensure_signed_in(form)
         cls._set_status = lambda form, message, is_error=False: self.statuses.append((message, is_error))
         cls._set_portfolio_status = lambda form, message, is_error=False: self.portfolio_statuses.append((message, is_error))
-        for method in ('_refresh_transactions', '_update_controls', '_update_welcome',
+        if not transaction_render:
+            cls._refresh_transactions = cls._ensure_transaction_rows = lambda form: None
+        for method in ('_update_controls', '_update_welcome',
                        '_render_portfolio_summary', '_resize_readout_charts', '_set_charts_expanded'):
             setattr(cls, method, lambda form, *args, **kwargs: None)
         cls._page_charts = lambda form, page: []
@@ -186,6 +210,8 @@ class WorkspaceHarness:
         form.transactions = [{'ticker': 'TEST', 'trade_date': date(2026, 1, 2),
                               'action': 'Buy', 'shares': 5.0, 'trade_price': 185.0}]
         form._analyzed_transactions = list(form.transactions)
+        if not transaction_render:
+            form._transaction_rows_dirty = False
         self.statuses.clear()
         self.portfolio_statuses.clear()
 

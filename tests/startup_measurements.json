@@ -190,8 +190,50 @@
     "phase_note": "analysis_apply is nested inside saved_portfolio_restore; do not sum those durations."
   },
   "verification": {
-    "unit_tests_passed": 258,
+    "unit_tests_passed": 265,
     "app_files_validated": 186,
     "live_navigation": "Passed bootstrap, saved restore, profile/planning/inbox/billing preload, no market/SEC calls or planner writes, cross-account and anonymous denial; temporary fixtures removed."
+  },
+  "additional_efficiency_pass": {
+    "changes": [
+      "Saved analysis restores without constructing transaction editors; editors warm after main views and are reused until their data changes.",
+      "Quarterly share details are mounted once on expansion; visible share bars and accessible summaries remain immediately available.",
+      "Holdings calculations reuse quarter keys within each month, avoid reparsing saved numbers, and skip FIFO bookkeeping on unchanged days."
+    ],
+    "calculation_benchmark": {
+      "measurement": "Local CPython, 9 samples per case; not browser timing",
+      "results": [
+        {
+          "securities": 8,
+          "sessions": 1305,
+          "median_before_ms": 20.905,
+          "median_after_ms": 6.511,
+          "speedup": 3.21,
+          "all_quarters_identical": true
+        },
+        {
+          "securities": 50,
+          "sessions": 1305,
+          "median_before_ms": 130.39,
+          "median_after_ms": 41.391,
+          "speedup": 3.15,
+          "all_quarters_identical": true
+        }
+      ]
+    },
+    "benchmark_method": "Nine alternating before/after samples per case after warmup, using deterministic five-year fixtures with purchases, sales and a split. All historical quarter results were compared for exact equality.",
+    "repeat_command": "python tests/benchmark_client_efficiency.py [path/to/baseline_module.py]",
+    "hidden_history_rows_per_security": {
+      "before": 5,
+      "after": 0,
+      "after_first_expansion": 5
+    },
+    "transaction_restore_test": "Zero editor list assignments during saved-analysis restore; one during preparation or first Edit; retained across tab changes.",
+    "http_reachability": {
+      "status": 200,
+      "document_download_ms": 295.0,
+      "transfer_bytes": 328495
+    },
+    "browser_startup": "Unmeasured in this environment; local calculations and component counts do not establish total browser startup time."
   }
 }

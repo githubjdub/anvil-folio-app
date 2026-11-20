@@ -19,9 +19,13 @@ ACTIVITIES = (
 def quarter_periods(dates):
   """Return one pair of inclusive indices per available calendar quarter."""
   periods = []
+  previous_month = None
   for index, day in enumerate(dates):
-    quarter = (int(day[5:7]) - 1) // 3 + 1
-    key = "%s-Q%d" % (day[:4], quarter)
+    month = day[:7]
+    if month != previous_month:
+      quarter = (int(day[5:7]) - 1) // 3 + 1
+      key = "%s-Q%d" % (day[:4], quarter)
+      previous_month = month
     if not periods or periods[-1]["key"] != key:
       periods.append({"key": key, "label": "Q%d %s" % (quarter, day[:4]),
                       "start": index, "end": index})
@@ -31,6 +35,10 @@ def quarter_periods(dates):
 
 
 def _number(value):
+  # Saved analysis contains numbers already. Avoid string conversion and
+  # reparsing for every trading day in a multi-year position history.
+  if isinstance(value, (int, float)) and not isinstance(value, bool):
+    return value if math.isfinite(value) else None
   if value is None or isinstance(value, bool) or not str(value).strip():
     return None
   try:
@@ -125,7 +133,12 @@ def remaining_fifo_basis(days, dates, end, trades):
     owned = _number(days[index].get("shares"))
     if owned is None or owned < 0:
       return None, False
-    daily = sorted(trades.get(dates[index], []), key=lambda item: (
+    daily = trades.get(dates[index], [])
+    # No trade or split means the FIFO lots and their basis are unchanged.
+    # Still validate each quantity and reconcile the final endpoint below.
+    if not daily and owned == previous and index != end:
+      continue
+    daily = sorted(daily, key=lambda item: (
       item["entered_date"], item["action"] != "Buy", item["row"]))
     net = sum(trade["shares"] * (1 if trade["action"] == "Buy" else -1) for trade in daily)
     tolerance = max(1.0, owned, previous) * 1e-10

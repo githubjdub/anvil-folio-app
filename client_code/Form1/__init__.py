@@ -111,6 +111,7 @@ class Form1(Form1Template):
     self._startup_ready = startup_ready
     self.startup_region.visible = False
     self.transactions = []
+    self._transaction_rows_dirty = True
     self._collapsed_transaction_years = {}
     self._collapsed_transaction_dates = {}
     self._date_groups_on = None
@@ -248,6 +249,7 @@ class Form1(Form1Template):
 
     for page in ("overview", "allocation", "performance"):
       defer(lambda page=page: self._prepare_view(page), current)
+    defer(self._ensure_transaction_rows, current)
     for tool in ("retirement", "tax", "notifications", "income"):
       defer(lambda tool=tool: self._prepare_tool(tool), current)
 
@@ -420,6 +422,8 @@ class Form1(Form1Template):
     self.transactions_column.visible = editing
     self.readout_column.visible = not editing
     self._transactions_collapsed = not editing
+    if editing and not self._startup_loading:
+      self._ensure_transaction_rows()
     self.workspace_region.classes["transactions-collapsed"] = not editing
     self.toggle_transactions_button.text = "View holdings" if editing else "Edit transactions"
     self.transactions_tab_button.role = "readout-tab-active" if editing else "readout-tab"
@@ -1002,6 +1006,19 @@ class Form1(Form1Template):
     self._set_status("Imported positions ready — sync history to calculate the updated readout.")
 
   def _refresh_transactions(self):
+    # Keep the authoritative dictionaries current without constructing hidden
+    # editors. Warm them after the readout, or immediately when editing.
+    self._transaction_rows_dirty = True
+    # Chart links use the original input order, including omitted blank rows,
+    # even when no editor has been constructed for those transactions yet.
+    for index, row in enumerate(self.transactions):
+      row["_transaction_index"] = index
+    if self._readout_page == "transactions" and not self._startup_loading:
+      self._ensure_transaction_rows()
+
+  def _ensure_transaction_rows(self):
+    if not self._transaction_rows_dirty:
+      return
     self.transactions_empty_region.visible = not bool(self.transactions)
     self.add_button.text = "Add A Security!" if not self.transactions else "Add security / transaction"
     view = self.transaction_view_dropdown.selected_value
@@ -1014,8 +1031,7 @@ class Form1(Form1Template):
     self.collapse_prior_years_button.text = "Collapse older dates" if by_date else "Collapse prior years"
     self.collapse_all_button.text = "Collapse sections" if sections else "Collapse all"
     self.expand_all_button.text = "Expand sections" if sections else "Expand all"
-    for index, row in enumerate(self.transactions):
-      row["_transaction_index"] = index
+    for row in self.transactions:
       row["_security_group"] = ""
       row["_security_group_detail"] = ""
     visible_rows = list(self.transactions)
@@ -1065,6 +1081,7 @@ class Form1(Form1Template):
       if grouped else "Transactions appear in the order you entered them."
     )
     self._update_image_import_controls()
+    self._transaction_rows_dirty = False
 
   def _refresh_date_groups_if_needed(self):
     if self.transaction_view_dropdown.selected_value == "date" and self._date_groups_on != date.today():
@@ -1072,10 +1089,14 @@ class Form1(Form1Template):
       self._refresh_transactions()
 
   def _transaction_year_forms(self):
+    if self._transaction_rows_dirty:
+      return []
     return [group for group in self.transaction_years_panel.get_components()
             if isinstance(group, TransactionYearGroup)]
 
   def _transaction_row_forms(self):
+    if self._transaction_rows_dirty:
+      return []
     rows = [form for form in self.holdings_panel.get_components() if isinstance(form, HoldingRow)]
     for group in self._transaction_year_forms():
       rows.extend(group.transaction_rows())
@@ -1697,11 +1718,10 @@ class Form1(Form1Template):
       str(transaction["shares"]),
       transaction.get("trade_price"),
     ) for transaction in portfolio["transactions"]]
+    self._readout_page = "overview"
     self._refresh_transactions()
     self._portfolio_dirty = False
-    self._readout_page = "overview"
     self._show_results(False)
-    self._set_transactions_collapsed(False)
     self.saved_portfolios_dropdown.selected_value = next(
       (entry for _, entry in self.saved_portfolios_dropdown.items if entry["portfolio_id"] == portfolio.get_id()), None
     )
@@ -1712,6 +1732,8 @@ class Form1(Form1Template):
       self._apply_analysis(analysis, self._read_transactions())
       self._set_transactions_collapsed(True)
       self._set_status("Saved analysis restored through %s. Sync history to refresh prices." % analysis["metadata"]["end_date"])
+    else:
+      self._set_transactions_collapsed(False)
     self._update_controls()
 
   def _set_dates(self):
