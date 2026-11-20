@@ -78,7 +78,7 @@
         <anvil-component type="m3._Components.Button" name="creator_tab_button" prop:text="Open creator workspace" prop:appearance="outlined" prop:icon="mi:manage_accounts" prop:visible="False"></anvil-component>
       </div>
       <section anvil:name="creator_panel" class="creator-entry-content" aria-label="Creator accounts and portfolios">
-        <anvil-component type="M3_App_1.Components.CreatorWorkspace" name="creator_workspace"></anvil-component>
+        <div anvil:name="creator_workspace_host"></div>
       </section>
     </section>
 
@@ -166,7 +166,7 @@
 <div anvil:name="status_region" class="status-region is-hidden">
           <span class="status-glyph">i</span><anvil-component type="Label" name="status_label" prop:role="status-label"></anvil-component>
         </div>
-<anvil-component type="M3_App_1.Components.ShareComposer" name="share_composer" prop:visible="false"></anvil-component>
+<div anvil:name="share_composer_host"></div>
 
     <section anvil:name="workspace_region" class="workspace-grid">
       <div anvil:name="transactions_column" anvil:dom-node="transactions_workspace" class="input-column">
@@ -280,7 +280,7 @@
               <anvil-component type="Label" name="allocation_change_label" prop:role="allocation-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
             </section>
             <section class="detail-card allocation-history-card" aria-label="Allocation history">
-              <anvil-component type="Plot" name="allocation_history_plot" prop:height="440px" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+              <anvil-component type="M3_App_1.Components.LazyPlot" name="allocation_history_plot" prop:height="440px" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
               <anvil-component type="Label" name="allocation_history_title_label" prop:text="Sector allocation over time" prop:visible="false"></anvil-component>
               <anvil-component type="Label" name="allocation_history_status_label" prop:role="allocation-caption" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
             </section>
@@ -300,7 +300,7 @@
           <section anvil:name="allocation_map_region" class="detail-card allocation-map-card" style="display: none;" aria-label="Holdings map">
             <div class="detail-heading"><h3>Holdings map</h3><span>Size = position weight</span></div>
             <p class="allocation-map-help">Each tile is a holding, grouped by sector. Select a sector to explore its holdings; use the chart's path to return.</p>
-            <anvil-component type="Plot" name="allocation_map_plot" prop:height="380px" prop:visible="false"></anvil-component>
+            <anvil-component type="M3_App_1.Components.LazyPlot" name="allocation_map_plot" prop:height="380px" prop:visible="false"></anvil-component>
           </section>
           <details anvil:dom-node="allocation_holdings" anvil:on-dom:toggle="self.allocation_holdings_toggle" class="detail-card allocation-securities-card">
             <summary>Portfolio holdings <span>Selection, sectors &amp; position details</span></summary>
@@ -367,13 +367,13 @@
               <anvil-component type="RepeatingPanel" name="chart_trade_panel" prop:item_template="M3_App_1.Components.ChartTradeRow"></anvil-component>
             </div>
             <section class="performance-chart-block" aria-label="Cumulative return chart">
-            <anvil-component type="Plot" name="performance_plot" prop:height="520px" prop:role="performance-main-plot" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
+            <anvil-component type="M3_App_1.Components.LazyPlot" name="performance_plot" prop:height="520px" prop:role="performance-main-plot" prop:spacing_above="none" prop:spacing_below="none"></anvil-component>
             </section>
             <details anvil:dom-node="performance_details" anvil:on-dom:toggle="self.performance_details_toggle" class="performance-secondary-details"><summary>Quarterly returns &amp; drawdown</summary>
             <section class="performance-chart-block" aria-label="Quarterly return chart">
             <h4 class="chart-title">Quarterly returns</h4>
             <anvil-component type="Label" name="quarterly_period_label" prop:role="portfolio-help"></anvil-component>
-            <anvil-component type="Plot" name="quarterly_plot" prop:height="330px"></anvil-component>
+            <anvil-component type="M3_App_1.Components.LazyPlot" name="quarterly_plot" prop:height="330px"></anvil-component>
             <details class="quarterly-figures">
               <summary>View quarterly figures</summary>
               <div class="quarterly-table" role="table" aria-label="Quarterly returns compared with benchmark">
@@ -384,7 +384,7 @@
             </section>
             <section class="performance-chart-block" aria-label="Drawdown chart">
             <h4 class="chart-title">Drawdown from period high</h4>
-            <anvil-component type="Plot" name="drawdown_plot" prop:height="300px"></anvil-component>
+            <anvil-component type="M3_App_1.Components.LazyPlot" name="drawdown_plot" prop:height="300px"></anvil-component>
             </section>
             </details>
             <details class="performance-risk-details">
@@ -403,18 +403,18 @@
           </section>
           </section>
         </section>
-        <section anvil:name="hedge_fund_panel" class="readout-page detail-card hedge-fund-subsection" aria-label="Hedge fund comparisons"><anvil-component type="M3_App_1.Components.HedgeFundComparison" name="hedge_fund_comparison" prop:visible="false"></anvil-component></section>
+        <section anvil:name="hedge_fund_panel" class="readout-page detail-card hedge-fund-subsection" aria-label="Hedge fund comparisons"><div anvil:name="hedge_fund_comparison_host"></div></section>
         <section anvil:name="retirement_panel" class="readout-page" aria-label="Retirement projections">
-          <anvil-component type="M3_App_1.Components.Retirement" name="retirement_form"></anvil-component>
+          <div anvil:name="retirement_form_host"></div>
         </section>
         <section anvil:name="income_panel" class="readout-page" aria-label="Income and tax analysis">
-          <anvil-component type="M3_App_1.Components.IncomeTracker" name="income_form"></anvil-component>
+          <div anvil:name="income_form_host"></div>
         </section>
         <section anvil:name="notifications_panel" class="readout-page" aria-label="Notifications and insider alerts">
-          <anvil-component type="M3_App_1.Components.Notifications" name="notifications_form"></anvil-component>
+          <div anvil:name="notifications_form_host"></div>
         </section>
         <section anvil:name="tax_estimator_panel" class="readout-page" aria-label="Tax estimator and hypothetical trades">
-          <anvil-component type="M3_App_1.Components.TaxEstimator" name="tax_estimator_form"></anvil-component>
+          <div anvil:name="tax_estimator_form_host"></div>
         </section>
         </div>
         </div>

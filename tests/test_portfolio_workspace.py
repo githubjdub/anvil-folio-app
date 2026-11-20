@@ -35,6 +35,7 @@ class Control:
         self.interval = self.redraw_count = self.reset_count = self.loaded_count = 0
         self.view = None
         self._inputs_dirty = False
+        self.handlers = {}
 
     def redraw(self):
         self.redraw_count += 1
@@ -63,6 +64,19 @@ class Control:
 
     def get_components(self):
         return self.children
+
+    def add_component(self, component):
+        self.children.append(component)
+
+    def set_event_handler(self, name, handler):
+        self.handlers[name] = handler
+
+    def raise_event(self, name, **args):
+        if name in self.handlers:
+            self.handlers[name](**args)
+
+    def prepare(self):
+        pass
 
 
 class Node:
@@ -101,6 +115,7 @@ class WorkspaceHarness:
         self.documents = {}
         self.pending = []
         self.account_reads = 0
+        self.tools_created = []
         self.result = {
             'ok': True,
             'selection_data': {'securities': [{'symbol': 'TEST'}]},
@@ -133,6 +148,9 @@ class WorkspaceHarness:
             'analyze_selection': lambda result, selected: dict(result),
             'record_page': lambda page: None,
             'defer': self.defer,
+            '_create_tool': self.create_tool,
+            'startup_performance': SimpleNamespace(mark=lambda *a: None,
+                after_frame=lambda *a: None, complete=lambda: None),
         }
         tree = ast.parse(path.read_text())
         tree.body = [node for node in tree.body if isinstance(node, (ast.Assign, ast.ClassDef))]
@@ -176,6 +194,10 @@ class WorkspaceHarness:
         form._user = self.user
         form.account_id = self.user.get_id() if self.user else None
         form._username = 'owner' if self.user else ''
+
+    def create_tool(self, name):
+        self.tools_created.append(name)
+        return Control()
 
     def defer(self, callback, is_current=None, priority=False):
         job = (callback, is_current)
@@ -230,7 +252,7 @@ class PortfolioTabsTests(unittest.TestCase):
     def test_notification_polling_is_active_only_on_the_inbox_page(self):
         h = WorkspaceHarness()
         h.form.overview_tab_click()
-        self.assertFalse(h.form.notifications_form.active)
+        self.assertIsNone(h.form.notifications_form)
         h.form.notifications_tab_click()
         self.assertTrue(h.form.notifications_form.active)
         h.form.performance_tab_click()

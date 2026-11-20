@@ -125,6 +125,7 @@ class NavigationHarness:
             workspace_revision=lambda: self.revision,
             invalidate_workspace=self.invalidate,
             defer=self.defer,
+            startup_performance=SimpleNamespace(mark=lambda *a: None, complete=lambda: None),
         )
         self.namespace = source_namespace(CLIENT / 'Router' / '__init__.py', namespace)
         self.namespace['_create_page'] = lambda page, **props: (

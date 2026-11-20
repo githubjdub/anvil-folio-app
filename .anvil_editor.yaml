@@ -29,6 +29,7 @@ unique_ids:
     Components.IncomeSecurityRow: '1792764910611.2122479282021814'
     Components.IncomeTracker: '1792764910630.09271609055396501'
     Components.InsiderWatchRow: '1792968603920.5888910606688451'
+    Components.LazyPlot: '1795133284602.8557103494247734'
     Components.MembershipHeader: '1794433109964.47337400510094796'
     Components.NotificationMessageRow: '1792968603922.4828101805012258'
     Components.Notifications: '1792968603937.2596088244266487'
@@ -85,6 +86,7 @@ unique_ids:
     portfolio_periods: '1791091435498.3648185378230874'
     portfolio_summary: '1794188931752.4321401600540531'
     site_tracking: '1791345901647.5120180450121529'
+    startup_performance: '1795133613906.1682046773424568'
     transaction_groups: '1792524268669.615261879610002'
     workspace_cache: '1794161922954.33001026903972286'
   scripts: {}

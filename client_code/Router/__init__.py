@@ -8,13 +8,16 @@ from ..account_profile import ensure_username, username_prompt_open
 from ..appearance import initialize
 from ..workspace_cache import CACHE_SECONDS, workspace_revision
 from ..deferred_work import defer
+from .. import startup_performance
 
 
 def _create_page(page, **properties):
   # Import only the requested route. Optional pages do not belong on the
   # startup import path; their modules load during idle preparation instead.
   if page == "dashboard":
+    startup_performance.mark("portfolio_import_start")
     from ..Form1 import Form1
+    startup_performance.mark("portfolio_import_end")
     return Form1(**properties)
   if page == "shared":
     from ..PublicPerformance import PublicPerformance
@@ -36,6 +39,7 @@ def _create_page(page, **properties):
 
 class Router(RouterTemplate):
   def __init__(self, **properties):
+    startup_performance.mark("router_started")
     initialize()
     super().__init__(**properties)
     self._routed = False
@@ -189,6 +193,7 @@ class Router(RouterTemplate):
       reader = _create_page("shared", token=token)
       if self._is_current(generation, route, account_id):
         open_form(reader)
+        startup_performance.complete()
         record_page("shared")
       return
     if page in ("subscribe", "subscription", "profile", "disclosures"):
@@ -261,4 +266,5 @@ class Router(RouterTemplate):
     self._page_forms[page] = {"form": destination, "stamp": stamp}
     if self._is_current(generation, route, account_id) and get_open_form() is not destination:
       open_form(destination)
+      startup_performance.complete()
       record_page(page)

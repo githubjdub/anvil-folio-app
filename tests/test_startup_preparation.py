@@ -16,7 +16,7 @@ def workspace_methods(user, call=None):
     path = APP / 'client_code/Form1/__init__.py'
     tree = ast.parse(path.read_text())
     cls = next(node for node in tree.body if isinstance(node, ast.ClassDef))
-    methods = {'prepare_navigation', '_prepare_tool', '_render_readout',
+    methods = {'prepare_navigation', '_prepare_view', '_ensure_tool', '_prepare_tool', '_render_readout',
                '_ensure_readout_rendered', '_render_active_readout',
                'open_profile_portfolio', '_restore_last_portfolio', 'analyze_button_click'}
     cls.bases = []
@@ -26,7 +26,9 @@ def workspace_methods(user, call=None):
     pending = []
     def defer(callback, current=None, priority=False):
         pending.append((callback, current))
-    namespace = dict(date=date, defer=defer, anvil=SimpleNamespace(users=SimpleNamespace(get_user=user),
+    namespace = dict(date=date, defer=defer,
+                    startup_performance=SimpleNamespace(mark=lambda *a: None),
+                    anvil=SimpleNamespace(users=SimpleNamespace(get_user=user),
                                                      server=SimpleNamespace(call=call)))
     exec(compile(ast.Module(body=[cls], type_ignores=[]), str(path), 'exec'), namespace)
     form = namespace['Form1']()
@@ -55,6 +57,41 @@ def workspace_methods(user, call=None):
 
 
 class StartupPreparationTests(unittest.TestCase):
+    def test_initial_construction_does_not_mount_hidden_tools(self):
+        h = WorkspaceHarness(defer_load=True)
+        self.assertEqual(h.tools_created, [])
+        for name in ('income_form', 'tax_estimator_form', 'retirement_form',
+                     'notifications_form', 'creator_workspace', 'share_composer',
+                     'hedge_fund_comparison'):
+            self.assertIsNone(getattr(h.form, name))
+            self.assertEqual(getattr(h.form, name + '_host').children, [])
+
+    def test_lazy_tool_mounts_once_and_receives_current_portfolio_context(self):
+        h = WorkspaceHarness()
+        h.form.dividends_tab_click()
+        income = h.form.income_form
+        self.assertIsNotNone(income)
+        self.assertEqual(h.tools_created, ['income_form'])
+        self.assertEqual(h.form.income_form_host.children, [income])
+        self.assertEqual(income.contexts[-1][0][0][0]['ticker'], 'TEST')
+        self.assertIn('x-income-busy', income.handlers)
+        h.form.overview_tab_click()
+        h.form.dividends_tab_click()
+        self.assertIs(h.form.income_form, income)
+        self.assertEqual(h.tools_created, ['income_form'])
+
+    def test_idle_preparation_retains_only_normal_tools_and_keeps_navigation_open(self):
+        h = WorkspaceHarness()
+        h.form.prepare_navigation()
+        self.assertEqual(h.tools_created, [])
+        h.run_idle()
+        self.assertEqual(h.tools_created, ['retirement_form', 'tax_estimator_form',
+                                           'notifications_form', 'income_form'])
+        self.assertFalse(h.form._busy)
+        self.assertIsNone(h.form.creator_workspace)
+        self.assertIsNone(h.form.share_composer)
+        self.assertIsNone(h.form.hedge_fund_comparison)
+
     def test_tools_prepare_after_first_page_and_stop_on_account_change(self):
         current = ['a']
         form = workspace_methods(lambda: SimpleNamespace(get_id=lambda: current[0]))
@@ -81,7 +118,7 @@ class StartupPreparationTests(unittest.TestCase):
     def test_initial_views_render_once_and_clean_tab_switches_do_no_work(self):
         h = WorkspaceHarness()
         form = h.form
-        form._history = object()
+        form._history = dict(h.result)
         form._dirty_readout_pages = {'overview', 'allocation', 'performance'}
         rendered = []
         for method in ('_render_overview', '_render_sectors', '_render_security_rows', '_render_comparison'):

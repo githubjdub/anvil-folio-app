@@ -1,0 +1,197 @@
+{
+  "scope": "Agent environment measurements; full startup on the user browser remains unmeasured.",
+  "initial_template_tree": {
+    "before": {
+      "components": 493,
+      "plots": 12,
+      "named_html": 88,
+      "forms": 12
+    },
+    "after": {
+      "components": 178,
+      "plots": 0,
+      "named_html": 43,
+      "forms": 8
+    },
+    "count_definition": "Static anvil-component declarations including recursively embedded app Forms; excludes repeated data items, Material 3 internals, and DOM nodes.",
+    "components_reduction_percent": 63.9
+  },
+  "http": {
+    "scope": "Compressed document requests from agent network; excludes JavaScript execution and browser rendering. Asset results use the document base URL.",
+    "before_document_samples": [
+      {
+        "status": 200,
+        "ttfb_ms": 295.1,
+        "total_ms": 311.9,
+        "transfer_bytes": 324950,
+        "decoded_bytes": 1808670
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 175.2,
+        "total_ms": 187.3,
+        "transfer_bytes": 324953,
+        "decoded_bytes": 1808670
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 181.0,
+        "total_ms": 192.5,
+        "transfer_bytes": 324944,
+        "decoded_bytes": 1808670
+      }
+    ],
+    "after_document_samples": [
+      {
+        "status": 200,
+        "ttfb_ms": 188.5,
+        "total_ms": 199.4,
+        "transfer_bytes": 327970,
+        "decoded_bytes": 1821398
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 296.9,
+        "total_ms": 307.8,
+        "transfer_bytes": 327976,
+        "decoded_bytes": 1821398
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 172.4,
+        "total_ms": 185.1,
+        "transfer_bytes": 327985,
+        "decoded_bytes": 1821398
+      }
+    ],
+    "after_assets": [
+      {
+        "status": 200,
+        "ttfb_ms": 30.0,
+        "total_ms": 30.3,
+        "transfer_bytes": 6786,
+        "decoded_bytes": 33308,
+        "asset": "runner-v3.min.css"
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 29.7,
+        "total_ms": 30.0,
+        "transfer_bytes": 7117,
+        "decoded_bytes": 31091,
+        "asset": "font-awesome.min.css"
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 35.4,
+        "total_ms": 36.4,
+        "transfer_bytes": 30413,
+        "decoded_bytes": 87533,
+        "asset": "jquery.min.js"
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 30.4,
+        "total_ms": 30.7,
+        "transfer_bytes": 5057,
+        "decoded_bytes": 13992,
+        "asset": "jquery-migrate.min.js"
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 41.4,
+        "total_ms": 41.6,
+        "transfer_bytes": 472,
+        "decoded_bytes": 4117,
+        "asset": "css2"
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 38.3,
+        "total_ms": 38.5,
+        "transfer_bytes": 451,
+        "decoded_bytes": 2605,
+        "asset": "css2"
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 34.5,
+        "total_ms": 34.7,
+        "transfer_bytes": 4639,
+        "decoded_bytes": 12298,
+        "asset": "core@1.6.7.js"
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 33.5,
+        "total_ms": 33.8,
+        "transfer_bytes": 3799,
+        "decoded_bytes": 9358,
+        "asset": "dom@1.6.10.js"
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 56.4,
+        "total_ms": 61.7,
+        "transfer_bytes": 169100,
+        "decoded_bytes": 639343,
+        "asset": "skulpt.min.js"
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 33.9,
+        "total_ms": 34.8,
+        "transfer_bytes": 27471,
+        "decoded_bytes": 88247,
+        "asset": "skulpt-stdlib.js"
+      },
+      {
+        "status": 200,
+        "ttfb_ms": 62.4,
+        "total_ms": 68.9,
+        "transfer_bytes": 227759,
+        "decoded_bytes": 785692,
+        "asset": "runner2.bundle.js"
+      }
+    ],
+    "interpretation": "No document-download improvement demonstrated; these changes reduce client construction work. Separate requests are affected by network and cache conditions."
+  },
+  "server_execution": {
+    "scope": "Five direct server executions; excludes browser, RPC transport and cold runtime startup.",
+    "fixture": {
+      "securities": 8,
+      "history_sessions": 1305,
+      "decoded_analysis_json_bytes": 3500498
+    },
+    "timings_ms": {
+      "account_metadata": {
+        "median": 83.7,
+        "min": 73.3,
+        "max": 181.3
+      },
+      "saved_portfolio": {
+        "median": 98.7,
+        "min": 92.3,
+        "max": 146.8
+      },
+      "analysis_json_encoding": {
+        "median": 41.1,
+        "min": 37.5,
+        "max": 42.2
+      }
+    },
+    "repeat_command": "anvil repl - < tests/runtime_startup_benchmark.py"
+  },
+  "browser": {
+    "status": "Awaiting a real browser report; the agent environment has no browser automation.",
+    "console_expression": "JSON.stringify(window.folioStartupTimings)",
+    "ready_frame": "navigation_ms.ready_frame is milliseconds from frame navigation to a paint opportunity after the requested page is ready.",
+    "paint": "browser_paint_ms contains native browser paint entries when available. These can include the Anvil runtime loading screen.",
+    "phase_note": "analysis_apply is nested inside saved_portfolio_restore; do not sum those durations."
+  },
+  "verification": {
+    "unit_tests_passed": 258,
+    "app_files_validated": 186,
+    "live_navigation": "Passed bootstrap, saved restore, profile/planning/inbox/billing preload, no market/SEC calls or planner writes, cross-account and anonymous denial; temporary fixtures removed."
+  }
+}

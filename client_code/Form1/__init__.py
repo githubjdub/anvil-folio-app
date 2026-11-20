@@ -20,6 +20,7 @@ from ..site_tracking import record_page
 from ..account_profile import ensure_username, sign_in
 from ..workspace_cache import account_workspace, invalidate_workspace
 from ..deferred_work import defer
+from .. import startup_performance
 
 
 SECTOR_COLORS = chart_theme.SECTOR_COLORS
@@ -34,10 +35,45 @@ BENCHMARK_CHOICES = [
 ]
 
 
+def _create_tool(name):
+  if name == "income_form":
+    from ..Components.IncomeTracker import IncomeTracker
+    return IncomeTracker()
+  if name == "tax_estimator_form":
+    from ..Components.TaxEstimator import TaxEstimator
+    return TaxEstimator()
+  if name == "retirement_form":
+    from ..Components.Retirement import Retirement
+    return Retirement()
+  if name == "notifications_form":
+    from ..Components.Notifications import Notifications
+    return Notifications()
+  if name == "creator_workspace":
+    from ..Components.CreatorWorkspace import CreatorWorkspace
+    return CreatorWorkspace()
+  if name == "share_composer":
+    from ..Components.ShareComposer import ShareComposer
+    return ShareComposer()
+  if name == "hedge_fund_comparison":
+    from ..Components.HedgeFundComparison import HedgeFundComparison
+    return HedgeFundComparison()
+  raise ValueError("Unknown tool")
+
+
 class Form1(Form1Template):
   def __init__(self, initial_portfolio_id=None, defer_load=False, startup_ready=None, **properties):
+    startup_performance.mark("portfolio_build_start")
     self._initializing = True
     super().__init__(**properties)
+    startup_performance.mark("portfolio_template_ready")
+
+    self.income_form = None
+    self.tax_estimator_form = None
+    self.retirement_form = None
+    self.notifications_form = None
+    self.creator_workspace = None
+    self.share_composer = None
+    self.hedge_fund_comparison = None
 
     self._user = None
     self._username = ""
@@ -51,12 +87,12 @@ class Form1(Form1Template):
     self._creator_enabled = False
     self._creator_open = False
     self._creator_reference = None
+    self._creator_email = None
     self.creator_access_region.visible = False
     self.creator_setup_button.visible = False
     self.creator_setup_region.visible = False
     self.creator_tab_button.visible = False
     self.creator_panel.visible = False
-    self.share_composer.visible = False
     self._current_portfolio = None
     self._portfolio_dirty = False
     self._edit_revision = 0
@@ -88,7 +124,6 @@ class Form1(Form1Template):
     self._performance_details_open = False
     self._performance_details_dirty = True
     self._performance_details_context = None
-    self.hedge_fund_comparison.visible = HEDGE_FUND_COMPARISONS_ENABLED
     self._analysis_source = None
     self._last_synced_analysis = None
     self._last_synced_transactions = []
@@ -181,6 +216,7 @@ class Form1(Form1Template):
       self.workspace_region.visible = False
       self._set_busy(True)
       self._initializing = False
+      startup_performance.mark("portfolio_shell_ready")
       return
     self._refresh_account()
     if self._user is not None:
@@ -190,6 +226,7 @@ class Form1(Form1Template):
       finally:
         self._set_busy(False)
     self._initializing = False
+    startup_performance.mark("portfolio_shell_ready")
 
   def prepare_navigation(self):
     """Prepare secondary views after the requested page is already visible."""
@@ -210,15 +247,64 @@ class Form1(Form1Template):
               and not self._autosaving)
 
     for page in ("overview", "allocation", "performance"):
-      defer(lambda page=page: self._ensure_readout_rendered(page), current)
-    for tool, prepare in (("retirement", self.retirement_form.redraw),
-                          ("tax", self.tax_estimator_form.redraw),
-                          ("notifications", self.notifications_form.preload),
-                          ("income", self.income_form.ensure_loaded)):
-      defer(lambda tool=tool, prepare=prepare: self._prepare_tool(tool, prepare), current)
+      defer(lambda page=page: self._prepare_view(page), current)
+    for tool in ("retirement", "tax", "notifications", "income"):
+      defer(lambda tool=tool: self._prepare_tool(tool), current)
 
-  def _prepare_tool(self, tool, prepare):
-    if tool == "tax" and self.tax_estimator_form._inputs_dirty:
+  def _prepare_view(self, page):
+    self._ensure_readout_rendered(page)
+    for _, plot in self._page_charts(page):
+      plot.prepare()
+
+  def _ensure_tool(self, name):
+    form = getattr(self, name)
+    if form is not None:
+      return form
+    form = _create_tool(name)
+    setattr(self, name, form)
+    events = {
+      "income_form": {"x-income-busy": self.income_busy_change},
+      "tax_estimator_form": {"x-tax-estimator-busy": self.tax_estimator_busy_change},
+      "retirement_form": {"x-retirement-busy": self.retirement_busy_change,
+                          "x-use-portfolio-balance": self.retirement_use_portfolio},
+      "notifications_form": {"x-notifications-busy": self.notifications_busy_change,
+                             "x-notifications-unread": self.notifications_unread_change},
+      "creator_workspace": {"x-import-creator-portfolio": self.import_creator_portfolio,
+                            "x-membership-changed": self.creator_membership_changed},
+      "share_composer": {"x-close-sharing": self.close_sharing},
+    }
+    for event, handler in events.get(name, {}).items():
+      form.set_event_handler(event, handler)
+    if name == "notifications_form":
+      getattr(form, "set_account_context")(self.account_id)
+      getattr(form, "set_active")(self._readout_page == "notifications")
+    elif name == "creator_workspace":
+      getattr(form, "configure_access")(self._creator_enabled, self._creator_email)
+    elif name == "hedge_fund_comparison":
+      getattr(form, "set_creator_access")(self._creator_enabled)
+    elif name == "share_composer":
+      getattr(form, "set_account_context")()
+      form.visible = False
+    self._update_retirement_context()
+    self._update_tax_estimator_context()
+    if name != "share_composer":
+      form.raise_event("x-set-editable", editable=not self._busy)
+    getattr(self, name + "_host").add_component(form)
+    return form
+
+  def _reset_tools(self):
+    for form in (self.tax_estimator_form, self.income_form, self.retirement_form):
+      if form is not None:
+        form.reset_workspace()
+
+  def _prepare_tool(self, tool, prepare=None):
+    if prepare is None:
+      name, method = {"retirement": ("retirement_form", "redraw"),
+                      "tax": ("tax_estimator_form", "redraw"),
+                      "notifications": ("notifications_form", "preload"),
+                      "income": ("income_form", "ensure_loaded")}[tool]
+      prepare = getattr(self._ensure_tool(name), method)
+    if tool == "tax" and self.tax_estimator_form is not None and self.tax_estimator_form._inputs_dirty:
       return
     self._background_tool = tool
     try:
@@ -231,9 +317,13 @@ class Form1(Form1Template):
     try:
       if not self._workspace_matches(account_id, None):
         return
+      startup_performance.mark("account_load_start")
       self._refresh_account()
+      startup_performance.mark("account_load_end")
       if self._workspace_matches(account_id, None):
+        startup_performance.mark("portfolio_restore_start")
         self._restore_last_portfolio(self._initial_portfolio_id)
+        startup_performance.mark("portfolio_restore_end")
     finally:
       self._startup_loading = False
       self.startup_region.visible = False
@@ -243,9 +333,12 @@ class Form1(Form1Template):
     self.prepare_navigation()
     if self._startup_ready is not None:
       self._startup_ready(self)
+    startup_performance.complete()
 
   @handle("", "show")
   def form_show(self, **event_args):
+    startup_performance.mark("portfolio_attached")
+    startup_performance.after_frame("portfolio_frame")
     if self._startup_loading:
       if not self._startup_scheduled:
         self._startup_scheduled = True
@@ -256,6 +349,7 @@ class Form1(Form1Template):
     if not self._initializing and not self._busy:
       self._refresh_date_groups_if_needed()
       self._apply_readout_page(redraw=True)
+      startup_performance.complete()
 
   @handle("market_status_timer", "tick")
   def market_status_timer_tick(self, **event_args):
@@ -312,7 +406,13 @@ class Form1(Form1Template):
 
   def _apply_readout_page(self, redraw=False):
     has_analysis = self._history is not None
-    self.notifications_form.set_active(self._readout_page == "notifications")
+    tool = {"retirement": "retirement_form", "tax_estimator": "tax_estimator_form",
+            "notifications": "notifications_form", "dividends": "income_form",
+            "passive": "income_form", "tax": "income_form"}.get(self._readout_page)
+    if tool is not None and not self._startup_loading:
+      self._ensure_tool(tool)
+    if self.notifications_form is not None:
+      self.notifications_form.set_active(self._readout_page == "notifications")
     if self._readout_page != "notifications":
       self._portfolio_readout_page = self._readout_page
     self.portfolio_header_link.attrs["aria-current"] = "false" if self._readout_page == "notifications" else "page"
@@ -347,24 +447,31 @@ class Form1(Form1Template):
       button.role = "readout-tab-active" if name == self._readout_page else "readout-tab"
       setattr(button, "enabled", not self._busy)
     if income_page:
-      self.income_form.set_view(self._readout_page)
+      if self.income_form is not None:
+        self.income_form.set_view(self._readout_page)
     self._update_readout_context()
     if redraw:
       self._render_active_readout()
       self._resize_readout_charts()
       if self._readout_page == "notifications":
-        self.notifications_form.ensure_loaded()
+        if self.notifications_form is not None:
+          self.notifications_form.ensure_loaded()
       elif self._readout_page == "overview" and has_analysis:
         self.portfolio_holdings_form.redraw()
       elif self._readout_page == "tax_estimator":
-        self.tax_estimator_form.redraw()
+        if self.tax_estimator_form is not None:
+          self.tax_estimator_form.redraw()
       elif self._readout_page == "performance" and HEDGE_FUND_COMPARISONS_ENABLED:
-        self.hedge_fund_comparison.redraw()
+        if self.hedge_fund_comparison is not None:
+          self.hedge_fund_comparison.redraw()
       elif self._readout_page in ("dividends", "passive", "tax"):
-        self.income_form.ensure_loaded()
-        self.income_form.redraw()
+        if self.income_form is not None:
+          self.income_form.ensure_loaded()
+        if self.income_form is not None:
+          self.income_form.redraw()
       elif self._readout_page == "retirement":
-        self.retirement_form.redraw()
+        if self.retirement_form is not None:
+          self.retirement_form.redraw()
 
   def _render_active_readout(self):
     self._ensure_readout_rendered(self._readout_page)
@@ -431,16 +538,21 @@ class Form1(Form1Template):
     if self._readout_page == "overview" and self._history is not None:
       self.portfolio_holdings_form.redraw()
     if self._readout_page == "tax_estimator":
-      self.tax_estimator_form.apply_appearance()
+      if self.tax_estimator_form is not None:
+        self.tax_estimator_form.apply_appearance()
     elif self._readout_page == "performance" and HEDGE_FUND_COMPARISONS_ENABLED:
-      self.hedge_fund_comparison.apply_appearance()
+      if self.hedge_fund_comparison is not None:
+        self.hedge_fund_comparison.apply_appearance()
     elif self._readout_page in ("dividends", "passive", "tax"):
-      self.income_form.apply_appearance()
+      if self.income_form is not None:
+        self.income_form.apply_appearance()
     elif self._readout_page == "retirement":
-      self.retirement_form.apply_appearance()
+      if self.retirement_form is not None:
+        self.retirement_form.apply_appearance()
     if self._creator_open:
-      self.creator_workspace.apply_appearance()
-    if self.share_composer.visible:
+      if self.creator_workspace is not None:
+        self.creator_workspace.apply_appearance()
+    if self.share_composer is not None and self.share_composer.visible:
       self.share_composer.apply_appearance()
 
   def _select_readout_page(self, page):
@@ -463,7 +575,7 @@ class Form1(Form1Template):
     self.creator_panel.visible = self._creator_open
     self.creator_tab_button.text = "Close creator workspace" if self._creator_open else "Open creator workspace"
     if self._creator_open:
-      self.creator_workspace.open_library()
+      self._ensure_tool("creator_workspace").open_library()
 
   @handle("creator_tab_button", "click")
   def creator_tab_button_click(self, **event_args):
@@ -480,7 +592,6 @@ class Form1(Form1Template):
       self.creator_reference_box.focus()
       self.creator_reference_box.select()
 
-  @handle("creator_workspace", "x-import-creator-portfolio")
   def import_creator_portfolio(self, portfolio_id, **event_args):
     if self._busy or not self._creator_enabled or not self._confirm_discard():
       return
@@ -488,7 +599,7 @@ class Form1(Form1Template):
     try:
       result = anvil.server.call("import_creator_portfolio", portfolio_id)
       if not result["ok"]:
-        self.creator_workspace.show_status(result["message"], is_error=True)
+        self._ensure_tool("creator_workspace").show_status(result["message"], is_error=True)
         return
       portfolio = result["portfolio"]
       self._apply_portfolio(portfolio)
@@ -540,19 +651,17 @@ class Form1(Form1Template):
       as_of = source["metadata"]["end_date"]
     portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
     key = (portfolio_id, self.account_id, value, as_of)
-    if key != self._retirement_context_key:
+    if self.retirement_form is not None and key != self._retirement_context_key:
       self.retirement_form.set_portfolio_context(value, as_of, portfolio_id=portfolio_id)
       self._retirement_context_key = key
 
-  @handle("retirement_form", "x-use-portfolio-balance")
   def retirement_use_portfolio(self, **event_args):
     source = self._last_synced_analysis
-    if not self._busy and source is not None:
+    if not self._busy and source is not None and self.retirement_form is not None:
       self.retirement_form.set_starting_balance(
         source["metrics"]["market_value"], source["metadata"]["end_date"]
       )
 
-  @handle("retirement_form", "x-retirement-busy")
   def retirement_busy_change(self, busy, **event_args):
     self._set_busy(busy)
 
@@ -562,14 +671,14 @@ class Form1(Form1Template):
     source = self._last_synced_analysis
     portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None
     key = (portfolio_id, self.account_id)
-    if self._tax_context_source is not source or self._tax_context_key != key:
+    if self.tax_estimator_form is not None and (self._tax_context_source is not source or self._tax_context_key != key):
       self.tax_estimator_form.set_portfolio_context(
         self._last_synced_transactions,
         source["metadata"]["end_date"] if source is not None else None,
         portfolio_id=portfolio_id, analysis=source,
       )
       self._tax_context_source, self._tax_context_key = source, key
-    if self._income_context_history is self._history and self._income_context_key == key:
+    if self.income_form is None or (self._income_context_history is self._history and self._income_context_key == key):
       return
     transactions = []
     as_of = None
@@ -602,9 +711,9 @@ class Form1(Form1Template):
   def open_notifications(self):
     self._select_readout_page("notifications")
     if self._readout_page == "notifications":
-      self.notifications_form.ensure_loaded()
+      if self.notifications_form is not None:
+        self.notifications_form.ensure_loaded()
 
-  @handle("notifications_form", "x-notifications-busy")
   def notifications_busy_change(self, busy, **event_args):
     if self._background_tool != "notifications":
       self._set_busy(busy)
@@ -620,7 +729,6 @@ class Form1(Form1Template):
     self.notifications_tab_button.tooltip = description if self.account_id else "Sign in to view your notifications"
     self.notification_badge_timer.interval = 60 if self.account_id else 0
 
-  @handle("notifications_form", "x-notifications-unread")
   def notifications_unread_change(self, count, account_id, **event_args):
     if account_id == self.account_id:
       self._set_notification_unread_count(count)
@@ -659,7 +767,6 @@ class Form1(Form1Template):
       return
     self._refresh_notification_unread_count()
 
-  @handle("income_form", "x-income-busy")
   def income_busy_change(self, busy, **event_args):
     if self._background_tool != "income":
       self._set_busy(busy)
@@ -668,7 +775,6 @@ class Form1(Form1Template):
   def tax_estimator_tab_click(self, **event_args):
     self._select_readout_page("tax_estimator")
 
-  @handle("tax_estimator_form", "x-tax-estimator-busy")
   def tax_estimator_busy_change(self, busy, **event_args):
     if self._background_tool != "tax":
       self._set_busy(busy)
@@ -1088,12 +1194,10 @@ class Form1(Form1Template):
     self.holdings_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.transaction_years_panel.raise_event_on_children("x-set-editable", editable=not self._busy)
     self.security_panel.raise_event_on_children("x-set-editable", editable=not self._busy, can_classify=self._user is not None)
-    self.tax_estimator_form.raise_event("x-set-editable", editable=not self._busy)
-    self.income_form.raise_event("x-set-editable", editable=not self._busy)
-    self.notifications_form.set_editable(editable=not self._busy)
-    self.retirement_form.raise_event("x-set-editable", editable=not self._busy)
-    self.creator_workspace.raise_event("x-set-editable", editable=not self._busy)
-    self.hedge_fund_comparison.raise_event("x-set-editable", editable=not self._busy)
+    for form in (self.tax_estimator_form, self.income_form, self.notifications_form,
+                 self.retirement_form, self.creator_workspace, self.hedge_fund_comparison):
+      if form is not None:
+        form.raise_event("x-set-editable", editable=not self._busy)
     self.benchmark_dropdown.enabled = False
     self.benchmark_return_dropdown.enabled = False
     self._update_image_import_controls()
@@ -1104,9 +1208,11 @@ class Form1(Form1Template):
     if not busy and self._portfolio_dirty and self._user is not None:
       self.autosave_timer.interval = .7
     if not busy and self._readout_page in ("dividends", "passive", "tax"):
-      self.income_form.ensure_loaded()
+      if self.income_form is not None:
+        self.income_form.ensure_loaded()
     elif not busy and self._readout_page == "notifications":
-      self.notifications_form.ensure_loaded()
+      if self.notifications_form is not None:
+        self.notifications_form.ensure_loaded()
 
   def _refresh_portfolios(self, portfolios=None):
     if portfolios is None:
@@ -1129,8 +1235,10 @@ class Form1(Form1Template):
     self.account_id = self._user.get_id() if self._user is not None else None
     if self.account_id != previous_account_id:
       self._set_notification_unread_count(0)
-      self.share_composer.set_account_context()
-    self.notifications_form.set_account_context(self.account_id)
+      if self.share_composer is not None:
+        self.share_composer.set_account_context()
+    if self.notifications_form is not None:
+      self.notifications_form.set_account_context(self.account_id)
     self._username = ""
     self._profile_summary = None
     workspace = None
@@ -1163,8 +1271,11 @@ class Form1(Form1Template):
     self.creator_reference_box.text = ""
     self.creator_tab_button.visible = self._creator_enabled
     self.creator_access_region.visible = self._creator_enabled
-    self.creator_workspace.configure_access(self._creator_enabled, creator["email"])
-    self.hedge_fund_comparison.set_creator_access(self._creator_enabled)
+    self._creator_email = creator["email"]
+    if self.creator_workspace is not None:
+      self.creator_workspace.configure_access(self._creator_enabled, self._creator_email)
+    if self.hedge_fund_comparison is not None:
+      self.hedge_fund_comparison.set_creator_access(self._creator_enabled)
     self._set_creator_open(False)
     self._apply_readout_page()
     self._refresh_portfolios(workspace["portfolios"] if workspace is not None else [])
@@ -1262,7 +1373,6 @@ class Form1(Form1Template):
     finally:
       self._set_busy(False)
 
-  @handle("creator_workspace", "x-membership-changed")
   def creator_membership_changed(self, account_id, membership, **event_args):
     if self._user is not None and self._user.get_id() == account_id:
       self._display_membership(membership)
@@ -1476,9 +1586,7 @@ class Form1(Form1Template):
     self._last_synced_transactions = []
     self._set_last_refreshed(None)
     self._clear_image_import()
-    self.tax_estimator_form.reset_workspace()
-    self.income_form.reset_workspace()
-    self.retirement_form.reset_workspace()
+    self._reset_tools()
     self.portfolio_holdings_form.reset_workspace()
     self.portfolio_name_box.text = ""
     self.transactions = []
@@ -1572,9 +1680,7 @@ class Form1(Form1Template):
     self._collapsed_transaction_dates.clear()
     self._date_groups_on = None
     self._clear_image_import()
-    self.tax_estimator_form.reset_workspace()
-    self.income_form.reset_workspace()
-    self.retirement_form.reset_workspace()
+    self._reset_tools()
     self.portfolio_holdings_form.reset_workspace()
     self._last_synced_analysis = None
     self._last_synced_transactions = []
@@ -1666,7 +1772,8 @@ class Form1(Form1Template):
       self._plot_sizes.clear()
       self.allocation_quarter_dropdown.selected_value = "latest"
       self._clear_chart_trades()
-      self.hedge_fund_comparison.reset_context()
+      if self.hedge_fund_comparison is not None:
+        self.hedge_fund_comparison.reset_context()
       self.portfolio_holdings_form.reset_workspace()
       self._render_portfolio_summary()
     self._apply_readout_page()
@@ -1716,15 +1823,17 @@ class Form1(Form1Template):
   def share_performance_click(self, **event_args):
     if self._busy:
       return
-    if self.share_composer.visible:
+    if self.share_composer is not None and self.share_composer.visible:
       self.share_composer.focus_dialog()
       return
     self._set_charts_expanded(False, resize=False)
-    self.share_composer.visible = True
-    self.share_composer.show_for(self._sharing_context, self._ensure_signed_in)
+    composer = self._ensure_tool("share_composer")
+    composer.visible = True
+    composer.show_for(self._sharing_context, self._ensure_signed_in)
 
-  @handle("share_composer", "x-close-sharing")
   def close_sharing(self, **event_args):
+    if self.share_composer is None:
+      return
     self.share_composer.visible = False
     self._chart_button_node(self.share_performance_button).focus({"preventScroll": True})
 
@@ -1892,8 +2001,8 @@ class Form1(Form1Template):
     self.chart_trade_region.visible = True
     anvil.js.get_dom_node(self.chart_trade_region).scrollIntoView({"block": "nearest"})
 
-  @handle("performance_plot", "click")
-  @handle("drawdown_plot", "click")
+  @handle("performance_plot", "plot_click")
+  @handle("drawdown_plot", "plot_click")
   def chart_trade_click(self, points, **event_args):
     if self._busy or self._history is None or not self.show_trades_checkbox.checked:
       return
@@ -2040,7 +2149,8 @@ class Form1(Form1Template):
     self._performance_details_context = None
     self._performance_details_dirty = True
     self.window_return_caption.text = "Portfolio return"
-    self.hedge_fund_comparison.reset_context()
+    if self.hedge_fund_comparison is not None:
+      self.hedge_fund_comparison.reset_context()
     self.trade_markers_status_label.text = "No transactions to show in this period."
     self.comparison_period_label.text = message
     for label in (self.window_return_label, self.benchmark_return_label,
@@ -2175,7 +2285,7 @@ class Form1(Form1Template):
                        if key == self.benchmark_dropdown.selected_value), "benchmark")
     self.performance_heading_label.text = "Performance vs %s" % short_name
     if HEDGE_FUND_COMPARISONS_ENABLED:
-      self.hedge_fund_comparison.configure_context([{
+      self._ensure_tool("hedge_fund_comparison").configure_context([{
         "date": point["date"], "index": point["portfolio_index"],
         "return_observed": point["return_observed"],
         "session_complete": point.get("session_complete", True),
@@ -2540,14 +2650,14 @@ class Form1(Form1Template):
         return self._allocation_trace_names[index]
     return None
 
-  @handle("allocation_history_plot", "hover")
+  @handle("allocation_history_plot", "plot_hover")
   def allocation_chart_hover(self, points, **event_args):
     if not self._busy and not self._allocation_hover_styling:
       name = self._allocation_hover_point_name(points)
       if name is not None:
         self._set_allocation_hover(name, "chart")
 
-  @handle("allocation_history_plot", "unhover")
+  @handle("allocation_history_plot", "plot_unhover")
   def allocation_chart_unhover(self, points=None, **event_args):
     if self._allocation_hover_styling or self._allocation_hover_source != "chart":
       return
@@ -2574,7 +2684,7 @@ class Form1(Form1Template):
       self._render_allocation_history()
       self._render_security_rows()
 
-  @handle("allocation_history_plot", "click")
+  @handle("allocation_history_plot", "plot_click")
   def allocation_history_click(self, points, **event_args):
     if not self._busy:
       for point in points:
@@ -2864,6 +2974,7 @@ class Form1(Form1Template):
 
 
   def _apply_analysis(self, result, transactions):
+    startup_performance.mark("analysis_apply_start")
     self._analysis_source = result
     self._last_synced_analysis = result
     self._last_synced_transactions = [{key: row.get(key) for key in
@@ -2884,3 +2995,4 @@ class Form1(Form1Template):
     self._update_benchmark_options()
     self._render_readout()
     self.prepare_navigation()
+    startup_performance.mark("analysis_apply_end")
