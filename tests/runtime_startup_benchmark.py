@@ -2,6 +2,7 @@
 from datetime import date, datetime, timedelta, timezone
 from time import perf_counter
 import json
+from copy import deepcopy
 import statistics
 import uuid
 
@@ -17,8 +18,27 @@ from holdings_dashboard import build_dashboard
 original_user = anvil.users.get_user
 original_directory = portfolios._directory_for
 original_fetch = portfolio_analytics._fetch_history
+original_saved_analysis = portfolios._saved_analysis
 users = []
 directory_calls = []
+history_reads = []
+
+
+def counted_saved_analysis(portfolio):
+    history_reads.append(portfolio.get_id() if portfolio is not None else None)
+    return original_saved_analysis(portfolio)
+
+
+def uncached_startup():
+    """The previous startup path, compared in the same runtime and fixture."""
+    workspace = portfolios.get_portfolio_workspace()
+    portfolio = portfolios._last_portfolio_for(user, workspace['portfolios'])
+    analysis = portfolios._saved_analysis(portfolio)
+    return dict(summary=summarize_portfolio(analysis),
+                holdings=build_dashboard(analysis, transactions=portfolio['transactions']),
+                metrics=analysis['metrics'],
+                metadata=dict(end_date=analysis['metadata']['end_date'],
+                              provisional_date=analysis['metadata'].get('provisional_date')))
 
 
 def counted_directory(user):
@@ -59,10 +79,12 @@ try:
     identifier = saved['portfolio'].get_id()
     assert portfolios.get_portfolio_startup()['overview'] is None
     portfolios.remember_analysis(transactions, as_of, 0, analysis, identifier)
+    assert app_tables.portfolios.get_by_id(identifier)['analysis_overview'] is not None
     portfolios._directory_for = counted_directory
+    portfolios._saved_analysis = counted_saved_analysis
     timings = {name: [] for name in ('account_metadata', 'saved_portfolio', 'analysis_json_encoding',
-                                     'startup_values', 'values_json_encoding', 'deferred_history')}
-    for _ in range(5):
+                                     'startup_values_before', 'startup_values', 'values_json_encoding', 'deferred_history')}
+    for sample in range(7):
         before = perf_counter()
         workspace = portfolios.get_portfolio_workspace()
         timings['account_metadata'].append((perf_counter()-before)*1000)
@@ -73,11 +95,23 @@ try:
         before = perf_counter()
         encoded = json.dumps(restored['analysis'], separators=(',', ':')).encode()
         timings['analysis_json_encoding'].append((perf_counter()-before)*1000)
-        directory_calls.clear()
-        before = perf_counter()
-        startup = portfolios.get_portfolio_startup()
-        timings['startup_values'].append((perf_counter()-before)*1000)
-        assert len(directory_calls) == 1, directory_calls
+        calls = [('startup_values_before', uncached_startup), ('startup_values', portfolios.get_portfolio_startup)]
+        for name, function in calls if sample % 2 == 0 else reversed(calls):
+            directory_calls.clear()
+            history_reads.clear()
+            before = perf_counter()
+            result = function()
+            timings[name].append((perf_counter()-before)*1000)
+            assert len(directory_calls) == 1, directory_calls
+            if name == 'startup_values':
+                startup = result
+                assert history_reads == [], history_reads
+            else:
+                old_overview = result
+                assert history_reads == [identifier]
+        assert startup['overview'] == old_overview, {
+            key: (startup['overview'][key], old_overview[key]) for key in old_overview
+            if startup['overview'][key] != old_overview[key]}
         assert startup['portfolio'].get_id() == identifier
         overview = startup['overview']
         before = perf_counter()
@@ -87,13 +121,14 @@ try:
         history_result = portfolios.get_portfolio_history(identifier)
         timings['deferred_history'].append((perf_counter()-before)*1000)
         assert history_result['analysis'] == restored['analysis']
+        assert history_result['holdings'] == overview['holdings']
         selected = analyze_selection(history_result['analysis'], symbols)
         assert overview['summary'] == summarize_portfolio(selected)
         assert overview['metrics'] == selected['metrics']
         assert overview['holdings'] == build_dashboard(history_result['analysis'], symbols,
                                                       transactions=saved['portfolio']['transactions'])
         assert set(overview) == {'summary', 'holdings', 'metrics', 'metadata'}
-    print('PASS: initial saved values equal the full analysis; one directory query; history available separately; no market fetches')
+    print('PASS: cached values equal the previous startup path and full analysis; zero history decodes before values; one directory query; no market fetches')
     print(json.dumps({'measurement': 'server execution only; excludes browser, RPC transport and cold runtime startup',
         'fixture': {'securities': len(symbols), 'history_sessions': len(days),
                     'decoded_analysis_json_bytes': len(encoded), 'decoded_overview_json_bytes': len(values_encoded),
@@ -103,10 +138,38 @@ try:
                              'min': round(min(values), 1), 'max': round(max(values), 1)}
                        for name, values in timings.items()}}))
 
+    # Existing and older-version projections rebuild once, then future opens
+    # use only the persisted small object. Renaming leaves that object intact.
+    row = app_tables.portfolios.get_by_id(identifier)
+    for old_cache in (None, dict(row['analysis_overview'], version=0)):
+        row.update(analysis_overview=old_cache)
+        history_reads.clear()
+        assert portfolios.get_portfolio_startup(identifier)['overview'] == overview
+        assert history_reads == [identifier]
+        history_reads.clear()
+        assert portfolios.get_portfolio_startup(identifier)['overview'] == overview
+        assert history_reads == []
+    cache_before = deepcopy(app_tables.portfolios.get_by_id(identifier)['analysis_overview'])
+    assert portfolios.save_portfolio(identifier, 'Renamed startup benchmark', transactions, as_of, 0)['ok']
+    assert app_tables.portfolios.get_by_id(identifier)['analysis_overview'] == cache_before
+    # A late backfill from an earlier refresh must not replace the newer cache,
+    # even when the saved transaction fingerprint is identical.
+    portfolios.remember_analysis(transactions, as_of, 0, restored['analysis'], identifier)
+    new_cache = app_tables.portfolios.get_by_id(identifier)['analysis_overview']
+    assert new_cache['analysis_stamp'] != cache_before['analysis_stamp']
+    assert not portfolios._store_startup_cache_if_unchanged(identifier, user, cache_before)
+    assert app_tables.portfolios.get_by_id(identifier)['analysis_overview'] == new_cache
+    assert portfolios.get_portfolio_startup(identifier)['overview'] == overview
+    print('PASS: automatic one-time cache upgrade, rename reuse and protection against a late older backfill')
+
     sectors.set_security_sector(symbols[0], 'Industrials')
+    history_reads.clear()
     updated = portfolios.get_portfolio_startup()['overview']
+    assert history_reads == []
     assert next(row for row in updated['holdings']['rows'] if row['symbol'] == symbols[0])['sector'] == 'Industrials'
     assert updated['summary'] == overview['summary']
+    assert app_tables.portfolios.get_by_id(identifier)['analysis_overview'] == new_cache
+    assert portfolios.get_portfolio_history(identifier)['holdings'] == updated['holdings']
 
     # Explicit links choose that portfolio; reading its deferred history must
     # not make it most-recent after another portfolio has been opened.
@@ -135,6 +198,8 @@ try:
     user = users[0]
     changed = [dict(trade, shares=11) for trade in transactions]
     assert portfolios.save_portfolio(identifier, 'Edited after snapshot', changed, as_of, 0)['ok']
+    assert app_tables.portfolios.get_by_id(identifier)['analysis_overview'] is None
+    assert not portfolios._store_startup_cache_if_unchanged(identifier, user, new_cache)
     assert portfolios.get_portfolio_history(identifier)['analysis'] is None
     assert portfolios.get_portfolio_startup(identifier)['overview'] is None
     saved['portfolio'].delete()
@@ -144,6 +209,7 @@ finally:
     anvil.users.get_user = original_user
     portfolios._directory_for = original_directory
     portfolio_analytics._fetch_history = original_fetch
+    portfolios._saved_analysis = original_saved_analysis
     for user in users:
         for name in ('security_sectors', 'investor_profiles', 'portfolio_directory', 'portfolios'):
             for row in getattr(app_tables, name).search(owner=user):

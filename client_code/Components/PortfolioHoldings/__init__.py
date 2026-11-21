@@ -43,7 +43,7 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self.empty_region.visible = True
     self.empty_label.text = "Add a security and sync your portfolio to see your holdings here."
 
-  def set_analysis(self, source_analysis, selected_symbols=None, transactions=None):
+  def set_analysis(self, source_analysis, selected_symbols=None, transactions=None, snapshot=None):
     securities = ((source_analysis or {}).get("selection_data") or {}).get("securities") or []
     selected = tuple(sorted(row["symbol"] for row in securities)) if selected_symbols is None else tuple(sorted(selected_symbols))
     classification = tuple((row["symbol"], row.get("sector"), row.get("company_name")) for row in securities)
@@ -64,12 +64,15 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self._snapshots = {}
     self._dirty = True
     dates = (source_analysis.get("selection_data") or {}).get("dates") or []
-    periods = quarter_periods(dates)
+    periods = snapshot["periods"] if snapshot is not None else quarter_periods(dates)
     self.quarter_dropdown.items = [(item["label"] + (" · latest" if index == len(periods) - 1 else ""), item["key"])
                                   for index, item in reversed(list(enumerate(periods)))]
     keys = [item["key"] for item in periods]
     self.quarter_dropdown.selected_value = previous_quarter if previous_quarter in keys else keys[-1] if keys else None
     self.quarter_dropdown.enabled = True
+    if snapshot is not None:
+      key = snapshot["period"]["key"] if snapshot["period"] else None
+      self._snapshots[key] = snapshot
 
   def set_startup_snapshot(self, snapshot):
     """Display the server-computed current holdings while history loads."""
@@ -99,8 +102,10 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self._display_snapshot(self._snapshots[key])
 
   def _display_snapshot(self, snapshot):
-    self._snapshot = snapshot
     self._dirty = False
+    if snapshot == self._snapshot:
+      return
+    self._snapshot = snapshot
     self.dashboard_region.visible = bool(snapshot["rows"])
     self.empty_region.visible = not snapshot["rows"]
     self.empty_label.text = ("Choose a security in Portfolio Structure to include it here." if not self._selected

@@ -361,7 +361,7 @@ class Form1(Form1Template):
       if generation != self._autosave_generation or not self._workspace_matches(account_id, portfolio_id):
         return
       if result["ok"]:
-        self._apply_portfolio(result["portfolio"], result.get("analysis"))
+        self._apply_portfolio(result["portfolio"], result.get("analysis"), holdings_snapshot=result.get("holdings"))
       else:
         self._new_portfolio()
         self._set_portfolio_status(result["message"], is_error=True)
@@ -1749,14 +1749,16 @@ class Form1(Form1Template):
     if self.open_profile_portfolio(portfolio["portfolio_id"]):
       self._set_portfolio_status('Opened "%s". Changes save automatically; Refresh updates prices through today.' % portfolio["name"])
 
-  def _apply_portfolio(self, portfolio, analysis=None, overview=None):
+  def _apply_portfolio(self, portfolio, analysis=None, overview=None, holdings_snapshot=None):
     self._reset_autosave_scope()
     self._collapsed_transaction_years.clear()
     self._collapsed_transaction_dates.clear()
     self._date_groups_on = None
     self._clear_image_import()
     self._reset_tools()
-    self.portfolio_holdings_form.reset_workspace()
+    preserve_holdings = analysis is not None and holdings_snapshot is not None
+    if not preserve_holdings:
+      self.portfolio_holdings_form.reset_workspace()
     self._last_synced_analysis = None
     self._last_synced_transactions = []
     self._current_portfolio = portfolio
@@ -1775,7 +1777,7 @@ class Form1(Form1Template):
     self._readout_page = "overview"
     self._refresh_transactions()
     self._portfolio_dirty = False
-    self._show_results(False)
+    self._show_results(False, preserve_holdings=preserve_holdings)
     self.saved_portfolios_dropdown.selected_value = next(
       (entry for _, entry in self.saved_portfolios_dropdown.items if entry["portfolio_id"] == portfolio.get_id()), None
     )
@@ -1789,7 +1791,7 @@ class Form1(Form1Template):
       self._set_status("Saved values through %s · Loading chart history…" % overview["metadata"]["end_date"])
     elif analysis is not None:
       self.as_of_date_picker.date = portfolio["as_of_date"]
-      self._apply_analysis(analysis, self._read_transactions())
+      self._apply_analysis(analysis, self._read_transactions(), holdings_snapshot=holdings_snapshot)
       self._set_transactions_collapsed(True)
       self._set_status("Saved analysis restored through %s. Sync history to refresh prices." % analysis["metadata"]["end_date"])
     else:
@@ -1826,7 +1828,7 @@ class Form1(Form1Template):
     self._refresh_transactions()
     self._set_status("Sample transactions loaded — sync to fetch daily market history.")
 
-  def _show_results(self, visible):
+  def _show_results(self, visible, preserve_holdings=False):
     if not visible:
       self._startup_overview = None
       self._set_charts_expanded(False, resize=False)
@@ -1857,7 +1859,8 @@ class Form1(Form1Template):
       self._clear_chart_trades()
       if self.hedge_fund_comparison is not None:
         self.hedge_fund_comparison.reset_context()
-      self.portfolio_holdings_form.reset_workspace()
+      if not preserve_holdings:
+        self.portfolio_holdings_form.reset_workspace()
       self._render_portfolio_summary()
     self._apply_readout_page()
 
@@ -3060,7 +3063,7 @@ class Form1(Form1Template):
     self.prepare_navigation()
 
 
-  def _apply_analysis(self, result, transactions):
+  def _apply_analysis(self, result, transactions, holdings_snapshot=None):
     startup_performance.mark("analysis_apply_start")
     self._analysis_source = result
     self._last_synced_analysis = result
@@ -3076,6 +3079,8 @@ class Form1(Form1Template):
       transaction["quote_text"] = "No current holding" if price is None else "USD %s" % self._format_currency(price)
       transaction["dividend_text"] = "Latest session price synced" if result["metadata"].get("provisional_date") else "Daily history synced"
     self._refresh_transactions()
+    if holdings_snapshot is not None:
+      self.portfolio_holdings_form.set_analysis(result, self._selected_symbols, transactions, snapshot=holdings_snapshot)
     self.comparison_start_picker.date = self._date_from_iso(result["series"][0]["date"])
     self.comparison_end_picker.date = self._date_from_iso(result["series"][-1]["date"])
     self._show_results(True)

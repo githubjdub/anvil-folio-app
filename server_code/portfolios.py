@@ -3,6 +3,7 @@ import anvil.secrets
 
 from datetime import date, datetime
 import base64
+from copy import deepcopy
 import gzip
 import hashlib
 import json
@@ -117,9 +118,89 @@ def _saved_analysis(portfolio):
   return refresh_analysis_classifications(json.loads(gzip.decompress(portfolio["analysis_cache"].get_bytes())))
 
 
-def _analysis_values(fingerprint, media, computed_at):
+_OVERVIEW_VERSION = 1
+
+
+def _build_startup_cache(analysis, transactions, fingerprint, computed_at):
+  from .portfolio_summary import summarize_portfolio
+  from .holdings_dashboard import build_dashboard
+  if "open_holdings" in analysis:
+    # The engine and older caches can precede sector grouping. Match the
+    # allocation shape created by _saved_analysis before computing weights.
+    allocation = dict(analysis.get("sector_allocation") or {})
+    allocation.update(holdings=analysis["open_holdings"],
+                      total_value=math.fsum(row["market_value"] for row in analysis["open_holdings"]))
+    analysis = dict(analysis, sector_allocation=allocation)
+  return {
+    "version": _OVERVIEW_VERSION, "fingerprint": fingerprint,
+    "analysis_stamp": _portfolio_timestamp(computed_at),
+    "data": {
+      "summary": summarize_portfolio(analysis),
+      "holdings": build_dashboard(analysis, transactions=transactions),
+      "metrics": analysis["metrics"],
+      "metadata": {"end_date": analysis["metadata"]["end_date"],
+                   "provisional_date": analysis["metadata"].get("provisional_date")},
+    },
+    # Only classification inputs are needed to apply current account choices;
+    # daily prices and positions stay in the separate compressed history.
+    "securities": [{key: security.get(key) for key in ("symbol", "instrument_type", "sector")}
+                   for security in analysis["selection_data"]["securities"]],
+    "classification_source": (analysis.get("sector_allocation") or {}).get("classification_source"),
+  }
+
+
+def _overview_with_current_classifications(cache, analysis=None):
+  overview = deepcopy(cache["data"])
+  if analysis is None:
+    from sectors import refresh_analysis_classifications
+    analysis = {
+      "selection_data": {"securities": deepcopy(cache["securities"])},
+      "sector_allocation": {"classification_source": cache["classification_source"]},
+      "metadata": overview["metadata"],
+    }
+    refresh_analysis_classifications(analysis)
+  sectors = {security["symbol"]: security["sector"]
+             for security in analysis["selection_data"]["securities"]}
+  for row in overview["holdings"]["rows"]:
+    row["sector"] = sectors[row["symbol"]]
+  return overview
+
+
+@in_transaction
+def _store_startup_cache_if_unchanged(portfolio_id, user, cache):
+  portfolio = _owned_portfolio(portfolio_id, user)
+  if (portfolio is None or portfolio["analysis_fingerprint"] != cache["fingerprint"]
+      or _portfolio_timestamp(portfolio["analysis_updated_at"]) != cache["analysis_stamp"]
+      or _analysis_fingerprint(portfolio["transactions"], portfolio["as_of_date"],
+                               portfolio["risk_free_rate"]) != cache["fingerprint"]):
+    return False
+  portfolio.update(analysis_overview=cache)
+  return True
+
+
+def _saved_overview(portfolio, analysis=None):
+  if portfolio is None or not portfolio["analysis_cache"]:
+    return None
+  expected = _analysis_fingerprint(portfolio["transactions"], portfolio["as_of_date"], portfolio["risk_free_rate"])
+  if portfolio["analysis_fingerprint"] != expected:
+    return None
+  cache = portfolio["analysis_overview"]
+  if (cache is None or cache.get("version") != _OVERVIEW_VERSION
+      or cache.get("fingerprint") != expected
+      or cache.get("analysis_stamp") != _portfolio_timestamp(portfolio["analysis_updated_at"])):
+    # Older saved portfolios are upgraded once, when opened. A concurrent
+    # refresh or edit cannot be overwritten by this older projection.
+    if analysis is None:
+      analysis = _saved_analysis(portfolio)
+    cache = _build_startup_cache(analysis, portfolio["transactions"], expected, portfolio["analysis_updated_at"])
+    if not _store_startup_cache_if_unchanged(portfolio.get_id(), _current_user(), cache):
+      return None
+  return _overview_with_current_classifications(cache, analysis)
+
+
+def _analysis_values(fingerprint, media, computed_at, overview=None):
   return {"analysis_cache": media, "analysis_fingerprint": fingerprint,
-          "analysis_updated_at": computed_at}
+          "analysis_updated_at": computed_at, "analysis_overview": overview}
 
 
 def _staged_analysis():
@@ -128,13 +209,13 @@ def _staged_analysis():
 
 
 @in_transaction
-def _store_analysis_if_unchanged(portfolio_id, user, fingerprint, media, computed_at):
+def _store_analysis_if_unchanged(portfolio_id, user, fingerprint, media, computed_at, overview=None):
   portfolio = _owned_portfolio(portfolio_id, user)
   if portfolio is None:
     return
   expected = _analysis_fingerprint(portfolio["transactions"], portfolio["as_of_date"], portfolio["risk_free_rate"])
   if expected == fingerprint:
-    portfolio.update(**_analysis_values(fingerprint, media, computed_at))
+    portfolio.update(**_analysis_values(fingerprint, media, computed_at, overview))
     from investor_profiles import refresh_investor_metrics
     refresh_investor_metrics(portfolio, user)
 
@@ -153,7 +234,8 @@ def remember_analysis(transactions, as_of_date, risk_free_rate, analysis, portfo
       user.get_id() if user is not None else None,
     )
   if portfolio_id is not None:
-    _store_analysis_if_unchanged(portfolio_id, _current_user(), fingerprint, media, computed_at)
+    overview = _build_startup_cache(analysis, transactions, fingerprint, computed_at)
+    _store_analysis_if_unchanged(portfolio_id, _current_user(), fingerprint, media, computed_at, overview)
 
 
 def _owned_portfolio(portfolio_id, user):
@@ -269,8 +351,6 @@ def get_portfolio_workspace():
 @anvil.server.callable(require_user=True)
 def get_portfolio_startup(portfolio_id=None) -> dict:
   """Send visible saved values before the browser downloads daily history."""
-  from .portfolio_summary import summarize_portfolio
-  from .holdings_dashboard import build_dashboard
   user = _current_user()
   workspace = get_portfolio_workspace()
   if portfolio_id is None:
@@ -282,17 +362,7 @@ def get_portfolio_startup(portfolio_id=None) -> dict:
               "message": "This portfolio is no longer available to your account."}
     portfolio.update(last_used_at=datetime.now())
     _update_directory(portfolio, user)
-  analysis = _saved_analysis(portfolio)
-  overview = None
-  if analysis is not None:
-    overview = {
-      "summary": summarize_portfolio(analysis),
-      "holdings": build_dashboard(analysis, transactions=portfolio["transactions"]),
-      "metrics": analysis["metrics"],
-      "metadata": {"end_date": analysis["metadata"]["end_date"],
-                   "provisional_date": analysis["metadata"].get("provisional_date")},
-    }
-  return {"ok": True, "workspace": workspace, "portfolio": portfolio, "overview": overview}
+  return {"ok": True, "workspace": workspace, "portfolio": portfolio, "overview": _saved_overview(portfolio)}
 
 
 @anvil.server.callable(require_user=True)
@@ -301,7 +371,10 @@ def get_portfolio_history(portfolio_id) -> dict:
   portfolio = _owned_portfolio(portfolio_id, _current_user())
   if portfolio is None:
     return {"ok": False, "message": "This portfolio is no longer available to your account."}
-  return {"ok": True, "portfolio": portfolio, "analysis": _saved_analysis(portfolio)}
+  analysis = _saved_analysis(portfolio)
+  overview = _saved_overview(portfolio, analysis) if analysis is not None else None
+  return {"ok": True, "portfolio": portfolio, "analysis": analysis,
+          "holdings": overview["holdings"] if overview is not None else None}
 
 
 @anvil.server.callable(require_user=True)
@@ -326,9 +399,10 @@ def save_portfolio(portfolio_id, name, transactions, as_of_date, risk_free_rate)
       and isinstance(staged[1], str) and staged[3] in (None, user.get_id())):
     compressed = base64.b64decode(staged[1], validate=True)
     media = anvil.BlobMedia("application/gzip", compressed, name="portfolio-analysis.json.gz")
-    values.update(**_analysis_values(staged[0], media, staged[2]))
+    overview = _build_startup_cache(json.loads(gzip.decompress(compressed)), values["transactions"], staged[0], staged[2])
+    values.update(**_analysis_values(staged[0], media, staged[2], overview))
   elif portfolio is not None and portfolio["analysis_fingerprint"] != fingerprint:
-    values.update(analysis_cache=None, analysis_fingerprint=None, analysis_updated_at=None)
+    values.update(analysis_cache=None, analysis_fingerprint=None, analysis_updated_at=None, analysis_overview=None)
   values.update(updated_at=now, last_used_at=now)
   if portfolio is None:
     membership = membership_for(user)

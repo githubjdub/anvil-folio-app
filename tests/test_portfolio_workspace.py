@@ -76,6 +76,9 @@ class Control:
     def set_portfolio_context(self, *args, **kwargs):
         self.contexts.append((args, kwargs))
 
+    def set_analysis(self, *args, **kwargs):
+        self.contexts.append((args, kwargs))
+
     def set_account_context(self, *args):
         pass
 

@@ -1,5 +1,6 @@
 """Saved values appear before history; stale or failed reads cannot enable a partial analysis."""
 import ast
+import copy
 import runpy
 import unittest
 
@@ -14,7 +15,7 @@ class StartupValuesTests(unittest.TestCase):
             ticker='TEST', trade_date='2026-01-02', action='Buy', shares=5, trade_price=185)])
         overview = dict(summary={}, holdings={}, metrics=h.result['metrics'], metadata=h.result['metadata'])
         h.startup_result = dict(ok=True, portfolio=portfolio, overview=overview)
-        h.history_result = dict(ok=True, portfolio=portfolio, analysis=h.result)
+        h.history_result = dict(ok=True, portfolio=portfolio, analysis=h.result, holdings=overview['holdings'])
         return h
 
     def show_values(self, h):
@@ -36,6 +37,7 @@ class StartupValuesTests(unittest.TestCase):
         self.assertIn('overview', h.rendered)
         self.assertEqual(h.form.transaction_years_panel.items_assignments, 0)
         self.assertIn('Loading chart history', h.form.readout_tab_context.text)
+        resets = h.form.portfolio_holdings_form.reset_count
         # A repeated show event cannot schedule another startup/history load.
         h.form.form_show()
         h.pending.pop(0)[0]()
@@ -45,6 +47,8 @@ class StartupValuesTests(unittest.TestCase):
         self.assertFalse(h.form._startup_loading)
         self.assertFalse(h.form._busy)
         self.assertTrue(h.form.results_section.visible)
+        self.assertEqual(h.form.portfolio_holdings_form.reset_count, resets)
+        self.assertIs(h.form.portfolio_holdings_form.contexts[-1][1]['snapshot'], h.history_result['holdings'])
         h.run_idle()
         self.assertEqual(h.form.transaction_years_panel.items_assignments, 1)
 
@@ -155,7 +159,7 @@ class StartupValuesTests(unittest.TestCase):
 
 
 class HoldingsSnapshotTests(unittest.TestCase):
-    def test_snapshot_filters_work_and_full_history_restores_quarter_navigation(self):
+    def fixture(self):
         from test_holdings_dashboard import point, source
         functions = runpy.run_path(str(APP / 'client_code/holdings_dashboard.py'))
         path = APP / 'client_code/Components/PortfolioHoldings/__init__.py'
@@ -172,6 +176,10 @@ class HoldingsSnapshotTests(unittest.TestCase):
         form = namespace['PortfolioHoldings']()
         analysis = source([point(100, 1), point(100, 2), point(110, 2), point(110, 2)])
         snapshot = functions['build_dashboard'](analysis)
+        return form, analysis, snapshot, namespace
+
+    def test_snapshot_filters_work_and_full_history_restores_quarter_navigation(self):
+        form, analysis, snapshot, namespace = self.fixture()
         form.set_startup_snapshot(snapshot)
         self.assertFalse(form.quarter_dropdown.enabled)
         self.assertTrue(form.dashboard_region.visible)
@@ -187,6 +195,48 @@ class HoldingsSnapshotTests(unittest.TestCase):
         form.redraw()
         self.assertTrue(form.quarter_dropdown.enabled)
         self.assertEqual(form.holdings_panel.items, preview_rows)
+
+    def test_history_reuses_visible_rows_and_does_not_recalculate_latest_quarter(self):
+        form, analysis, snapshot, namespace = self.fixture()
+        form.set_startup_snapshot(snapshot)
+        rows = form.holdings_panel.items
+        assignments = form.holdings_panel.items_assignments
+        activity_assignments = form.activity_panel.items_assignments
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Latest snapshot was recalculated in the browser')
+        namespace['build_dashboard'] = forbidden
+        namespace['quarter_periods'] = forbidden
+        form.set_analysis(analysis, snapshot=copy.deepcopy(snapshot))
+        form.redraw()
+        self.assertIs(form.holdings_panel.items, rows)
+        self.assertEqual(form.holdings_panel.items_assignments, assignments)
+        self.assertEqual(form.activity_panel.items_assignments, activity_assignments)
+        self.assertTrue(form.quarter_dropdown.enabled)
+        self.assertEqual(len(form.quarter_dropdown.items), len(snapshot['periods']))
+
+    def test_changed_history_replaces_rows_without_losing_filters(self):
+        form, analysis, snapshot, namespace = self.fixture()
+        form.set_startup_snapshot(snapshot)
+        form.search_box.text = 'Technology'
+        form.table_filter_change()
+        updated = copy.deepcopy(snapshot)
+        updated['rows'][0]['sector'] = 'Industrials'
+        assignments = form.holdings_panel.items_assignments
+        form.set_analysis(analysis, snapshot=updated)
+        form.redraw()
+        self.assertEqual(form.search_box.text, 'Technology')
+        self.assertEqual(form.holdings_panel.items, [])
+        self.assertEqual(form.holdings_panel.items_assignments, assignments + 1)
+
+    def test_other_quarters_still_calculate_from_complete_history(self):
+        form, analysis, snapshot, namespace = self.fixture()
+        form.set_startup_snapshot(snapshot)
+        form.set_analysis(analysis, snapshot=copy.deepcopy(snapshot))
+        form.redraw()
+        form.quarter_dropdown.selected_value = snapshot['periods'][0]['key']
+        form.quarter_change()
+        self.assertEqual(form._snapshot, namespace['build_dashboard'](analysis, quarter_key=snapshot['periods'][0]['key']))
+        self.assertEqual(form.value_label.text, '$100.00')
 
 
 if __name__ == '__main__':

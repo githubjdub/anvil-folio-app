@@ -584,6 +584,10 @@ db_schema:
       client_hidden: true
       name: analysis_updated_at
       type: datetime
+    - admin_ui: {}
+      client_hidden: true
+      name: analysis_overview
+      type: simpleObject
     indexes: []
     server: full
     title: Portfolios
