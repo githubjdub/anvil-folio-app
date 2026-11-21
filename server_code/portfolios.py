@@ -227,14 +227,18 @@ def list_portfolios():
 @anvil.server.callable(require_user=True)
 def get_last_portfolio():
   user = _current_user()
+  portfolio = _last_portfolio_for(user, _directory_for(user))
+  return {"ok": True, "portfolio": portfolio, "analysis": _saved_analysis(portfolio)}
+
+
+def _last_portfolio_for(user, entries):
   entry = max(
-    _directory_for(user),
+    entries,
     key=lambda row: (row["last_used_at"] is not None,
                      _portfolio_timestamp(row["last_used_at"] or row["updated_at"])),
     default=None,
   )
-  portfolio = _owned_portfolio(entry["portfolio_id"], user) if entry is not None else None
-  return {"ok": True, "portfolio": portfolio, "analysis": _saved_analysis(portfolio)}
+  return _owned_portfolio(entry["portfolio_id"], user) if entry is not None else None
 
 
 @anvil.server.callable(require_user=True)
@@ -260,6 +264,44 @@ def get_portfolio_workspace():
           "creator": get_creator_access(), "portfolios": portfolios,
           "usage": {"count": len(portfolios), "limit": membership["portfolio_limit"],
                     "plan": membership["label"], "can_create": len(portfolios) < membership["portfolio_limit"]}}
+
+
+@anvil.server.callable(require_user=True)
+def get_portfolio_startup(portfolio_id=None) -> dict:
+  """Send visible saved values before the browser downloads daily history."""
+  from .portfolio_summary import summarize_portfolio
+  from .holdings_dashboard import build_dashboard
+  user = _current_user()
+  workspace = get_portfolio_workspace()
+  if portfolio_id is None:
+    portfolio = _last_portfolio_for(user, workspace["portfolios"])
+  else:
+    portfolio = _owned_portfolio(portfolio_id, user)
+    if portfolio is None:
+      return {"ok": False, "workspace": workspace,
+              "message": "This portfolio is no longer available to your account."}
+    portfolio.update(last_used_at=datetime.now())
+    _update_directory(portfolio, user)
+  analysis = _saved_analysis(portfolio)
+  overview = None
+  if analysis is not None:
+    overview = {
+      "summary": summarize_portfolio(analysis),
+      "holdings": build_dashboard(analysis, transactions=portfolio["transactions"]),
+      "metrics": analysis["metrics"],
+      "metadata": {"end_date": analysis["metadata"]["end_date"],
+                   "provisional_date": analysis["metadata"].get("provisional_date")},
+    }
+  return {"ok": True, "workspace": workspace, "portfolio": portfolio, "overview": overview}
+
+
+@anvil.server.callable(require_user=True)
+def get_portfolio_history(portfolio_id) -> dict:
+  """Read history for the displayed portfolio without changing navigation order."""
+  portfolio = _owned_portfolio(portfolio_id, _current_user())
+  if portfolio is None:
+    return {"ok": False, "message": "This portfolio is no longer available to your account."}
+  return {"ok": True, "portfolio": portfolio, "analysis": _saved_analysis(portfolio)}
 
 
 @anvil.server.callable(require_user=True)

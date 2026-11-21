@@ -34,6 +34,7 @@ def _report():
     ("template_construction", "portfolio_build_start", "portfolio_template_ready"),
     ("form_setup", "portfolio_template_ready", "portfolio_shell_ready"),
     ("account_load", "account_load_start", "account_load_end"),
+    ("saved_values_load", "values_load_start", "values_load_end"),
     ("saved_portfolio_restore", "portfolio_restore_start", "portfolio_restore_end"),
     ("analysis_apply", "analysis_apply_start", "analysis_apply_end"),
   ):

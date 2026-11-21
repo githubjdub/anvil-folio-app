@@ -36,6 +36,7 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self._dirty = True
     self.quarter_dropdown.items = []
     self.quarter_dropdown.selected_value = None
+    self.quarter_dropdown.enabled = True
     self.holdings_panel.items = []
     self.activity_panel.items = []
     self.dashboard_region.visible = False
@@ -68,6 +69,18 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
                                   for index, item in reversed(list(enumerate(periods)))]
     keys = [item["key"] for item in periods]
     self.quarter_dropdown.selected_value = previous_quarter if previous_quarter in keys else keys[-1] if keys else None
+    self.quarter_dropdown.enabled = True
+
+  def set_startup_snapshot(self, snapshot):
+    """Display the server-computed current holdings while history loads."""
+    if self._snapshot is snapshot:
+      return
+    self._selected = tuple(row["symbol"] for row in snapshot["rows"])
+    period = snapshot["period"]
+    self.quarter_dropdown.items = [(period["label"] + " · latest", period["key"])] if period else []
+    self.quarter_dropdown.selected_value = period["key"] if period else None
+    self.quarter_dropdown.enabled = False
+    self._display_snapshot(snapshot)
 
   def redraw(self):
     """The parent calls this only after making this tab visible."""
@@ -83,8 +96,10 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     key = self.quarter_dropdown.selected_value
     if key not in self._snapshots:
       self._snapshots[key] = build_dashboard(self._source, self._selected, key, self._transactions)
-    self._snapshot = self._snapshots[key]
-    snapshot = self._snapshot
+    self._display_snapshot(self._snapshots[key])
+
+  def _display_snapshot(self, snapshot):
+    self._snapshot = snapshot
     self._dirty = False
     self.dashboard_region.visible = bool(snapshot["rows"])
     self.empty_region.visible = not snapshot["rows"]

@@ -18,7 +18,7 @@ from ..Components.TransactionYearGroup import TransactionYearGroup
 from ..transaction_groups import group_transactions_by_date, group_transactions_by_year
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, sign_in
-from ..workspace_cache import account_workspace, invalidate_workspace
+from ..workspace_cache import account_workspace, invalidate_workspace, startup_workspace
 from ..deferred_work import defer
 from .. import startup_performance
 
@@ -106,6 +106,7 @@ class Form1(Form1Template):
     self._navigation_history = None
     self._navigation_scope = None
     self._startup_loading = False
+    self._startup_overview = None
     self._startup_scheduled = False
     self._initial_portfolio_id = initial_portfolio_id
     self._startup_ready = startup_ready
@@ -316,21 +317,71 @@ class Form1(Form1Template):
 
   def _load_startup(self):
     account_id = self.account_id
+    history_pending = False
     try:
       if not self._workspace_matches(account_id, None):
         return
-      startup_performance.mark("account_load_start")
+      startup_performance.mark("values_load_start")
+      result = startup_workspace(self._initial_portfolio_id)
+      startup_performance.mark("values_load_end")
+      if result is None or not self._workspace_matches(account_id, None):
+        return
+      # startup_workspace already populated the shared account metadata cache.
       self._refresh_account()
-      startup_performance.mark("account_load_end")
-      if self._workspace_matches(account_id, None):
-        startup_performance.mark("portfolio_restore_start")
-        self._restore_last_portfolio(self._initial_portfolio_id)
-        startup_performance.mark("portfolio_restore_end")
+      if not self._workspace_matches(account_id, None):
+        return
+      if not result["ok"]:
+        self._set_portfolio_status(result["message"], is_error=True)
+      elif result["portfolio"] is None:
+        self._new_portfolio()
+      else:
+        portfolio = result["portfolio"]
+        self._apply_portfolio(portfolio, overview=result["overview"])
+        self._set_portfolio_status('Welcome back — reopened "%s".' % portfolio["name"])
+        if result["overview"] is not None:
+          self.startup_region.visible = False
+          self.workspace_region.visible = True
+          startup_performance.mark("values_ready")
+          startup_performance.after_frame("values_frame")
+          generation = self._autosave_generation
+          defer(lambda: self._load_startup_history(account_id, portfolio.get_id(), generation), priority=True)
+          history_pending = True
     finally:
-      self._startup_loading = False
-      self.startup_region.visible = False
-      self.workspace_region.visible = True
-      self._set_busy(False)
+      if not history_pending:
+        self._release_startup()
+    if not history_pending:
+      self._complete_startup()
+
+  def _load_startup_history(self, account_id, portfolio_id, generation):
+    try:
+      if generation != self._autosave_generation or not self._workspace_matches(account_id, portfolio_id):
+        return
+      startup_performance.mark("portfolio_restore_start")
+      result = anvil.server.call("get_portfolio_history", portfolio_id)
+      if generation != self._autosave_generation or not self._workspace_matches(account_id, portfolio_id):
+        return
+      if result["ok"]:
+        self._apply_portfolio(result["portfolio"], result.get("analysis"))
+      else:
+        self._new_portfolio()
+        self._set_portfolio_status(result["message"], is_error=True)
+      startup_performance.mark("portfolio_restore_end")
+    finally:
+      self._release_startup()
+    self._complete_startup()
+
+  def _release_startup(self):
+    # A failed or obsolete history read must not leave a partial snapshot
+    # available to editing, chart, sharing or planning actions.
+    if self._startup_overview is not None:
+      self._show_results(False)
+      self._set_status("Saved transactions loaded — Refresh to load analysis.")
+    self._startup_loading = False
+    self.startup_region.visible = False
+    self.workspace_region.visible = True
+    self._set_busy(False)
+
+  def _complete_startup(self):
     self._apply_readout_page(redraw=True)
     self.prepare_navigation()
     if self._startup_ready is not None:
@@ -375,10 +426,11 @@ class Form1(Form1Template):
   def _update_readout_context(self):
     self._update_retirement_context()
     self._update_tax_estimator_context()
-    if self._history is not None:
+    readout = self._history or self._startup_overview
+    if readout is not None:
       self.period_label.text = "%s · %d selected open holdings%s" % (
-        self._history["metadata"]["end_date"], self._history["metrics"]["holding_count"],
-        " · provisional prices" if self._history["metadata"].get("provisional_date") else ""
+        readout["metadata"]["end_date"], readout["metrics"]["holding_count"],
+        " · provisional prices" if readout["metadata"].get("provisional_date") else ""
       )
     name = {"overview": "Top Holdings", "transactions": "Transactions", "allocation": "Portfolio structure",
             "performance": "Performance", "dividends": "Dividends", "passive": "Passive Income",
@@ -398,6 +450,8 @@ class Form1(Form1Template):
       self.readout_tab_context.text = "Notifications · Insider activity, your inbox, and delivery preferences"
     elif self._readout_page == "retirement":
       self.readout_tab_context.text = "Retirement · Explore future savings and spending"
+    elif self._startup_overview is not None:
+      self.readout_tab_context.text = "Saved holdings · Loading chart history…"
     elif self._analysis_source is not None:
       count = len(self._analysis_source["selection_data"]["securities"])
       self.readout_tab_context.text = "%s · %d of %d securities selected" % (
@@ -407,7 +461,7 @@ class Form1(Form1Template):
       self.readout_tab_context.text = "%s · Sync history to see your readout" % name
 
   def _apply_readout_page(self, redraw=False):
-    has_analysis = self._history is not None
+    has_analysis = self._history is not None or self._startup_overview is not None
     tool = {"retirement": "retirement_form", "tax_estimator": "tax_estimator_form",
             "notifications": "notifications_form", "dividends": "income_form",
             "passive": "income_form", "tax": "income_form"}.get(self._readout_page)
@@ -1432,9 +1486,9 @@ class Form1(Form1Template):
     )
 
   def _render_portfolio_summary(self):
-    summary = summarize_portfolio(self._history)
+    summary = self._startup_overview["summary"] if self._startup_overview is not None else summarize_portfolio(self._history)
     self.summary_value_label.text = "—" if summary["value"] is None else self._format_currency(summary["value"])
-    self.summary_holdings_label.text = str(summary["holding_count"]) if self._history is not None else "—"
+    self.summary_holdings_label.text = str(summary["holding_count"]) if self._history is not None or self._startup_overview is not None else "—"
     self.summary_date_label.text = ("As of %s%s" % (summary["as_of"], " · provisional" if summary["return_is_provisional"] else "")) if summary["as_of"] else "Sync to calculate"
     self.summary_quarter_caption.text = summary["prior_quarter_label"]
     self.summary_period_caption.text = summary["long_return_label"]
@@ -1695,7 +1749,7 @@ class Form1(Form1Template):
     if self.open_profile_portfolio(portfolio["portfolio_id"]):
       self._set_portfolio_status('Opened "%s". Changes save automatically; Refresh updates prices through today.' % portfolio["name"])
 
-  def _apply_portfolio(self, portfolio, analysis=None):
+  def _apply_portfolio(self, portfolio, analysis=None, overview=None):
     self._reset_autosave_scope()
     self._collapsed_transaction_years.clear()
     self._collapsed_transaction_dates.clear()
@@ -1727,7 +1781,13 @@ class Form1(Form1Template):
     )
     self._update_tax_estimator_context()
     self._set_status("Saved transactions loaded — sync to fetch daily market history.")
-    if analysis is not None:
+    if overview is not None:
+      self._startup_overview = overview
+      self._render_portfolio_summary()
+      self._render_overview()
+      self._set_transactions_collapsed(True)
+      self._set_status("Saved values through %s · Loading chart history…" % overview["metadata"]["end_date"])
+    elif analysis is not None:
       self.as_of_date_picker.date = portfolio["as_of_date"]
       self._apply_analysis(analysis, self._read_transactions())
       self._set_transactions_collapsed(True)
@@ -1768,6 +1828,7 @@ class Form1(Form1Template):
 
   def _show_results(self, visible):
     if not visible:
+      self._startup_overview = None
       self._set_charts_expanded(False, resize=False)
       self._history = None
       self._comparison_window_source = None
@@ -2835,11 +2896,15 @@ class Form1(Form1Template):
     self.prepare_navigation()
 
   def _render_overview(self):
-    if self._history is None:
+    if self._startup_overview is not None:
+      self.portfolio_holdings_form.set_startup_snapshot(self._startup_overview["holdings"])
+      metrics = self._startup_overview["metrics"]
+    elif self._history is not None:
+      self.portfolio_holdings_form.set_analysis(self._analysis_source, self._selected_symbols, self._analyzed_transactions)
+      self.portfolio_holdings_form.redraw()
+      metrics = self._history["metrics"]
+    else:
       return
-    self.portfolio_holdings_form.set_analysis(self._analysis_source, self._selected_symbols, self._analyzed_transactions)
-    self.portfolio_holdings_form.redraw()
-    metrics = self._history["metrics"]
     for label, key in [(self.invested_label, "buy_cost"), (self.value_label, "market_value"),
                        (self.dividends_label, "dividends"), (self.sale_proceeds_label, "sale_proceeds"),
                        (self.profit_label, "profit")]:

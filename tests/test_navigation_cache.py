@@ -381,13 +381,14 @@ class WorkspaceCacheTests(unittest.TestCase):
         self.calls = 0
         self.hook = None
         self.pending = []
-        def call(name):
-            self.assertEqual(name, 'get_portfolio_workspace')
+        def call(name, *args):
+            self.assertIn(name, ('get_portfolio_workspace', 'get_portfolio_startup'))
             self.calls += 1
+            response = {'request': self.calls}
             if self.hook:
                 hook, self.hook = self.hook, None
                 hook()
-            return {'request': self.calls}
+            return {'ok': True, 'workspace': response, 'portfolio': args[0], 'overview': None} if name == 'get_portfolio_startup' else response
         self.cache = source_namespace(CLIENT / 'workspace_cache.py', {
             'time': lambda: self.now,
             'anvil': SimpleNamespace(users=SimpleNamespace(get_user=lambda: self.user),
@@ -467,6 +468,30 @@ class WorkspaceCacheTests(unittest.TestCase):
         self.assertIsNone(self.cache['account_workspace']())
         self.assertGreater(self.cache['workspace_revision'](), revision)
         self.assertIsNone(self.cache['_workspace'])
+
+    def test_startup_populates_metadata_cache_without_a_second_request(self):
+        result = self.cache['startup_workspace']('p1')
+        self.assertEqual(result['portfolio'], 'p1')
+        self.assertIs(self.cache['account_workspace'](), result['workspace'])
+        self.assertEqual(self.calls, 1)
+
+    def test_startup_does_not_replace_newer_account_metadata(self):
+        newest = []
+        self.hook = lambda: newest.append(self.cache['account_workspace'](force=True))
+        result = self.cache['startup_workspace']('p1')
+        self.assertEqual(result['workspace']['request'], 1)
+        self.assertIs(self.cache['account_workspace'](), newest[0])
+        self.assertEqual(self.calls, 2)
+
+    def test_startup_rejects_values_after_account_change(self):
+        self.hook = lambda: setattr(self, 'user', User('b'))
+        self.assertIsNone(self.cache['startup_workspace']('p1'))
+        self.assertIsNone(self.cache['_workspace'])
+
+    def test_guest_startup_never_requests_private_values(self):
+        self.user = None
+        self.assertIsNone(self.cache['startup_workspace']())
+        self.assertEqual(self.calls, 0)
 
 
 if __name__ == '__main__':

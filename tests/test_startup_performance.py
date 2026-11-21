@@ -69,6 +69,23 @@ class StartupPerformanceTests(unittest.TestCase):
         self.assertEqual(len(self.logs), 1)
         self.assertNotIn('analysis_apply_start', report['navigation_ms'])
 
+    def test_values_have_a_separate_paint_mark_before_history_finishes(self):
+        self.ns['mark']('values_load_start')
+        self.now = 20
+        self.ns['mark']('values_load_end')
+        self.ns['after_frame']('values_frame')
+        self.frame()
+        self.now = 30
+        self.frame()
+        self.now = 100
+        self.ns['complete']()
+        self.frame()
+        self.frame()
+        report = self.window.folioStartupTimings
+        self.assertEqual(report['phases_ms']['saved_values_load'], 10)
+        self.assertEqual(report['navigation_ms']['values_frame'], 30)
+        self.assertEqual(report['navigation_ms']['ready_frame'], 100)
+
 
 if __name__ == '__main__':
     unittest.main()

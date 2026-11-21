@@ -83,3 +83,21 @@ def account_workspace(force=False):
   _workspace = result
   _loaded_at = time()
   return result
+
+
+def startup_workspace(portfolio_id=None):
+  """Load account metadata and the visible saved values in one request."""
+  global _workspace, _loaded_at, _revision
+  workspace_revision()
+  account_id, revision = _account_id, _revision
+  if account_id is None:
+    return None
+  result = anvil.server.call("get_portfolio_startup", portfolio_id)
+  current = anvil.users.get_user()
+  if current is None or current.get_id() != account_id:
+    return None
+  if revision == _revision:
+    _workspace = result["workspace"]
+    _loaded_at = time()
+    _revision += 1
+  return result

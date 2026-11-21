@@ -136,6 +136,10 @@ class WorkspaceHarness:
         self.pending = []
         self.account_reads = 0
         self.tools_created = []
+        self.startup_result = {'ok': True, 'portfolio': None, 'overview': None}
+        self.startup_hook = self.history_hook = None
+        self.history_error = None
+        self.history_result = None
         self.result = {
             'ok': True,
             'selection_data': {'securities': [{'symbol': 'TEST'}]},
@@ -165,6 +169,7 @@ class WorkspaceHarness:
             'anvil': SimpleNamespace(users=SimpleNamespace(get_user=lambda: self.user),
                                      server=SimpleNamespace(call=self.server_call)),
             'invalidate_workspace': self.invalidate,
+            'startup_workspace': lambda portfolio_id: self.server_call('get_portfolio_startup', portfolio_id),
             'analyze_selection': lambda result, selected: dict(result),
             'record_page': lambda page: None,
             'defer': self.defer,
@@ -249,6 +254,16 @@ class WorkspaceHarness:
 
     def server_call(self, name, *arguments):
         self.calls.append((name, copy.deepcopy(arguments)))
+        if name == 'get_portfolio_startup':
+            if self.startup_hook:
+                self.startup_hook()
+            return self.startup_result
+        if name == 'get_portfolio_history':
+            if self.history_hook:
+                self.history_hook()
+            if self.history_error:
+                raise self.history_error
+            return self.history_result
         if name not in ('refresh_portfolio', 'save_portfolio'):
             raise AssertionError('Unexpected server call: ' + name)
         if self.save_error:
