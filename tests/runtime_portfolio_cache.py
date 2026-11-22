@@ -56,6 +56,10 @@ try:
   portfolios.remember_analysis(transactions, as_of, 2.5, copy.deepcopy(analysis), portfolio_id)
   row = app_tables.portfolios.get_by_id(portfolio_id)
   first_media = row['analysis_cache'].get_bytes()
+  first_overview = copy.deepcopy(row['analysis_overview'])
+  assert first_overview['version'] == portfolios._OVERVIEW_VERSION
+  assert first_overview['fingerprint'] == row['analysis_fingerprint']
+  assert portfolios.get_portfolio_startup(portfolio_id)['overview']['summary']['value'] == 150
   assert json.loads(gzip.decompress(first_media))['metrics'] == analysis['metrics']
   opened = portfolios.load_portfolio(portfolio_id)
   assert opened['ok'] and opened['analysis']['metrics'] == analysis['metrics']
@@ -64,6 +68,7 @@ try:
   renamed = portfolios.save_portfolio(portfolio_id, 'Renamed fixture', transactions, as_of, 2.5)
   row = app_tables.portfolios.get_by_id(portfolio_id)
   assert renamed['ok'] and row['analysis_cache'].get_bytes() == first_media
+  assert row['analysis_overview'] == first_overview
   print('PASS: save, gzip persistence, cached reopening, most-recent restore, rename preserves analysis; no market calls')
 
   entries = portfolios.list_portfolios()
@@ -94,9 +99,11 @@ try:
   assert portfolios.save_portfolio(portfolio_id, 'Changed fixture', changed, as_of, 2.5)['ok']
   row = app_tables.portfolios.get_by_id(portfolio_id)
   assert row['analysis_cache'] is None and portfolios.load_portfolio(portfolio_id)['analysis'] is None
+  assert row['analysis_overview'] is None
   portfolios.remember_analysis(transactions, as_of, 2.5, copy.deepcopy(analysis), portfolio_id)
   row = app_tables.portfolios.get_by_id(portfolio_id)
   assert row['analysis_cache'] is None, 'Slow old analysis replaced a changed portfolio'
+  assert row['analysis_overview'] is None
   fingerprint = portfolios._analysis_fingerprint(changed, as_of, 2.5)
   compressed = gzip.compress(json.dumps(analysis).encode())
   staged = base64.b64encode(compressed).decode('ascii')
@@ -104,19 +111,25 @@ try:
   assert portfolios.save_portfolio(portfolio_id, 'Changed fixture', changed, as_of, 2.5)['ok']
   row = app_tables.portfolios.get_by_id(portfolio_id)
   assert row['analysis_cache'] is None, 'Other account staged data leaked into save'
+  assert row['analysis_overview'] is None
   portfolios._staged_analysis = lambda: (fingerprint, staged, datetime.now(), user.get_id())
   assert portfolios.save_portfolio(portfolio_id, 'Changed fixture', changed, as_of, 2.5)['ok']
   assert portfolios.load_portfolio(portfolio_id)['analysis']['metrics']['market_value'] == 150
+  row = app_tables.portfolios.get_by_id(portfolio_id)
+  assert row['analysis_overview']['fingerprint'] == fingerprint
+  assert portfolios.get_portfolio_startup(portfolio_id)['overview']['metrics']['market_value'] == 150
   print('PASS: edit invalidation, stale-analysis race guard, account-bound staging, matching staged analysis reused')
 
   portfolios._staged_analysis = lambda: None
   assert portfolios.save_portfolio(portfolio_id, 'Rate edit', changed, as_of, 3)['ok']
   row = app_tables.portfolios.get_by_id(portfolio_id)
   assert row['analysis_cache'] is None
+  assert row['analysis_overview'] is None
   portfolios.remember_analysis(changed, as_of, 3, copy.deepcopy(analysis), portfolio_id)
   assert portfolios.save_portfolio(portfolio_id, 'Date edit', changed, as_of-timedelta(days=1), 3)['ok']
   row = app_tables.portfolios.get_by_id(portfolio_id)
   assert row['analysis_cache'] is None
+  assert row['analysis_overview'] is None
   invalid = portfolios.save_portfolio(portfolio_id, 'Invalid', [dict(changed[0], shares=-1)], as_of, 3)
   row = app_tables.portfolios.get_by_id(portfolio_id)
   assert not invalid['ok'] and row['name'] == 'Date edit'
@@ -124,6 +137,7 @@ try:
   empty = portfolios.save_portfolio(portfolio_id, 'Empty', [], as_of, 3)
   row = app_tables.portfolios.get_by_id(portfolio_id)
   assert empty['ok'] and row['transactions'] == [] and row['analysis_cache'] is None
+  assert row['analysis_overview'] is None
   anvil.users.get_user = lambda: None
   try:
     portfolios.list_portfolios()

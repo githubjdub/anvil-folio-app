@@ -118,7 +118,12 @@ def _saved_analysis(portfolio):
   return refresh_analysis_classifications(json.loads(gzip.decompress(portfolio["analysis_cache"].get_bytes())))
 
 
-_OVERVIEW_VERSION = 1
+_OVERVIEW_VERSION = 2
+
+
+def _analysis_stamp(value):
+  # Legacy saved analyses can lack a timestamp. Keep the cache JSON-safe.
+  return value.timestamp() if value is not None else None
 
 
 def _build_startup_cache(analysis, transactions, fingerprint, computed_at):
@@ -133,7 +138,7 @@ def _build_startup_cache(analysis, transactions, fingerprint, computed_at):
     analysis = dict(analysis, sector_allocation=allocation)
   return {
     "version": _OVERVIEW_VERSION, "fingerprint": fingerprint,
-    "analysis_stamp": _portfolio_timestamp(computed_at),
+    "analysis_stamp": _analysis_stamp(computed_at),
     "data": {
       "summary": summarize_portfolio(analysis),
       "holdings": build_dashboard(analysis, transactions=transactions),
@@ -170,7 +175,7 @@ def _overview_with_current_classifications(cache, analysis=None):
 def _store_startup_cache_if_unchanged(portfolio_id, user, cache):
   portfolio = _owned_portfolio(portfolio_id, user)
   if (portfolio is None or portfolio["analysis_fingerprint"] != cache["fingerprint"]
-      or _portfolio_timestamp(portfolio["analysis_updated_at"]) != cache["analysis_stamp"]
+      or _analysis_stamp(portfolio["analysis_updated_at"]) != cache["analysis_stamp"]
       or _analysis_fingerprint(portfolio["transactions"], portfolio["as_of_date"],
                                portfolio["risk_free_rate"]) != cache["fingerprint"]):
     return False
@@ -187,7 +192,7 @@ def _saved_overview(portfolio, analysis=None):
   cache = portfolio["analysis_overview"]
   if (cache is None or cache.get("version") != _OVERVIEW_VERSION
       or cache.get("fingerprint") != expected
-      or cache.get("analysis_stamp") != _portfolio_timestamp(portfolio["analysis_updated_at"])):
+      or cache.get("analysis_stamp") != _analysis_stamp(portfolio["analysis_updated_at"])):
     # Older saved portfolios are upgraded once, when opened. A concurrent
     # refresh or edit cannot be overwritten by this older projection.
     if analysis is None:

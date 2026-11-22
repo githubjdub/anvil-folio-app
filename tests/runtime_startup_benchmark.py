@@ -141,7 +141,7 @@ try:
     # Existing and older-version projections rebuild once, then future opens
     # use only the persisted small object. Renaming leaves that object intact.
     row = app_tables.portfolios.get_by_id(identifier)
-    for old_cache in (None, dict(row['analysis_overview'], version=0)):
+    for old_cache in (None, dict(row['analysis_overview'], version=1)):
         row.update(analysis_overview=old_cache)
         history_reads.clear()
         assert portfolios.get_portfolio_startup(identifier)['overview'] == overview
@@ -160,6 +160,16 @@ try:
     assert not portfolios._store_startup_cache_if_unchanged(identifier, user, cache_before)
     assert app_tables.portfolios.get_by_id(identifier)['analysis_overview'] == new_cache
     assert portfolios.get_portfolio_startup(identifier)['overview'] == overview
+    # An old analysis without a timestamp still upgrades into a valid JSON
+    # object, with no non-finite numeric sentinel in the persisted cache.
+    row = app_tables.portfolios.get_by_id(identifier)
+    saved_stamp = row['analysis_updated_at']
+    row.update(analysis_updated_at=None, analysis_overview=None)
+    assert portfolios._saved_overview(app_tables.portfolios.get_by_id(identifier)) == overview
+    legacy_cache = app_tables.portfolios.get_by_id(identifier)['analysis_overview']
+    assert legacy_cache['analysis_stamp'] is None
+    json.dumps(legacy_cache, allow_nan=False)
+    row.update(analysis_updated_at=saved_stamp, analysis_overview=new_cache)
     print('PASS: automatic one-time cache upgrade, rename reuse and protection against a late older backfill')
 
     sectors.set_security_sector(symbols[0], 'Industrials')

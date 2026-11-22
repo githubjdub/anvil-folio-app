@@ -191,10 +191,11 @@
     "values_frame": "navigation_ms.values_frame is milliseconds from navigation to a paint opportunity after saved totals and holdings are visible, before full chart history finishes."
   },
   "verification": {
-    "unit_tests_passed": 283,
+    "unit_tests_passed": 286,
     "app_files_validated": 186,
     "live_navigation": "Passed bootstrap, saved restore, profile/planning/inbox/billing preload, no market/SEC calls or planner writes, cross-account and anonymous denial; temporary fixtures removed.",
-    "saved_values_startup": "Passed exact summary/metrics/holdings equivalence, one directory query, no market-history fetch, current classifications, explicit links, empty/unsynced portfolios, navigation ordering, edit invalidation, deletion and account isolation. Temporary fixtures removed."
+    "saved_values_startup": "Passed exact summary/metrics/holdings equivalence, one directory query, no market-history fetch, current classifications, explicit links, empty/unsynced portfolios, navigation ordering, edit invalidation, deletion and account isolation. Temporary fixtures removed.",
+    "persistent_overview_cache": "Passed exact value equivalence, legacy allocation normalization, absent timestamp support, one-time upgrade, rename reuse, late-backfill rejection, sector overrides, edit/rate/date invalidation, staged-analysis save, deletion and account isolation. Temporary fixtures removed."
   },
   "additional_efficiency_pass": {
     "changes": [
@@ -296,5 +297,77 @@
       "document_download_ms": 404.0,
       "transfer_bytes": 329350
     }
+  },
+  "persistent_overview_cache": {
+    "measured_at_utc": "2026-11-22T16:01:08.804817+00:00",
+    "changes": [
+      "Store current summary, metrics and holdings with each saved analysis in the private analysis_overview column.",
+      "Reuse that summary on startup without decompressing or parsing the full history.",
+      "Upgrade older summary versions once on opening, with fingerprint and timestamp checks against concurrent edits or refreshes.",
+      "Apply current account sector choices to the small saved snapshot.",
+      "Retain visible holdings rows and reuse the server-computed latest quarter when full history arrives."
+    ],
+    "comparison": {
+      "method": "Seven alternating before/after startup executions against the same portfolio and runtime. The before implementation reconstructs the overview from full saved history.",
+      "median_before_ms": 151.8,
+      "median_after_ms": 108.3,
+      "server_time_reduction_percent": 28.7,
+      "saved_history_reads_before_values": {
+        "before": 1,
+        "after": 0
+      }
+    },
+    "server_execution": {
+      "measurement": "server execution only; excludes browser, RPC transport and cold runtime startup",
+      "fixture": {
+        "securities": 8,
+        "history_sessions": 1304,
+        "decoded_analysis_json_bytes": 3497130,
+        "decoded_overview_json_bytes": 10218,
+        "initial_analysis_payload_reduction_percent": 99.71
+      },
+      "payload_note": "Analysis data only; excludes account metadata, live rows, RPC framing and transport compression.",
+      "timings_ms": {
+        "account_metadata": {
+          "median": 76.2,
+          "min": 73.5,
+          "max": 79.3
+        },
+        "saved_portfolio": {
+          "median": 92.1,
+          "min": 87.9,
+          "max": 103.7
+        },
+        "analysis_json_encoding": {
+          "median": 42.4,
+          "min": 37.6,
+          "max": 45.2
+        },
+        "startup_values_before": {
+          "median": 151.8,
+          "min": 148.6,
+          "max": 160.6
+        },
+        "startup_values": {
+          "median": 108.3,
+          "min": 102.3,
+          "max": 112.3
+        },
+        "values_json_encoding": {
+          "median": 0.2,
+          "min": 0.1,
+          "max": 0.2
+        },
+        "deferred_history": {
+          "median": 68.3,
+          "min": 66.0,
+          "max": 70.6
+        }
+      }
+    },
+    "client_verification": "Form logic tests verified zero new holdings/activity item assignments and zero latest-quarter calculations during an unchanged snapshot handoff. Changed values update the rows while preserving filters. Historical quarter navigation still works.",
+    "live_verification": "Passed exact value equivalence, legacy allocation normalization, absent timestamp support, one-time upgrade, rename reuse, late-backfill rejection, sector overrides, edit/rate/date invalidation, staged-analysis save, deletion and account isolation. Temporary fixtures removed.",
+    "browser_startup": "End-to-end browser latency and visual behavior remain unmeasured in this environment.",
+    "existing_portfolio_note": "Older saved portfolios build the compact cache on their first opening. Subsequent openings use it directly."
   }
 }
