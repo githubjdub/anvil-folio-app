@@ -98,6 +98,9 @@ class Control:
     def prepare(self):
         pass
 
+    def prepare_activity(self):
+        pass
+
     def clear(self):
         self.file = None
 

@@ -37,6 +37,7 @@ class PortfolioLandingTests(unittest.TestCase):
                 h = NavigationHarness(account)
                 h.route = {}
                 h.router._open_route()
+                h.run_startup()
                 self.assertEqual(h.router._route_key(), ('dashboard', None))
                 self.assertIs(h.active, h.editors()[0])
 

@@ -61,7 +61,8 @@ def _create_tool(name):
 
 
 class Form1(Form1Template):
-  def __init__(self, initial_portfolio_id=None, defer_load=False, startup_ready=None, **properties):
+  def __init__(self, initial_portfolio_id=None, defer_load=False, startup_ready=None,
+               startup_request=None, **properties):
     startup_performance.mark("portfolio_build_start")
     self._initializing = True
     super().__init__(**properties)
@@ -110,6 +111,7 @@ class Form1(Form1Template):
     self._startup_scheduled = False
     self._initial_portfolio_id = initial_portfolio_id
     self._startup_ready = startup_ready
+    self._startup_request = startup_request
     self.startup_region.visible = False
     self.transactions = []
     self._transaction_rows_dirty = True
@@ -207,8 +209,8 @@ class Form1(Form1Template):
     self._show_results(False)
     user = anvil.users.get_user()
     if defer_load and user is not None:
-      # Attach the page before account/database requests, so the first visible
-      # screen never waits for a portfolio or any secondary tools.
+      # The Router's saved-values request can already be in flight. Attach the
+      # page before applying it or loading any history and secondary tools.
       self._user = user
       self.account_id = user.get_id()
       self._startup_loading = True
@@ -256,6 +258,8 @@ class Form1(Form1Template):
 
   def _prepare_view(self, page):
     self._ensure_readout_rendered(page)
+    if page == "overview":
+      self.portfolio_holdings_form.prepare_activity()
     for _, plot in self._page_charts(page):
       plot.prepare()
 
@@ -315,15 +319,27 @@ class Form1(Form1Template):
     finally:
       self._background_tool = None
 
-  def _load_startup(self):
+  def _prefetched_startup_ready(self):
+    request, self._startup_request = self._startup_request, None
+    if request is None:
+      return
+    if not request.succeeded:
+      self._release_startup()
+      return
+    self._load_startup(request)
+
+  def _load_startup(self, request=None):
     account_id = self.account_id
     history_pending = False
     try:
       if not self._workspace_matches(account_id, None):
         return
-      startup_performance.mark("values_load_start")
-      result = startup_workspace(self._initial_portfolio_id)
-      startup_performance.mark("values_load_end")
+      if request is None:
+        startup_performance.mark("values_load_start")
+        result = startup_workspace(self._initial_portfolio_id)
+        startup_performance.mark("values_load_end")
+      else:
+        result = request.result
       if result is None or not self._workspace_matches(account_id, None):
         return
       # startup_workspace already populated the shared account metadata cache.
@@ -395,7 +411,10 @@ class Form1(Form1Template):
     if self._startup_loading:
       if not self._startup_scheduled:
         self._startup_scheduled = True
-        defer(self._load_startup, priority=True)
+        if self._startup_request is None:
+          defer(self._load_startup, priority=True)
+        else:
+          self._startup_request.when_ready(self._prefetched_startup_ready)
       return
     # Router may prepare a retained workspace while detached. Once visible,
     # resize its existing plots without fetching data or resetting the editor.

@@ -40,11 +40,18 @@ def _report():
   ):
     if start in _marks and end in _marks:
       phases[label] = round(_marks[end] - _marks[start], 1)
+  if all(name in _marks for name in (
+      "values_load_start", "values_load_end", "portfolio_import_start", "portfolio_shell_ready")):
+    phases["values_request_during_page_build"] = round(max(0,
+      min(_marks["values_load_end"], _marks["portfolio_shell_ready"])
+      - max(_marks["values_load_start"], _marks["portfolio_import_start"])), 1)
+    phases["values_wait_after_page_build"] = round(max(0,
+      _marks["values_load_end"] - _marks["portfolio_shell_ready"]), 1)
   paints = {entry.name: round(entry.startTime, 1)
             for entry in anvil.js.window.performance.getEntriesByType("paint")}
   result = {"navigation_ms": dict(_marks), "phases_ms": phases,
             "browser_paint_ms": paints,
-            "note": "All times are milliseconds. analysis_apply is included in saved_portfolio_restore."}
+            "note": "All times are milliseconds. Phase durations can overlap. analysis_apply is included in saved_portfolio_restore."}
   navigation = anvil.js.window.performance.getEntriesByType("navigation")
   if navigation:
     entry = navigation[0]

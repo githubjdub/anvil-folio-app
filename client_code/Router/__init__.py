@@ -6,7 +6,7 @@ from anvil import *
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, username_prompt_open
 from ..appearance import initialize
-from ..workspace_cache import CACHE_SECONDS, workspace_revision
+from ..workspace_cache import CACHE_SECONDS, StartupRequest, workspace_revision
 from ..deferred_work import defer
 from .. import startup_performance
 
@@ -51,6 +51,7 @@ class Router(RouterTemplate):
     self._editor_form = None
     self._editor_owner = None
     self._editor_stamp = None
+    self._startup_request = None
     self._page_forms = {}
     self._navigation_prepared = False
     self._warming_pages = set()
@@ -87,6 +88,7 @@ class Router(RouterTemplate):
 
   def _sync_account(self, account_id):
     if account_id != self._cache_account_id:
+      self._cancel_startup_request()
       # Cache ownership is separate from Form.account_id, which can change
       # during a yielding account refresh. Never relabel another user's draft.
       keep_guest = (self._cache_account_id is None and account_id is not None
@@ -100,6 +102,11 @@ class Router(RouterTemplate):
       self._username_account_id = None
       self._cache_account_id = account_id
     workspace_revision()
+
+  def _cancel_startup_request(self):
+    if self._startup_request is not None:
+      self._startup_request.cancel()
+      self._startup_request = None
 
   def _stamp(self):
     return workspace_revision(), time()
@@ -165,6 +172,7 @@ class Router(RouterTemplate):
     finally:
       self._routing = False
     if (self._route_key()[0] in ("dashboard", "notifications", "profile")
+        and self._startup_request is None
         and (self._editor_form is None or not self._editor_form._startup_loading)):
       self._prepare_navigation(self._current_account_id())
 
@@ -186,6 +194,8 @@ class Router(RouterTemplate):
         return
     route = self._route_key()
     page, token = route
+    if page not in ("dashboard", "notifications"):
+      self._cancel_startup_request()
     active = get_open_form()
     if page == "shared":
       if getattr(active, "share_token", None) == token:
@@ -203,8 +213,18 @@ class Router(RouterTemplate):
     editor = self._editor_form
     refreshed = False
     if editor is None:
+      request = self._startup_request
+      if account_id is not None:
+        if request is None or request.portfolio_id != token:
+          self._cancel_startup_request()
+          request = self._startup_request = StartupRequest(account_id, token)
+          request.start(lambda: self._open_route() if self._startup_request is request else None)
+          return
+        if not request.started:
+          return
       editor = _create_page("dashboard", initial_portfolio_id=token, defer_load=True,
-                            startup_ready=self._editor_ready)
+                            startup_ready=self._editor_ready, startup_request=request)
+      self._startup_request = None
       refreshed = True
     elif (self._editor_owner != account_id or self._needs_refresh(self._editor_stamp)
           or editor._restore_on_resume):

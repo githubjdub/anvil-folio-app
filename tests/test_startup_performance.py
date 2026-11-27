@@ -86,6 +86,21 @@ class StartupPerformanceTests(unittest.TestCase):
         self.assertEqual(report['navigation_ms']['values_frame'], 30)
         self.assertEqual(report['navigation_ms']['ready_frame'], 100)
 
+    def test_overlapped_request_separates_build_time_from_remaining_network_wait(self):
+        self.ns['_marks'].update(values_load_start=10, values_load_end=250,
+                                 portfolio_import_start=20, portfolio_shell_ready=200)
+        phases = self.ns['_report']()['phases_ms']
+        self.assertEqual(phases['saved_values_load'], 240)
+        self.assertEqual(phases['values_request_during_page_build'], 180)
+        self.assertEqual(phases['values_wait_after_page_build'], 50)
+
+    def test_fast_response_has_no_network_wait_after_page_construction(self):
+        self.ns['_marks'].update(values_load_start=10, values_load_end=100,
+                                 portfolio_import_start=20, portfolio_shell_ready=200)
+        phases = self.ns['_report']()['phases_ms']
+        self.assertEqual(phases['values_request_during_page_build'], 80)
+        self.assertEqual(phases['values_wait_after_page_build'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -7,7 +7,7 @@
   <div anvil:name="dashboard_region">
     <div class="portfolio-holdings-summary">
         <div class="portfolio-holdings-card-heading"><anvil-component type="Label" name="map_title_label" prop:role="portfolio-holdings-heading" prop:spacing_above="none" prop:spacing_below="none"></anvil-component><anvil-component type="Label" name="value_label" prop:role="portfolio-holdings-total" prop:spacing_above="none" prop:spacing_below="none"></anvil-component></div>
-      <details class="portfolio-holdings-activity-details">
+      <details class="portfolio-holdings-activity-details" anvil:dom-node="activity_details" anvil:on-dom:toggle="self.activity_toggle">
         <summary>Your trading activity</summary>
         <p class="portfolio-holdings-activity-note">Logged buys and sells in this quarter</p>
         <anvil-component type="RepeatingPanel" name="activity_panel" prop:item_template="M3_App_1.Components.PortfolioActivityGroup" prop:role="portfolio-holdings-activity-list"></anvil-component>

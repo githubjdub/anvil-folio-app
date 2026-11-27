@@ -15,6 +15,7 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self._transaction_key = ()
     self._snapshots = {}
     self._snapshot = None
+    self._activity_snapshot = None
     self._dirty = True
     self.position_dropdown.items = [("Open holdings", "open"), ("All traded securities", "all")]
     self.position_dropdown.selected_value = "open"
@@ -33,6 +34,7 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self._transaction_key = ()
     self._snapshots = {}
     self._snapshot = None
+    self._activity_snapshot = None
     self._dirty = True
     self.quarter_dropdown.items = []
     self.quarter_dropdown.selected_value = None
@@ -119,12 +121,25 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self.table_title_label.text = "Portfolio holdings · %s" % label
     self.value_label.text = "$%s" % format(snapshot["total"], ",.2f")
     self.legacy_label.visible = snapshot["legacy"]
+    self._render_table()
+    if self.dom_nodes["activity_details"].hasAttribute("open"):
+      self.prepare_activity()
+
+  def prepare_activity(self):
+    """Prepare the closed disclosure after values appear, or when opened."""
+    snapshot = self._snapshot
+    if snapshot is None or snapshot is self._activity_snapshot:
+      return
     groups = [dict(group, count_text=str(len(group["symbols"])),
                    chips=[{"symbol": symbol, "kind": group["key"]} for symbol in group["symbols"]])
               for group in snapshot["activity_groups"] if group["symbols"]]
     self.activity_panel.items = groups
     self.no_activity_label.visible = not groups
-    self._render_table()
+    self._activity_snapshot = snapshot
+
+  def activity_toggle(self, event):
+    if event.currentTarget.open:
+      self.prepare_activity()
 
   def _render_table(self):
     if self._snapshot is None:

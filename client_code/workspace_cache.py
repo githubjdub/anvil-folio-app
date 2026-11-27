@@ -4,6 +4,7 @@ from time import time
 import anvil.js
 import anvil.server
 import anvil.users
+from . import startup_performance
 
 _account_id = None
 _workspace = None
@@ -12,6 +13,57 @@ _revision = 0
 _refresh_pending = None
 
 CACHE_SECONDS = 60
+
+
+class StartupRequest:
+  """One account-scoped read that can run while the dashboard is constructed."""
+
+  def __init__(self, account_id, portfolio_id):
+    self.account_id = account_id
+    self.portfolio_id = portfolio_id
+    self.started = False
+    self.done = False
+    self.succeeded = False
+    self.result = None
+    self._cancelled = False
+    self._ready = None
+
+  def start(self, on_started):
+    def load():
+      self.started = True
+      # A server call yields to the browser. Build the Form in that interval,
+      # including when the request fails or the account has just changed.
+      anvil.js.window.setTimeout(anvil.js.report_exceptions(on_started), 0)
+      try:
+        user = anvil.users.get_user()
+        if self._cancelled or user is None or user.get_id() != self.account_id:
+          return
+        with anvil.server.no_loading_indicator:
+          startup_performance.mark("values_load_start")
+          result = startup_workspace(self.portfolio_id)
+          startup_performance.mark("values_load_end")
+        if not self._cancelled:
+          self.result = result
+          self.succeeded = True
+      finally:
+        self.done = True
+        ready, self._ready = self._ready, None
+        if ready is not None:
+          self.when_ready(ready)
+
+    anvil.js.window.setTimeout(anvil.js.report_exceptions(load), 0)
+
+  def when_ready(self, callback):
+    if self.done:
+      # Deliver both fast and slow responses after the Form attaches. Errors
+      # still propagate from load(); this callback also releases busy controls.
+      anvil.js.window.setTimeout(anvil.js.report_exceptions(callback), 0)
+    else:
+      self._ready = callback
+
+  def cancel(self):
+    self._cancelled = True
+    self.result = None
 
 
 def invalidate_workspace():

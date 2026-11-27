@@ -1,5 +1,6 @@
 """Retained-page behavior with Anvil client boundaries replaced by small fakes."""
 import ast
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -24,7 +25,7 @@ class User:
 
 
 class NavigationHarness:
-    def __init__(self, account_id='a'):
+    def __init__(self, account_id='a', auto_startup=True):
         self.user = User(account_id) if account_id else None
         self.route = {'page': 'portfolio'}
         self.active = None
@@ -35,7 +36,25 @@ class NavigationHarness:
         self.constructor_hook = None
         self.router = None
         self.pending = []
+        self.startup_jobs = []
+        self.startup_requests = []
+        self.auto_startup = auto_startup
         harness = self
+
+        class Request:
+            def __init__(self, account_id, portfolio_id):
+                self.account_id, self.portfolio_id = account_id, portfolio_id
+                self.started = self.cancelled = False
+                harness.startup_requests.append(self)
+
+            def start(self, on_started):
+                def start():
+                    self.started = True
+                    harness.startup_jobs.append(on_started)
+                harness.startup_jobs.append(start)
+
+            def cancel(self):
+                self.cancelled = True
 
         class Template:
             def __init__(self, **properties):
@@ -62,6 +81,7 @@ class NavigationHarness:
             def __init__(self, **properties):
                 super().__init__(**properties)
                 self.initial_portfolio_id = properties.get('initial_portfolio_id')
+                self.startup_request = properties.get('startup_request')
                 self._busy = False
                 self._startup_loading = False
                 self._restore_on_resume = False
@@ -123,6 +143,7 @@ class NavigationHarness:
             initialize=lambda: None,
             CACHE_SECONDS=60,
             workspace_revision=lambda: self.revision,
+            StartupRequest=Request,
             invalidate_workspace=self.invalidate,
             defer=self.defer,
             startup_performance=SimpleNamespace(mark=lambda *a: None, complete=lambda: None),
@@ -148,6 +169,10 @@ class NavigationHarness:
             if current is None or current():
                 callback()
 
+    def run_startup(self):
+        while self.startup_jobs:
+            self.startup_jobs.pop(0)()
+
     def account_id(self):
         return self.user.get_id() if self.user else None
 
@@ -161,12 +186,59 @@ class NavigationHarness:
     def navigate(self, route):
         self.route = route if isinstance(route, dict) else {'page': route}
         self.router._open_route()
+        if self.auto_startup:
+            self.run_startup()
 
     def editors(self):
         return self.instances.get('Editor', [])
 
 
 class RetainedNavigationTests(unittest.TestCase):
+    def test_values_request_starts_before_editor_and_optional_pages(self):
+        h = NavigationHarness(auto_startup=False)
+        h.navigate('portfolio')
+        self.assertEqual(h.editors(), [])
+        self.assertEqual(h.pending, [])
+        self.assertEqual(len(h.startup_requests), 1)
+        request = h.startup_requests[0]
+        # Hash changes before the timer runs must not construct or refetch.
+        h.navigate('portfolio')
+        self.assertEqual(len(h.startup_requests), 1)
+        self.assertEqual(h.editors(), [])
+        h.run_startup()
+        self.assertIs(h.active.startup_request, request)
+        self.assertTrue(request.started)
+        self.assertIsNone(h.router._startup_request)
+
+    def test_latest_portfolio_replaces_queued_request_before_construction(self):
+        h = NavigationHarness(auto_startup=False)
+        h.navigate({'page': 'portfolio', 'portfolio': 'p1'})
+        h.navigate({'page': 'portfolio', 'portfolio': 'p2'})
+        self.assertTrue(h.startup_requests[0].cancelled)
+        h.run_startup()
+        self.assertEqual(len(h.editors()), 1)
+        self.assertEqual(h.active.initial_portfolio_id, 'p2')
+        self.assertIs(h.active.startup_request, h.startup_requests[1])
+
+    def test_switching_to_profile_cancels_queued_editor(self):
+        h = NavigationHarness(auto_startup=False)
+        h.navigate('portfolio')
+        h.navigate('profile')
+        self.assertTrue(h.startup_requests[0].cancelled)
+        h.run_startup()
+        self.assertEqual(h.editors(), [])
+        self.assertEqual(type(h.active).__name__, 'ProfileHome')
+
+    def test_account_change_replaces_pending_private_request(self):
+        h = NavigationHarness(auto_startup=False)
+        h.navigate('portfolio')
+        h.user = User('b')
+        h.run_startup()
+        self.assertTrue(h.startup_requests[0].cancelled)
+        self.assertEqual(len(h.editors()), 1)
+        self.assertEqual(h.active.account_id, 'b')
+        self.assertEqual(h.active.startup_request.account_id, 'b')
+
     def test_startup_opens_editor_before_preparing_secondary_pages(self):
         h = NavigationHarness()
         h.navigate('portfolio')
@@ -391,11 +463,84 @@ class WorkspaceCacheTests(unittest.TestCase):
             return {'ok': True, 'workspace': response, 'portfolio': args[0], 'overview': None} if name == 'get_portfolio_startup' else response
         self.cache = source_namespace(CLIENT / 'workspace_cache.py', {
             'time': lambda: self.now,
+            'startup_performance': SimpleNamespace(mark=lambda name: None),
             'anvil': SimpleNamespace(users=SimpleNamespace(get_user=lambda: self.user),
-                                     server=SimpleNamespace(call=call, call_s=call),
+                                     server=SimpleNamespace(call=call, call_s=call,
+                                                            no_loading_indicator=nullcontext()),
                                      js=SimpleNamespace(report_exceptions=lambda fn: fn,
                                         window=SimpleNamespace(setTimeout=lambda fn, ms: self.pending.append(fn)))),
         })
+
+    def test_slow_startup_allows_page_construction_while_request_is_pending(self):
+        request = self.cache['StartupRequest']('a', 'p1')
+        events = []
+        def build():
+            self.assertTrue(request.started)
+            self.assertFalse(request.done)
+            events.append('page built during request')
+            request.when_ready(lambda: events.append(request.result['portfolio']))
+        request.start(build)
+        self.hook = lambda: self.pending.pop(0)()
+        self.pending.pop(0)()
+        self.assertEqual(events, ['page built during request'])
+        self.assertTrue(request.done)
+        self.pending.pop(0)()
+        self.assertEqual(events, ['page built during request', 'p1'])
+        self.assertIs(self.cache['account_workspace'](), request.result['workspace'])
+        self.assertEqual(self.calls, 1)
+
+    def test_fast_startup_keeps_result_until_page_is_ready(self):
+        request = self.cache['StartupRequest']('a', 'p1')
+        delivered = []
+        request.start(lambda: request.when_ready(lambda: delivered.append(request.result)))
+        self.pending.pop(0)()
+        self.assertTrue(request.done)
+        self.assertEqual(delivered, [])
+        self.pending.pop(0)()
+        self.assertEqual(delivered, [])
+        self.pending.pop(0)()
+        self.assertEqual(delivered, [request.result])
+        self.assertEqual(self.calls, 1)
+
+    def test_cancelled_queued_startup_does_not_make_a_request(self):
+        request = self.cache['StartupRequest']('a', 'p1')
+        request.start(lambda: None)
+        request.cancel()
+        self.pending.pop(0)()
+        self.assertEqual(self.calls, 0)
+        self.assertIsNone(request.result)
+
+    def test_account_change_before_prefetch_does_not_request_other_accounts_values(self):
+        request = self.cache['StartupRequest']('a', 'p1')
+        request.start(lambda: None)
+        self.user = User('b')
+        self.pending.pop(0)()
+        self.assertEqual(self.calls, 0)
+        self.assertIsNone(request.result)
+
+    def test_cancelled_inflight_startup_discards_response(self):
+        request = self.cache['StartupRequest']('a', 'p1')
+        request.start(lambda: None)
+        self.hook = request.cancel
+        self.pending.pop(0)()
+        self.assertEqual(self.calls, 1)
+        self.assertIsNone(request.result)
+
+    def test_prefetch_errors_propagate_and_still_notify_waiting_form(self):
+        request = self.cache['StartupRequest']('a', 'p1')
+        settled = []
+        request.start(lambda: None)
+        request.when_ready(lambda: settled.append(request.succeeded))
+        def fail():
+            raise RuntimeError('Unexpected startup transport failure')
+        self.hook = fail
+        with self.assertRaisesRegex(RuntimeError, 'Unexpected startup transport failure'):
+            self.pending.pop(0)()
+        self.assertTrue(request.done)
+        self.assertFalse(request.succeeded)
+        while self.pending:
+            self.pending.pop(0)()
+        self.assertEqual(settled, [False])
 
     def test_expired_workspace_returns_immediately_and_refreshes_once(self):
         first = self.cache['account_workspace']()
