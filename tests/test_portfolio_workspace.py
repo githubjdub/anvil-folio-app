@@ -1,5 +1,6 @@
 """Portfolio autosave, refresh and navigation with Anvil boundaries replaced."""
 import ast
+import builtins
 import copy
 from datetime import date
 from html.parser import HTMLParser
@@ -134,6 +135,7 @@ class WorkspaceHarness:
     def __init__(self, saved=True, account_id='a', defer_load=False, transaction_render=False):
         self.user = User(account_id) if account_id else None
         self.calls, self.rendered = [], []
+        self.imported_client_modules = []
         self.invalidations = 0
         self.analysis_hook = self.save_hook = self.login_hook = None
         self.analysis_error = self.save_error = None
@@ -185,6 +187,13 @@ class WorkspaceHarness:
             'startup_performance': SimpleNamespace(mark=lambda *a: None,
                 after_frame=lambda *a: None, complete=lambda: None),
         }
+        def import_client(name, globals=None, locals=None, fromlist=(), level=0):
+            if level and name in ('analysis_selection', 'transaction_groups', 'HoldingRow',
+                                   'Components.TransactionYearGroup'):
+                self.imported_client_modules.append(name)
+                return SimpleNamespace(**{key: namespace[key] for key in fromlist})
+            return builtins.__import__(name, globals, locals, fromlist, level)
+        namespace['__builtins__'] = dict(vars(builtins), __import__=import_client)
         tree = ast.parse(path.read_text())
         tree.body = [node for node in tree.body if isinstance(node, (ast.Assign, ast.ClassDef))]
         exec(compile(tree, str(path), 'exec'), namespace)

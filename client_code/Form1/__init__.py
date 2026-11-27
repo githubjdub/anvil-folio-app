@@ -7,15 +7,7 @@ import anvil.js
 from ._anvil_designer import Form1Template
 from anvil import *
 from .. import chart_theme
-from ..analysis_selection import analyze_selection, update_sector_classification
-from ..chart_trades import build_trade_markers
-from ..portfolio_periods import quarterly_returns, allocation_snapshots
-from ..performance_weighting import equal_weighted_history
 from ..portfolio_summary import summarize_portfolio
-from ..allocation_breakdown import allocation_groups
-from ..HoldingRow import HoldingRow
-from ..Components.TransactionYearGroup import TransactionYearGroup
-from ..transaction_groups import group_transactions_by_date, group_transactions_by_year
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, sign_in
 from ..workspace_cache import account_workspace, invalidate_workspace, startup_workspace
@@ -425,7 +417,8 @@ class Form1(Form1Template):
 
   @handle("market_status_timer", "tick")
   def market_status_timer_tick(self, **event_args):
-    if self._market_status_loading:
+    if (self._market_status_loading
+        or (self._startup_loading and self._startup_overview is None)):
       return
     self._market_status_loading = True
     try:
@@ -1092,6 +1085,7 @@ class Form1(Form1Template):
   def _ensure_transaction_rows(self):
     if not self._transaction_rows_dirty:
       return
+    from ..transaction_groups import group_transactions_by_date, group_transactions_by_year
     self.transactions_empty_region.visible = not bool(self.transactions)
     self.add_button.text = "Add A Security!" if not self.transactions else "Add security / transaction"
     view = self.transaction_view_dropdown.selected_value
@@ -1164,13 +1158,20 @@ class Form1(Form1Template):
   def _transaction_year_forms(self):
     if self._transaction_rows_dirty:
       return []
-    return [group for group in self.transaction_years_panel.get_components()
-            if isinstance(group, TransactionYearGroup)]
+    groups = self.transaction_years_panel.get_components()
+    if not groups:
+      return []
+    from ..Components.TransactionYearGroup import TransactionYearGroup
+    return [group for group in groups if isinstance(group, TransactionYearGroup)]
 
   def _transaction_row_forms(self):
     if self._transaction_rows_dirty:
       return []
-    rows = [form for form in self.holdings_panel.get_components() if isinstance(form, HoldingRow)]
+    components = self.holdings_panel.get_components()
+    rows = []
+    if components:
+      from ..HoldingRow import HoldingRow
+      rows = [form for form in components if isinstance(form, HoldingRow)]
     for group in self._transaction_year_forms():
       rows.extend(group.transaction_rows())
     return rows
@@ -2291,6 +2292,7 @@ class Form1(Form1Template):
     if self._history is None:
       return None
     if self._equal_weight_source is not self._history:
+      from ..performance_weighting import equal_weighted_history
       self._equal_weight_history = equal_weighted_history(self._history, self._selected_symbols)
       self._equal_weight_source = self._history
     return self._equal_weight_history
@@ -2360,6 +2362,7 @@ class Form1(Form1Template):
   def _render_comparison(self):
     if self._history is None or self._analysis_source is None:
       return
+    from ..chart_trades import build_trade_markers
     for weighting, button in (("manager", self.manager_weighted_button), ("equal", self.equal_weighted_button)):
       active = weighting == self._performance_weighting
       button.role = "chart-range-active" if active else "chart-range"
@@ -2490,6 +2493,7 @@ class Form1(Form1Template):
     self._performance_details_dirty = False
 
   def _render_quarterly(self, points, benchmark_by_date, benchmark_name):
+    from ..portfolio_periods import quarterly_returns
     rows = quarterly_returns(points, benchmark_by_date)
     portfolio_name = "Equal-Weighted" if self._performance_weighting == "equal" else "Your portfolio"
     short_benchmark_name = next((label.split(" · ")[0] for label, key in BENCHMARK_CHOICES
@@ -2536,6 +2540,7 @@ class Form1(Form1Template):
   def _allocation_groups_for_view(self):
     security_view = self.allocation_view_dropdown.selected_value == "security"
     if security_view not in self._allocation_groups_cache:
+      from ..allocation_breakdown import allocation_groups
       groups, previous = {}, None
       for snapshot in self._allocation_snapshots:
         groups[snapshot["key"]] = allocation_groups(snapshot, security_view, previous)
@@ -2546,6 +2551,7 @@ class Form1(Form1Template):
   def _render_sectors(self):
     if self._history is None or self._analysis_source is None:
       return
+    from ..portfolio_periods import allocation_snapshots
     if not self._allocation_data_ready:
       self._allocation_snapshots = allocation_snapshots(self._analysis_source, self._selected_symbols)
       previous = self.allocation_quarter_dropdown.selected_value or "latest"
@@ -2577,6 +2583,7 @@ class Form1(Form1Template):
     previous = self._allocation_snapshots[snapshot_index - 1] if snapshot_index is not None and snapshot_index > 0 else None
     groups = self._allocation_groups_for_view().get(chosen)
     if groups is None:
+      from ..allocation_breakdown import allocation_groups
       groups = allocation_groups(allocation, security_view, previous)
     colors = [self._security_colors.get(group["symbol"], chart_theme.MUTED) if security_view else SECTOR_COLORS.get(group["sector"], chart_theme.MUTED) for group in groups]
     provisional = (self._allocation_snapshot or {}).get("provisional", bool(self._history["metadata"].get("provisional_date")))
@@ -2884,6 +2891,7 @@ class Form1(Form1Template):
   def security_sector_change(self, symbol, sector, **event_args):
     if self._busy or self._analysis_source is None or self._user is None:
       return
+    from ..analysis_selection import analyze_selection, update_sector_classification
     self._set_busy(True)
     try:
       result = anvil.server.call("set_security_sector", symbol, sector)
@@ -2944,6 +2952,7 @@ class Form1(Form1Template):
   def security_selection_change(self, symbol, included, **event_args):
     if self._busy or self._analysis_source is None:
       return
+    from ..analysis_selection import analyze_selection
     if included:
       self._selected_symbols.add(symbol)
     else:
@@ -2954,6 +2963,7 @@ class Form1(Form1Template):
   @handle("select_all_securities_button", "click")
   def select_all_securities_button_click(self, **event_args):
     if not self._busy and self._analysis_source is not None:
+      from ..analysis_selection import analyze_selection
       self._selected_symbols = set(row["symbol"] for row in self._analysis_source["selection_data"]["securities"])
       self._history = analyze_selection(self._analysis_source, self._selected_symbols)
       self._render_readout()
@@ -3084,6 +3094,7 @@ class Form1(Form1Template):
 
   def _apply_analysis(self, result, transactions, holdings_snapshot=None):
     startup_performance.mark("analysis_apply_start")
+    from ..analysis_selection import analyze_selection
     self._analysis_source = result
     self._last_synced_analysis = result
     self._last_synced_transactions = [{key: row.get(key) for key in

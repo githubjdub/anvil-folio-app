@@ -369,5 +369,94 @@
     "live_verification": "Passed exact value equivalence, legacy allocation normalization, absent timestamp support, one-time upgrade, rename reuse, late-backfill rejection, sector overrides, edit/rate/date invalidation, staged-analysis save, deletion and account isolation. Temporary fixtures removed.",
     "browser_startup": "End-to-end browser latency and visual behavior remain unmeasured in this environment.",
     "existing_portfolio_note": "Older saved portfolios build the compact cache on their first opening. Subsequent openings use it directly."
+  },
+  "overlapped_values_startup": {
+    "verified_at_utc": "2026-11-27T13:32:39Z",
+    "changes": [
+      "Start the compact saved-values request before importing and constructing the dashboard.",
+      "Reuse the completed or in-flight response when the dashboard attaches, with cancellation for obsolete account and portfolio routes.",
+      "Build closed trading-activity items after the visible holdings, then prepare them in the background for opening.",
+      "Record values_request_during_page_build and values_wait_after_page_build in the browser startup report."
+    ],
+    "checks": {
+      "unit_tests_passed": 304,
+      "app_files_validated": 186,
+      "validation_issues": 0,
+      "client_behavior": "Passed fast and slow response delivery, one startup request, queued route replacement, account changes, failure cleanup, deferred activity rendering, quarter changes, empty activity, and reuse after background preparation.",
+      "live_behavior": "Passed saved values and full history equivalence, one directory query, no market-history fetch before values, legacy cache upgrades, rename reuse, late-backfill protection, sector overrides, edit invalidation, unavailable portfolios and account isolation. Temporary benchmark fixtures removed."
+    },
+    "server_execution": {
+      "measurement": "server execution only; excludes browser, RPC transport and cold runtime startup",
+      "fixture": {
+        "securities": 8,
+        "history_sessions": 1305,
+        "decoded_analysis_json_bytes": 3500562,
+        "decoded_overview_json_bytes": 10220,
+        "initial_analysis_payload_reduction_percent": 99.71
+      },
+      "payload_note": "Analysis data only; excludes account metadata, live rows, RPC framing and transport compression.",
+      "timings_ms": {
+        "account_metadata": {
+          "median": 88.8,
+          "min": 83.1,
+          "max": 100.3
+        },
+        "saved_portfolio": {
+          "median": 105.7,
+          "min": 99.2,
+          "max": 150.5
+        },
+        "analysis_json_encoding": {
+          "median": 42,
+          "min": 38.7,
+          "max": 46.5
+        },
+        "startup_values_before": {
+          "median": 170.5,
+          "min": 159.8,
+          "max": 176.1
+        },
+        "startup_values": {
+          "median": 120.1,
+          "min": 107.6,
+          "max": 128.4
+        },
+        "values_json_encoding": {
+          "median": 0.2,
+          "min": 0.1,
+          "max": 0.2
+        },
+        "deferred_history": {
+          "median": 77.5,
+          "min": 72.7,
+          "max": 113.5
+        }
+      }
+    },
+    "server_execution_note": "This is a live regression check of the existing compact overview cache. startup_values_before measures reconstruction from full saved history. The new overlap of browser construction and the values request has not been measured end to end.",
+    "http_reachability": {
+      "scope": "HTTP document only; excludes browser rendering, login and portfolio RPCs",
+      "samples": [
+        {
+          "status": 200,
+          "ttfb_ms": 204.7,
+          "total_ms": 223.6,
+          "transfer_bytes": 330587
+        },
+        {
+          "status": 200,
+          "ttfb_ms": 215,
+          "total_ms": 228.3,
+          "transfer_bytes": 330597
+        },
+        {
+          "status": 200,
+          "ttfb_ms": 193.3,
+          "total_ms": 205.3,
+          "transfer_bytes": 330568
+        }
+      ]
+    },
+    "browser_startup": "Browser interaction and end-to-end values latency remain unmeasured in this environment. The local window.folioStartupTimings report includes the new overlap and remaining-wait phases."
   }
 }

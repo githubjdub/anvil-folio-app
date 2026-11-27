@@ -25,6 +25,36 @@ class StartupValuesTests(unittest.TestCase):
         h.form.form_show()
         h.pending.pop(0)[0]()
 
+    def test_saved_values_do_not_initialize_analysis_or_transaction_editors(self):
+        h = self.ready()
+        self.assertEqual(h.imported_client_modules, [])
+        self.show_values(h)
+        self.assertEqual(h.imported_client_modules, [])
+        h.pending.pop(0)[0]()
+        self.assertIn('analysis_selection', h.imported_client_modules)
+        self.assertNotIn('transaction_groups', h.imported_client_modules)
+        h.run_idle()
+        self.assertIn('transaction_groups', h.imported_client_modules)
+
+    def test_market_status_waits_for_values_then_resumes(self):
+        h = self.ready()
+        calls = []
+        status = dict(label='Market closed', detail='Next session', scope='US stocks',
+                      checked_at='2026-11-27', schedule_source='Calendar', state='closed')
+        def call_s(name):
+            calls.append(name)
+            return status
+        h.namespace['anvil'].server.call_s = call_s
+        h.form.market_status_timer.interval = 1
+        h.form.market_status_timer_tick()
+        self.assertEqual(calls, [])
+        self.assertEqual(h.form.market_status_timer.interval, 1)
+        self.show_values(h)
+        h.form.market_status_timer_tick()
+        self.assertEqual(calls, ['get_us_market_status'])
+        self.assertEqual(h.form.market_status_label.text, 'Market closed')
+        self.assertEqual(h.form.market_status_timer.interval, 60)
+
     def prefetch(self, h):
         callbacks = []
         h.startup_result['workspace'] = {}
