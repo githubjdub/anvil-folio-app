@@ -10,6 +10,7 @@ import anvil.users
 from anvil.tables import app_tables
 import portfolio_analytics
 import portfolios
+import investor_profiles
 import sectors
 from analysis_selection import analyze_selection
 from portfolio_summary import summarize_portfolio
@@ -19,6 +20,7 @@ original_user = anvil.users.get_user
 original_directory = portfolios._directory_for
 original_fetch = portfolio_analytics._fetch_history
 original_saved_analysis = portfolios._saved_analysis
+original_profile_summary = investor_profiles.profile_summary_for
 users = []
 directory_calls = []
 history_reads = []
@@ -50,6 +52,10 @@ def forbidden_fetch(*args, **kwargs):
     raise AssertionError('Restoring saved values unexpectedly fetched market history')
 
 
+def forbidden_profile_summary(*args, **kwargs):
+    raise AssertionError('Initial saved values waited for investor metrics or ranking')
+
+
 try:
     tag = uuid.uuid4().hex[:12]
     for number in range(2):
@@ -61,6 +67,9 @@ try:
     portfolio_analytics._fetch_history = forbidden_fetch
     empty = portfolios.get_portfolio_startup()
     assert empty['portfolio'] is None and empty['overview'] is None
+    assert empty['workspace']['profile']['investor_pending']
+    assert empty['workspace']['profile']['investor'] is None
+    assert app_tables.investor_profiles.get(owner=user) is None
     as_of = date.today()
     start = as_of - timedelta(days=5 * 365)
     days = [start + timedelta(days=i) for i in range((as_of-start).days+1)
@@ -80,6 +89,19 @@ try:
     assert portfolios.get_portfolio_startup()['overview'] is None
     portfolios.remember_analysis(transactions, as_of, 0, analysis, identifier)
     assert app_tables.portfolios.get_by_id(identifier)['analysis_overview'] is not None
+    # Missing profile metrics previously rebuilt the full analysis before the
+    # visible saved values could return. Profile navigation still completes it.
+    app_tables.investor_profiles.get(owner=user).update(metrics=None)
+    investor_profiles.profile_summary_for = forbidden_profile_summary
+    initial = portfolios.get_portfolio_startup(identifier)
+    assert initial['overview'] is not None
+    assert initial['workspace']['profile']['investor_pending']
+    assert app_tables.investor_profiles.get(owner=user)['metrics'] is None
+    investor_profiles.profile_summary_for = original_profile_summary
+    complete_workspace = portfolios.get_portfolio_workspace()
+    assert not complete_workspace['profile']['investor_pending']
+    assert complete_workspace['profile']['investor']['metrics']['value'] == analysis['metrics']['market_value']
+    print('PASS: saved values skip missing investor metrics and ranking; full workspace hydrates the profile afterward')
     portfolios._directory_for = counted_directory
     portfolios._saved_analysis = counted_saved_analysis
     timings = {name: [] for name in ('account_metadata', 'saved_portfolio', 'analysis_json_encoding',
@@ -196,6 +218,10 @@ try:
     other = portfolios.get_portfolio_startup()
     assert other['portfolio'] is None and other['overview'] is None
     assert other['workspace']['usage']['count'] == 0
+    assert other['workspace']['profile']['investor_pending']
+    other_profile = portfolios.get_portfolio_workspace()['profile']
+    assert not other_profile['investor_pending']
+    assert other_profile['investor']['metrics']['value'] is None
     assert not portfolios.get_portfolio_startup(identifier)['ok']
     assert not portfolios.get_portfolio_history(identifier)['ok']
     user = None
@@ -220,6 +246,7 @@ finally:
     portfolios._directory_for = original_directory
     portfolio_analytics._fetch_history = original_fetch
     portfolios._saved_analysis = original_saved_analysis
+    investor_profiles.profile_summary_for = original_profile_summary
     for user in users:
         for name in ('security_sectors', 'investor_profiles', 'portfolio_directory', 'portfolios'):
             for row in getattr(app_tables, name).search(owner=user):

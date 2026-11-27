@@ -453,10 +453,13 @@ class WorkspaceCacheTests(unittest.TestCase):
         self.calls = 0
         self.hook = None
         self.pending = []
+        self.startup_profile_pending = False
         def call(name, *args):
             self.assertIn(name, ('get_portfolio_workspace', 'get_portfolio_startup'))
             self.calls += 1
             response = {'request': self.calls}
+            if name == 'get_portfolio_startup' and self.startup_profile_pending:
+                response['profile'] = {'investor': None, 'investor_pending': True}
             if self.hook:
                 hook, self.hook = self.hook, None
                 hook()
@@ -619,6 +622,45 @@ class WorkspaceCacheTests(unittest.TestCase):
         self.assertEqual(result['portfolio'], 'p1')
         self.assertIs(self.cache['account_workspace'](), result['workspace'])
         self.assertEqual(self.calls, 1)
+
+    def test_partial_startup_metadata_is_immediate_and_profile_navigation_completes_once(self):
+        self.startup_profile_pending = True
+        result = self.cache['startup_workspace']('p1')
+        self.assertIs(self.cache['account_workspace'](require_profile=False), result['workspace'])
+        self.assertEqual(self.calls, 1)
+        before = self.cache['workspace_revision']()
+        full = self.cache['account_workspace']()
+        self.assertEqual(self.calls, 2)
+        self.assertIs(self.cache['account_workspace'](), full)
+        self.assertGreater(self.cache['workspace_revision'](), before)
+
+    def test_profile_completion_cannot_replace_a_newer_explicit_refresh(self):
+        self.startup_profile_pending = True
+        self.cache['startup_workspace']('p1')
+        newest = []
+        self.hook = lambda: newest.append(self.cache['account_workspace'](force=True))
+        self.assertIsNone(self.cache['account_workspace']())
+        self.assertIs(self.cache['account_workspace'](), newest[0])
+        self.assertEqual(self.calls, 3)
+
+    def test_profile_completion_is_discarded_after_account_switch(self):
+        self.startup_profile_pending = True
+        self.cache['startup_workspace']('p1')
+        self.hook = lambda: setattr(self, 'user', User('b'))
+        self.assertIsNone(self.cache['account_workspace']())
+        self.assertIsNone(self.cache['account_workspace'](require_profile=False).get('profile'))
+        self.assertEqual(self.calls, 3)
+
+    def test_profile_completion_failure_preserves_partial_metadata_and_can_retry(self):
+        self.startup_profile_pending = True
+        partial = self.cache['startup_workspace']('p1')['workspace']
+        def fail():
+            raise RuntimeError('Profile service unavailable')
+        self.hook = fail
+        with self.assertRaisesRegex(RuntimeError, 'Profile service unavailable'):
+            self.cache['account_workspace']()
+        self.assertIs(self.cache['account_workspace'](require_profile=False), partial)
+        self.assertFalse(self.cache['account_workspace']().get('profile', {}).get('investor_pending', False))
 
     def test_startup_does_not_replace_newer_account_metadata(self):
         newest = []

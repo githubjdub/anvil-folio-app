@@ -143,6 +143,7 @@ class WorkspaceHarness:
         self.documents = {}
         self.pending = []
         self.account_reads = 0
+        self.profile_summary = None
         self.tools_created = []
         self.startup_result = {'ok': True, 'portfolio': None, 'overview': None}
         self.startup_hook = self.history_hook = None
@@ -201,7 +202,7 @@ class WorkspaceHarness:
         cls = namespace['Form1']
         # Run the real constructor for state; replace account/DOM/rendering
         # boundaries, leaving navigation, input validation and save logic real.
-        cls._refresh_account = lambda form: self.refresh_account(form)
+        cls._refresh_account = lambda form, **kwargs: self.refresh_account(form)
         cls._restore_last_portfolio = lambda form, *args: None
         cls._ensure_signed_in = lambda form: self.ensure_signed_in(form)
         cls._set_status = lambda form, message, is_error=False: self.statuses.append((message, is_error))
@@ -240,6 +241,7 @@ class WorkspaceHarness:
         form._user = self.user
         form.account_id = self.user.get_id() if self.user else None
         form._username = 'owner' if self.user else ''
+        form._profile_summary = self.profile_summary
 
     def create_tool(self, name):
         self.tools_created.append(name)

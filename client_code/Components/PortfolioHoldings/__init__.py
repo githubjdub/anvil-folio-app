@@ -1,6 +1,7 @@
 from anvil import *
 from ._anvil_designer import PortfolioHoldingsTemplate
 from ...holdings_dashboard import build_dashboard, filter_holdings, quarter_periods, ACTIVITIES
+from ...deferred_work import defer
 
 
 class PortfolioHoldings(PortfolioHoldingsTemplate):
@@ -27,6 +28,7 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self.reset_workspace()
 
   def reset_workspace(self):
+    self._share_bar_job = None
     self._source = None
     self._selected = ()
     self._classification = ()
@@ -160,6 +162,22 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     ) for row in rows]
     self.filter_empty_label.visible = not rows
     self.filter_count_label.text = "%d securities shown · filters affect this table only" % len(rows)
+    # Let the values paint before mounting up to five history-bar Forms per
+    # holding. Small batches leave time for input between groups of rows.
+    job = self._share_bar_job = object()
+    row_forms = self.holdings_panel.get_components()
+    if row_forms:
+      defer(lambda: self._prepare_share_bars(row_forms, job),
+            lambda: job is self._share_bar_job)
+
+  def _prepare_share_bars(self, rows, job, start=0):
+    for row in rows[start:start + 8]:
+      row.prepare_share_bars()
+    # Queue one batch at a time so replaced filters leave only one obsolete
+    # callback, and other page preparation can run between batches.
+    if start + 8 < len(rows):
+      defer(lambda: self._prepare_share_bars(rows, job, start + 8),
+            lambda: job is self._share_bar_job)
 
   @handle("quarter_dropdown", "change")
   def quarter_change(self, **event_args):

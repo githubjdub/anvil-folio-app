@@ -339,25 +339,30 @@ def load_portfolio(portfolio_id):
   return {"ok": True, "portfolio": portfolio, "analysis": _saved_analysis(portfolio)}
 
 
-@anvil.server.callable(require_user=True)
-def get_portfolio_workspace():
-  """One small bootstrap response; analyses are fetched only when opened."""
+def _workspace_for(user, include_investor=True):
   from account_profiles import _profile_for_user
   from creator_portfolios import get_creator_access
-  user = _current_user()
   portfolios = _portfolios_for(user)
   membership = membership_for(user)
-  return {"profile": _profile_for_user(user, portfolios), "membership": membership,
+  return {"profile": _profile_for_user(user, portfolios, include_investor=include_investor), "membership": membership,
           "creator": get_creator_access(), "portfolios": portfolios,
           "usage": {"count": len(portfolios), "limit": membership["portfolio_limit"],
                     "plan": membership["label"], "can_create": len(portfolios) < membership["portfolio_limit"]}}
 
 
 @anvil.server.callable(require_user=True)
+def get_portfolio_workspace() -> dict:
+  """Full account metadata for Profile and prepared navigation."""
+  return _workspace_for(_current_user())
+
+
+@anvil.server.callable(require_user=True)
 def get_portfolio_startup(portfolio_id=None) -> dict:
   """Send visible saved values before the browser downloads daily history."""
   user = _current_user()
-  workspace = get_portfolio_workspace()
+  # Profile metrics can rebuild old histories or scan peer rankings. Complete
+  # that optional metadata after the saved portfolio values are visible.
+  workspace = _workspace_for(user, include_investor=False)
   if portfolio_id is None:
     portfolio = _last_portfolio_for(user, workspace["portfolios"])
   else:

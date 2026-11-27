@@ -55,6 +55,54 @@ class StartupValuesTests(unittest.TestCase):
         self.assertEqual(h.form.market_status_label.text, 'Market closed')
         self.assertEqual(h.form.market_status_timer.interval, 60)
 
+    def test_profile_completion_runs_after_values_and_updates_the_existing_page(self):
+        h = self.ready()
+        h.profile_summary = {'investor_pending': True, 'investor': None}
+        completed = {'investor_pending': False, 'investor': {'avatar': 'avatar'}}
+        profile_calls, rendered = [], []
+        h.namespace['account_workspace'] = lambda: (profile_calls.append('profile') or {'profile': completed})
+        h.form._update_welcome = lambda: rendered.append(h.form._profile_summary)
+        self.show_values(h)
+        self.assertTrue(h.form.results_section.visible)
+        self.assertEqual(profile_calls, [])
+        self.assertTrue(h.form._profile_summary['investor_pending'])
+        h.form._update_profile_ranking()
+        self.assertEqual(h.form.summary_rank_note.text, 'Loading profile ranking…')
+        h.run_idle()
+        self.assertEqual(profile_calls, ['profile'])
+        self.assertIs(h.form._profile_summary, completed)
+        self.assertIs(rendered[-1], completed)
+
+    def test_pending_profile_completion_survives_history_failure(self):
+        h = self.ready()
+        h.profile_summary = {'investor_pending': True, 'investor': None}
+        completed = {'investor_pending': False, 'investor': {}}
+        h.namespace['account_workspace'] = lambda: {'profile': completed}
+        self.show_values(h)
+        h.history_error = RuntimeError('History unavailable')
+        with self.assertRaisesRegex(RuntimeError, 'History unavailable'):
+            h.pending.pop(0)[0]()
+        h.run_idle()
+        self.assertIs(h.form._profile_summary, completed)
+
+    def test_profile_completion_rejects_account_changes_before_and_during_read(self):
+        for during_read in (False, True):
+            with self.subTest(during_read=during_read):
+                h = self.ready()
+                h.profile_summary = {'investor_pending': True, 'investor': None}
+                self.show_values(h)
+                calls = []
+                def complete():
+                    calls.append('profile')
+                    h.user = User('b')
+                    return {'profile': {'investor_pending': False}}
+                h.namespace['account_workspace'] = complete
+                if not during_read:
+                    h.user = User('b')
+                h.form._load_startup_profile('a')
+                self.assertTrue(h.form._profile_summary['investor_pending'])
+                self.assertEqual(calls, ['profile'] if during_read else [])
+
     def prefetch(self, h):
         callbacks = []
         h.startup_result['workspace'] = {}
@@ -269,7 +317,8 @@ class HoldingsSnapshotTests(unittest.TestCase):
         tree = ast.parse(path.read_text())
         tree.body = [node for node in tree.body if isinstance(node, ast.ClassDef)]
         namespace = dict(functions, PortfolioHoldingsTemplate=Template,
-                         handle=lambda *args: lambda fn: fn)
+                         handle=lambda *args: lambda fn: fn,
+                         defer=lambda *args, **kwargs: None)
         exec(compile(tree, str(path), 'exec'), namespace)
         form = namespace['PortfolioHoldings']()
         analysis = source([point(100, 1), point(100, 2), point(110, 2), point(110, 2)])

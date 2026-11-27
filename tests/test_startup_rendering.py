@@ -84,12 +84,13 @@ class TransactionPreparationTests(unittest.TestCase):
 
 
 class HoldingsDetailsTests(unittest.TestCase):
-    def test_share_details_mount_on_first_open_and_remain_reusable(self):
+    def row(self, history=None):
         source = APP / 'client_code/Components/PortfolioHoldingTableRow/__init__.py'
         tree = ast.parse(source.read_text())
         tree.body = [node for node in tree.body if isinstance(node, ast.ClassDef)]
-        history = [{'label_text': 'Q1 2026', 'shares_text': '5', 'change_text': '—',
-                    'change': None, 'date': '2026-03-31'}]
+        if history is None:
+            history = [{'label_text': 'Q1 2026', 'shares_text': '5', 'change_text': '—',
+                        'change': None, 'date': '2026-03-31'}]
         class Template:
             def __init__(self, **properties):
                 self.item = dict(weight=.5, is_open=True, shares_text='5',
@@ -103,14 +104,78 @@ class HoldingsDetailsTests(unittest.TestCase):
         namespace = dict(PortfolioHoldingTableRowTemplate=Template,
                          display_share_history=lambda rows: rows)
         exec(compile(tree, str(source), 'exec'), namespace)
-        row = namespace['PortfolioHoldingTableRow']()
-        self.assertEqual(row.share_bars.items, history)
+        return namespace['PortfolioHoldingTableRow'](), history
+
+    def test_early_open_mounts_bars_and_details_once(self):
+        row, history = self.row()
+        self.assertEqual(row.share_bars.items_assignments, 0)
         self.assertEqual(row.share_history.items_assignments, 0)
         for opened in (False, True, False, True):
             row.history_toggle(SimpleNamespace(currentTarget=SimpleNamespace(open=opened)))
+        row.prepare_share_bars()
+        self.assertEqual(row.share_bars.items, history)
+        self.assertEqual(row.share_bars.items_assignments, 1)
         self.assertEqual(row.share_history.items, history)
         self.assertEqual(row.share_history.items_assignments, 1)
         self.assertIn('Q1 2026: 5', row.history_summary.attrs['title'])
+
+    def test_background_bars_keep_details_lazy_and_handle_missing_history(self):
+        for history in (None, []):
+            row, expected = self.row(history)
+            self.assertEqual(row.share_bars.items_assignments, 0)
+            row.prepare_share_bars()
+            row.prepare_share_bars()
+            self.assertEqual(row.share_bars.items, expected)
+            self.assertEqual(row.share_bars.items_assignments, 1)
+            self.assertEqual(row.share_history.items_assignments, 0)
+            self.assertEqual(row.history_empty_label.visible, not expected)
+
+
+class HoldingsBarPreparationTests(unittest.TestCase):
+    def fixture(self):
+        from test_startup_values import HoldingsSnapshotTests
+        form, analysis, snapshot, namespace = HoldingsSnapshotTests().fixture()
+        prepared, pending = [], []
+        snapshot['rows'] = [dict(snapshot['rows'][0], symbol='TEST%s' % index)
+                            for index in range(20)]
+        rows = [SimpleNamespace(prepare_share_bars=lambda index=index: prepared.append(index))
+                for index in range(20)]
+        form.holdings_panel.get_components = lambda: rows[:len(form.holdings_panel.items)]
+        namespace['defer'] = lambda callback, current: pending.append((callback, current))
+        form.set_startup_snapshot(snapshot)
+        return form, prepared, pending
+
+    def run_pending(self, pending):
+        while pending:
+            callback, current = pending.pop(0)
+            if current():
+                callback()
+
+    def test_values_render_before_bar_batches(self):
+        form, prepared, pending = self.fixture()
+        self.assertEqual(form.value_label.text, '$110.00')
+        self.assertEqual(len(form.holdings_panel.items), 20)
+        self.assertEqual(prepared, [])
+        self.assertEqual(len(pending), 1)
+        callback, current = pending.pop(0)
+        self.assertTrue(current())
+        callback()
+        self.assertEqual(prepared, list(range(8)))
+        self.assertEqual(len(pending), 1)
+        self.run_pending(pending)
+        self.assertEqual(prepared, list(range(20)))
+
+    def test_replaced_table_and_account_reset_cancel_old_batches(self):
+        for reset in (False, True):
+            form, prepared, pending = self.fixture()
+            if reset:
+                form.reset_workspace()
+            else:
+                form.search_box.text = 'missing-security'
+                form.table_filter_change()
+                self.assertEqual(form.holdings_panel.items, [])
+            self.run_pending(pending)
+            self.assertEqual(prepared, [])
 
 
 if __name__ == '__main__':

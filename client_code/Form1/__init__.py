@@ -335,7 +335,7 @@ class Form1(Form1Template):
       if result is None or not self._workspace_matches(account_id, None):
         return
       # startup_workspace already populated the shared account metadata cache.
-      self._refresh_account()
+      self._refresh_account(require_profile=False)
       if not self._workspace_matches(account_id, None):
         return
       if not result["ok"]:
@@ -354,11 +354,25 @@ class Form1(Form1Template):
           generation = self._autosave_generation
           defer(lambda: self._load_startup_history(account_id, portfolio.get_id(), generation), priority=True)
           history_pending = True
+      if (self._profile_summary or {}).get("investor_pending"):
+        defer(lambda: self._load_startup_profile(account_id))
     finally:
       if not history_pending:
         self._release_startup()
     if not history_pending:
       self._complete_startup()
+
+  def _load_startup_profile(self, account_id):
+    user = anvil.users.get_user()
+    if user is None or user.get_id() != account_id or self.account_id != account_id:
+      return
+    workspace = account_workspace()
+    user = anvil.users.get_user()
+    if (workspace is None or user is None or user.get_id() != account_id
+        or self.account_id != account_id):
+      return
+    self._profile_summary = workspace["profile"]
+    self._update_welcome()
 
   def _load_startup_history(self, account_id, portfolio_id, generation):
     try:
@@ -1324,7 +1338,7 @@ class Form1(Form1Template):
     )
     self._update_controls()
 
-  def _refresh_account(self):
+  def _refresh_account(self, require_profile=True):
     previous_account_id = self.account_id
     self._user = anvil.users.get_user()
     self.account_id = self._user.get_id() if self._user is not None else None
@@ -1339,7 +1353,7 @@ class Form1(Form1Template):
     workspace = None
     if self._user is not None:
       # A saved profile can be newer than the Users row cached in this browser.
-      workspace = account_workspace()
+      workspace = account_workspace(require_profile=require_profile)
       current_user = anvil.users.get_user()
       if workspace is None or current_user is None or current_user.get_id() != self.account_id:
         self._refresh_account()
@@ -1477,6 +1491,7 @@ class Form1(Form1Template):
     self.guest_hero.visible = not signed_in
     self.welcome_region.visible = True
     profile = self._profile_summary or {}
+    self.portfolio_avatar.visible = not profile.get("investor_pending", False)
     investor = profile.get("investor") or {}
     verification = investor.get("verification") or {}
     self.portfolio_avatar.source = investor.get("avatar") or "_/theme/folio-mark.svg"
@@ -1490,6 +1505,11 @@ class Form1(Form1Template):
     self._update_profile_ranking()
 
   def _update_profile_ranking(self):
+    if (self._profile_summary or {}).get("investor_pending"):
+      self.summary_rank_label.text = "—"
+      self.summary_rank_note.text = "Loading profile ranking…"
+      self.summary_rank_label.tooltip = "Your saved portfolio values are ready. Profile ranking is loading."
+      return
     investor = (self._profile_summary or {}).get("investor") or {}
     ranking = investor.get("ranking") or {}
     portfolio_id = self._current_portfolio.get_id() if self._current_portfolio is not None else None

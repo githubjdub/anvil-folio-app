@@ -458,5 +458,63 @@
       ]
     },
     "browser_startup": "Browser interaction and end-to-end values latency remain unmeasured in this environment. The local window.folioStartupTimings report includes the new overlap and remaining-wait phases."
+  },
+  "deferred_calculation_imports": {
+    "verified_at_utc": "2026-11-27T19:09:53Z",
+    "changes": [
+      "Import analysis selection, trade markers, allocation grouping and equal-weight calculations when their methods first need them.",
+      "Defer explicit Form1 imports of transaction grouping and editor Form types until their methods need them. These modules remain reachable through RepeatingPanel templates in the conservative source audit.",
+      "Wait for initial portfolio values before polling market status.",
+      "Prepare regular portfolio views in the background after values and history arrive."
+    ],
+    "initial_import_footprint": {
+      "scope": "Static app-local Python source reachable from Router and Form1 through top-level imports and embedded Forms, conservatively including RepeatingPanel item templates. Runtime and dependency source are excluded. Browser timing and network transfer size are measured separately.",
+      "before": {
+        "module_count": 32,
+        "python_source_bytes": 270016,
+        "python_source_lines": 6005
+      },
+      "after": {
+        "module_count": 28,
+        "python_source_bytes": 249093,
+        "python_source_lines": 5517
+      },
+      "source_bytes_reduction_percent": 7.7,
+      "deferred_modules": [
+        "allocation_breakdown",
+        "analysis_selection",
+        "chart_trades",
+        "performance_weighting"
+      ]
+    },
+    "checks": {
+      "unit_tests_passed": 306,
+      "app_files_validated": 186,
+      "validation_issues": 0,
+      "client_behavior": "Saved values render before importing analysis selection or grouping transaction editors. Market polling waits for initial values, then resumes. Existing startup, navigation, editing and calculation tests pass.",
+      "live_behavior": "Passed exact saved-values and full-history equivalence, zero history decodes before values, one directory query, zero market-history fetches, legacy cache upgrades, rename reuse, late-backfill protection, sector overrides, edit invalidation, unavailable portfolios and account isolation. Temporary benchmark fixtures removed."
+    },
+    "server_execution": {
+      "scope": "Server execution with an eight-security, five-year fixture over seven samples. Browser rendering, RPC transport and cold runtime startup are excluded.",
+      "startup_values_ms": {
+        "median": 114.5,
+        "min": 108.6,
+        "max": 128.0
+      },
+      "deferred_history_ms": {
+        "median": 72.3,
+        "min": 68.1,
+        "max": 77.8
+      },
+      "note": "This live check verifies the existing saved-values cache after the client import changes. Its timings do not quantify the browser impact of deferring imports."
+    },
+    "http_reachability": {
+      "scope": "HTTP document only, excluding browser rendering, login and portfolio RPCs",
+      "status": 200,
+      "ttfb_ms": 267.9,
+      "total_ms": 277.8,
+      "transfer_bytes": 330643
+    },
+    "browser_startup": "End-to-end browser startup and visible values latency remain unmeasured. Manual Editor checks remain for opening a saved portfolio, switching Performance and Transactions views, and editing invalid share quantities."
   }
 }

@@ -117,15 +117,16 @@ def _schedule_refresh():
   anvil.js.window.setTimeout(anvil.js.report_exceptions(refresh), 0)
 
 
-def account_workspace(force=False):
-  global _workspace, _loaded_at
+def account_workspace(force=False, require_profile=True):
+  global _workspace, _loaded_at, _revision
   workspace_revision()
   account_id = _account_id
   if force:
     invalidate_workspace()
   if account_id is None:
     return None
-  if _workspace is not None:
+  profile_pending = (_workspace or {}).get("profile", {}).get("investor_pending", False)
+  if _workspace is not None and (not require_profile or not profile_pending):
     return _workspace
   revision = _revision
   result = anvil.server.call("get_portfolio_workspace")
@@ -134,6 +135,8 @@ def account_workspace(force=False):
     return None
   _workspace = result
   _loaded_at = time()
+  if profile_pending:
+    _revision += 1
   return result
 
 
