@@ -562,7 +562,7 @@
     "browser_startup": "End-to-end browser loading time remains unmeasured. Manual Editor checks remain for values appearing before profile ranking and history bars, early detail opening, immediate Profile navigation, and a holdings search with no matches."
   },
   "deferred_startup_display_imports": {
-    "verified_at_utc": "2026-11-28T02:25:17Z",
+    "verified_at_utc": "2026-11-28T05:16:44Z",
     "changes": [
       "Render empty and saved portfolio summaries using lightweight display helpers; import full summary and quarterly calculations only when history is available.",
       "Render saved holdings, table filters and quarterly-share labels without importing the holdings-history calculator.",
@@ -591,28 +591,28 @@
       "unit_tests_passed": 321,
       "app_files_validated": 187,
       "validation_issues": 0,
-      "client_behavior": "Passed empty/saved summaries without history imports, provisional and negative values, exact summaries after history, account reset, independent placeholders, saved-snapshot reuse, filtering and historical-quarter calculation. The 27 startup-value tests were rerun after strengthening import-tracking assertions.",
+      "client_behavior": "All 321 tests passed after the environment restart, including empty/saved summaries without history imports, provisional and negative values, exact summaries after history, account reset, independent placeholders, saved-snapshot reuse, filtering and historical-quarter calculation.",
       "live_behavior": "Saved values equal full analysis, with zero history decodes and zero market fetches before values. Deferred profile hydration, legacy cache upgrades, rename reuse, late-backfill protection, sector overrides, edit invalidation, unavailable portfolios and account isolation passed. Temporary fixtures removed."
     },
     "server_execution": {
       "scope": "Existing eight-security, five-year fixture, seven samples. Server execution only; excludes browser rendering, RPC transport and cold runtime startup. These timings verify the unchanged server path and do not measure the client import improvement.",
       "startup_values_ms": {
-        "median": 79.3,
-        "min": 72.6,
-        "max": 82.6
+        "median": 83.9,
+        "min": 75.9,
+        "max": 95.9
       },
       "deferred_history_ms": {
-        "median": 71.4,
-        "min": 68.6,
-        "max": 76.1
+        "median": 77.7,
+        "min": 72.1,
+        "max": 119.9
       }
     },
     "http_reachability": {
-      "scope": "HTTP document only; excludes browser rendering, login and portfolio RPCs",
+      "scope": "HTTP document only, excluding browser rendering, login and portfolio RPCs",
       "status": 200,
-      "ttfb_ms": 331.0,
-      "total_ms": 340.5,
-      "transfer_bytes": 331630
+      "ttfb_ms": 199.9,
+      "total_ms": 210.8,
+      "transfer_bytes": 331643
     },
     "browser_startup": "End-to-end browser loading time remains unmeasured. Manual Editor checks remain for reopening a saved portfolio, switching to Performance, changing holdings quarters, empty accounts and holdings searches with no matches."
   }
