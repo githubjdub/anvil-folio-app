@@ -1,0 +1,5238 @@
+{
+  "settings": {
+    "viewport": {
+      "width": 393,
+      "height": 851
+    },
+    "device_scale_factor": 3,
+    "mobile": true,
+    "touch": true,
+    "latency_ms": 150,
+    "download_bits_per_second": 1600000,
+    "upload_bits_per_second": 750000,
+    "cpu_slowdown": 4
+  },
+  "scope": "Headless Chromium in the agent environment, simulated mobile connection and CPU. Not a measurement on an actual iPhone or the production host. Synthetic saved portfolio; no external market fetches.",
+  "milestones": {
+    "portfolio_frame": "Paint opportunity after the portfolio Form attaches (framework opening screen cleared).",
+    "values_frame": "Paint opportunity after saved portfolio totals and holdings are applied.",
+    "ready_frame": "Paint opportunity after deferred history is available.",
+    "first_contentful_paint": "Browser FCP can be the framework loading screen, not the app."
+  },
+  "runs": [
+    {
+      "label": "before",
+      "cache": "cold",
+      "sample": 1,
+      "revision": "d626ffb9b89cb976b2418d0c40285c47955fefe5",
+      "marks": {
+        "router_started": 5546.5,
+        "values_load_start": 6411.8,
+        "portfolio_import_start": 6686.3,
+        "portfolio_import_end": 9216.8,
+        "portfolio_build_start": 11905.3,
+        "portfolio_template_ready": 11922.6,
+        "portfolio_shell_ready": 12709.3,
+        "values_load_end": 12742.2,
+        "portfolio_attached": 13320.5,
+        "portfolio_frame": 13694.9,
+        "values_ready": 17492.6,
+        "values_frame": 17677
+      },
+      "paints": {
+        "first-paint": 1192,
+        "first-contentful-paint": 1380
+      },
+      "document": {
+        "response_end_ms": 1807.3999996185303,
+        "transfer_bytes": 1837644
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 311,
+          "duration_ms": 66,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 313,
+          "duration_ms": 68,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 315,
+          "duration_ms": 160,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 316,
+          "duration_ms": 171,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 316,
+          "duration_ms": 260,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 316,
+          "duration_ms": 261,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 316,
+          "duration_ms": 258,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 316,
+          "duration_ms": 260,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 316,
+          "duration_ms": 172,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 316,
+          "duration_ms": 259,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 317,
+          "duration_ms": 169,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 317,
+          "duration_ms": 258,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "text.css",
+          "start_ms": 317,
+          "duration_ms": 177,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 317,
+          "duration_ms": 262,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 317,
+          "duration_ms": 260,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 317,
+          "duration_ms": 261,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 739,
+          "duration_ms": 37,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 773,
+          "duration_ms": 14,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 775,
+          "duration_ms": 101,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 776,
+          "duration_ms": 100,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 779,
+          "duration_ms": 94,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 782,
+          "duration_ms": 97,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 783,
+          "duration_ms": 94,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 784,
+          "duration_ms": 96,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 785,
+          "duration_ms": 295,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 786,
+          "duration_ms": 189,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 787,
+          "duration_ms": 500,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "log",
+          "start_ms": 3932,
+          "duration_ms": 51,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 9079,
+          "duration_ms": 18,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 12004,
+          "duration_ms": 17,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 13385,
+          "duration_ms": 17,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "cache": "warm",
+      "sample": 1,
+      "revision": "c02e5c2281dd56f46c359bb0ddaa53a4a05df80e",
+      "marks": {
+        "router_started": 6912.2,
+        "values_load_start": 7812.2,
+        "portfolio_import_start": 8187.9,
+        "portfolio_import_end": 10514.5,
+        "portfolio_build_start": 13121.9,
+        "portfolio_template_ready": 13138.2,
+        "portfolio_shell_ready": 13923.1,
+        "values_load_end": 13984.8,
+        "portfolio_attached": 14705.5,
+        "portfolio_frame": 14980.8,
+        "values_ready": 19581.3,
+        "values_frame": 19797.1
+      },
+      "paints": {
+        "first-paint": 972,
+        "first-contentful-paint": 972
+      },
+      "document": {
+        "response_end_ms": 1707.400001525879,
+        "transfer_bytes": 1837644
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 407,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 407,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 408,
+          "duration_ms": 65,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 410,
+          "duration_ms": 63,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 414,
+          "duration_ms": 73,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 417,
+          "duration_ms": 71,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 418,
+          "duration_ms": 154,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 419,
+          "duration_ms": 157,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 419,
+          "duration_ms": 157,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 420,
+          "duration_ms": 154,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 420,
+          "duration_ms": 155,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 471,
+          "duration_ms": 107,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 472,
+          "duration_ms": 107,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 473,
+          "duration_ms": 104,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 473,
+          "duration_ms": 103,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 473,
+          "duration_ms": 108,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 733,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 783,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 790,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 791,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 792,
+          "duration_ms": 11,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 801,
+          "duration_ms": 14,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 801,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 804,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 805,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 806,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 807,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 887,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        },
+        {
+          "name": "pxiEyp8kv8JHgFVrJJfecg.woff2",
+          "start_ms": 891,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 7884,
+          "decoded_bytes": 7884
+        },
+        {
+          "name": "kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2",
+          "start_ms": 899,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4026236,
+          "decoded_bytes": 4026236
+        },
+        {
+          "name": "log",
+          "start_ms": 5312,
+          "duration_ms": 71,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 10383,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 10525,
+          "duration_ms": 20,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "cache": "cold",
+      "sample": 2,
+      "revision": "2fab3bf31875dec3c813e07456894868c8c83e3a",
+      "marks": {
+        "router_started": 7857.5,
+        "values_load_start": 8738.6,
+        "portfolio_import_start": 9102.5,
+        "portfolio_import_end": 11212,
+        "portfolio_build_start": 13626.8,
+        "portfolio_template_ready": 13641.6,
+        "portfolio_shell_ready": 14416.1,
+        "values_load_end": 14450.2,
+        "portfolio_attached": 15035.4,
+        "portfolio_frame": 15429.1,
+        "values_ready": 18919.1,
+        "values_frame": 19025
+      },
+      "paints": {
+        "first-paint": 1644,
+        "first-contentful-paint": 1904
+      },
+      "document": {
+        "response_end_ms": 3230.2999992370605,
+        "transfer_bytes": 1837644
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 717,
+          "duration_ms": 5,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 721,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 721,
+          "duration_ms": 82,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 722,
+          "duration_ms": 82,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 724,
+          "duration_ms": 81,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 725,
+          "duration_ms": 176,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 725,
+          "duration_ms": 177,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 725,
+          "duration_ms": 176,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 725,
+          "duration_ms": 177,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 728,
+          "duration_ms": 176,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 729,
+          "duration_ms": 177,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 729,
+          "duration_ms": 178,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 730,
+          "duration_ms": 180,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 730,
+          "duration_ms": 175,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 730,
+          "duration_ms": 179,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 730,
+          "duration_ms": 179,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 1209,
+          "duration_ms": 7,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 1220,
+          "duration_ms": 10,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 1223,
+          "duration_ms": 79,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 1224,
+          "duration_ms": 80,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 1225,
+          "duration_ms": 95,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 1225,
+          "duration_ms": 99,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 1225,
+          "duration_ms": 81,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 1225,
+          "duration_ms": 81,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 1225,
+          "duration_ms": 275,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 1226,
+          "duration_ms": 276,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 1226,
+          "duration_ms": 299,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "log",
+          "start_ms": 6257,
+          "duration_ms": 51,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 11083,
+          "duration_ms": 18,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 13739,
+          "duration_ms": 62,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 15064,
+          "duration_ms": 38,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "cache": "warm",
+      "sample": 2,
+      "revision": "ee3a23681bcccb23304c7eec31081e9b4bb3b9c2",
+      "marks": {
+        "router_started": 6639.1,
+        "values_load_start": 7476.9,
+        "portfolio_import_start": 7688.9,
+        "portfolio_import_end": 9776.7,
+        "portfolio_build_start": 12156.6,
+        "portfolio_template_ready": 12159.8,
+        "portfolio_shell_ready": 12893.4,
+        "values_load_end": 12931.7,
+        "portfolio_attached": 13494.5,
+        "portfolio_frame": 13680.2,
+        "values_ready": 16625,
+        "values_frame": 16749.5
+      },
+      "paints": {
+        "first-paint": 1188,
+        "first-contentful-paint": 1188
+      },
+      "document": {
+        "response_end_ms": 1610.6000003814697,
+        "transfer_bytes": 1837644
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 411,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 412,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 413,
+          "duration_ms": 76,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 416,
+          "duration_ms": 164,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 417,
+          "duration_ms": 170,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 417,
+          "duration_ms": 161,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 418,
+          "duration_ms": 160,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 418,
+          "duration_ms": 161,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 418,
+          "duration_ms": 163,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 418,
+          "duration_ms": 165,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 418,
+          "duration_ms": 170,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 418,
+          "duration_ms": 172,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 418,
+          "duration_ms": 170,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 418,
+          "duration_ms": 172,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 419,
+          "duration_ms": 257,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 419,
+          "duration_ms": 257,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 930,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 974,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 980,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 981,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 982,
+          "duration_ms": 16,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 990,
+          "duration_ms": 16,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 991,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 993,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 993,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 995,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 996,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 1100,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        },
+        {
+          "name": "pxiEyp8kv8JHgFVrJJfecg.woff2",
+          "start_ms": 1104,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 7884,
+          "decoded_bytes": 7884
+        },
+        {
+          "name": "kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2",
+          "start_ms": 1112,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4026236,
+          "decoded_bytes": 4026236
+        },
+        {
+          "name": "log",
+          "start_ms": 4609,
+          "duration_ms": 80,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 9677,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 9782,
+          "duration_ms": 15,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "cache": "cold",
+      "sample": 3,
+      "revision": "6a5fecfacd91f48144c969952fb5df1c53d14a4a",
+      "marks": {
+        "router_started": 6799.1,
+        "values_load_start": 7685.1,
+        "portfolio_import_start": 7983.5,
+        "portfolio_import_end": 10228.1,
+        "portfolio_build_start": 12563.5,
+        "portfolio_template_ready": 12595.3,
+        "portfolio_shell_ready": 13339.5,
+        "values_load_end": 13391,
+        "portfolio_attached": 14033,
+        "portfolio_frame": 14398.6,
+        "values_ready": 17907.7,
+        "values_frame": 18013.6
+      },
+      "paints": {
+        "first-paint": 912,
+        "first-contentful-paint": 912
+      },
+      "document": {
+        "response_end_ms": 1484,
+        "transfer_bytes": 1837644
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 311,
+          "duration_ms": 5,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 314,
+          "duration_ms": 2,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 314,
+          "duration_ms": 69,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 315,
+          "duration_ms": 69,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 316,
+          "duration_ms": 75,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 316,
+          "duration_ms": 164,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 318,
+          "duration_ms": 77,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 319,
+          "duration_ms": 160,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 320,
+          "duration_ms": 160,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 320,
+          "duration_ms": 162,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 321,
+          "duration_ms": 160,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 321,
+          "duration_ms": 161,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 321,
+          "duration_ms": 163,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 321,
+          "duration_ms": 161,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 321,
+          "duration_ms": 162,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 322,
+          "duration_ms": 162,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 634,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 642,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 643,
+          "duration_ms": 39,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 644,
+          "duration_ms": 138,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 645,
+          "duration_ms": 52,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 645,
+          "duration_ms": 50,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 645,
+          "duration_ms": 42,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 647,
+          "duration_ms": 40,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 647,
+          "duration_ms": 55,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 647,
+          "duration_ms": 55,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 647,
+          "duration_ms": 140,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "log",
+          "start_ms": 4684,
+          "duration_ms": 13,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 10101,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 12697,
+          "duration_ms": 18,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 14099,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "cache": "warm",
+      "sample": 3,
+      "revision": "101b612c24d6cd155875861bff2dabb94ddd57e6",
+      "marks": {
+        "router_started": 6764.4,
+        "values_load_start": 8121.3,
+        "portfolio_import_start": 8409.4,
+        "portfolio_import_end": 10818.9,
+        "portfolio_build_start": 13409.2,
+        "portfolio_template_ready": 13424.4,
+        "portfolio_shell_ready": 13934.2,
+        "values_load_end": 13964.3,
+        "portfolio_attached": 14522.1,
+        "portfolio_frame": 14654.7,
+        "values_ready": 17633.2,
+        "values_frame": 17798.5
+      },
+      "paints": {
+        "first-paint": 920,
+        "first-contentful-paint": 920
+      },
+      "document": {
+        "response_end_ms": 1447.3999996185303,
+        "transfer_bytes": 1837644
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 326,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 326,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 326,
+          "duration_ms": 87,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 333,
+          "duration_ms": 86,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 335,
+          "duration_ms": 169,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 335,
+          "duration_ms": 168,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 335,
+          "duration_ms": 170,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 336,
+          "duration_ms": 167,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 336,
+          "duration_ms": 171,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 336,
+          "duration_ms": 166,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 336,
+          "duration_ms": 171,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 336,
+          "duration_ms": 170,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 336,
+          "duration_ms": 170,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 401,
+          "duration_ms": 106,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 410,
+          "duration_ms": 99,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 411,
+          "duration_ms": 105,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 723,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 743,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 747,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 750,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 750,
+          "duration_ms": 51,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 761,
+          "duration_ms": 41,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 763,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 764,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 764,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 764,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 764,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 834,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        },
+        {
+          "name": "pxiEyp8kv8JHgFVrJJfecg.woff2",
+          "start_ms": 841,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 7884,
+          "decoded_bytes": 7884
+        },
+        {
+          "name": "kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2",
+          "start_ms": 853,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4026236,
+          "decoded_bytes": 4026236
+        },
+        {
+          "name": "log",
+          "start_ms": 4627,
+          "duration_ms": 82,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 10707,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 13501,
+          "duration_ms": 19,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "cache": "cold",
+      "sample": 1,
+      "revision": "54781af8a43750d1eb9df3866b4e8a5a896662f3",
+      "marks": {
+        "router_started": 5895.3,
+        "values_load_start": 6762.9,
+        "portfolio_import_start": 7000.5,
+        "portfolio_import_end": 8817.9,
+        "portfolio_build_start": 11274,
+        "portfolio_template_ready": 11289.8,
+        "portfolio_shell_ready": 12017.2,
+        "values_load_end": 12071.9,
+        "portfolio_attached": 12670.2,
+        "portfolio_frame": 12969.8,
+        "values_ready": 16819.6,
+        "values_frame": 16970.1
+      },
+      "paints": {
+        "first-paint": 1364,
+        "first-contentful-paint": 1460
+      },
+      "document": {
+        "response_end_ms": 2073.300001144409,
+        "transfer_bytes": 1842278
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 542,
+          "duration_ms": 21,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 562,
+          "duration_ms": 2,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 563,
+          "duration_ms": 16,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 564,
+          "duration_ms": 18,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 565,
+          "duration_ms": 95,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 566,
+          "duration_ms": 93,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 567,
+          "duration_ms": 92,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 568,
+          "duration_ms": 90,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 569,
+          "duration_ms": 94,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 569,
+          "duration_ms": 88,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 571,
+          "duration_ms": 90,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 571,
+          "duration_ms": 90,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 572,
+          "duration_ms": 91,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 574,
+          "duration_ms": 100,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 575,
+          "duration_ms": 98,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 575,
+          "duration_ms": 97,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 940,
+          "duration_ms": 16,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 960,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 961,
+          "duration_ms": 99,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 962,
+          "duration_ms": 97,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 963,
+          "duration_ms": 14,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 964,
+          "duration_ms": 15,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 966,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 967,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 967,
+          "duration_ms": 103,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 969,
+          "duration_ms": 106,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 971,
+          "duration_ms": 287,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "log",
+          "start_ms": 4104,
+          "duration_ms": 54,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 8702,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 11368,
+          "duration_ms": 17,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 12700,
+          "duration_ms": 2,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "cache": "warm",
+      "sample": 1,
+      "revision": "eaa350b086f1fbfbf8e00917f18a1ee604684787",
+      "marks": {
+        "router_started": 6726.7,
+        "values_load_start": 7558,
+        "portfolio_import_start": 7901.2,
+        "portfolio_import_end": 9604.4,
+        "portfolio_build_start": 12263.1,
+        "portfolio_template_ready": 12282.7,
+        "portfolio_shell_ready": 12821.1,
+        "values_load_end": 12840.7,
+        "portfolio_attached": 13426.2,
+        "portfolio_frame": 13621,
+        "values_ready": 17319.1,
+        "values_frame": 17458.4
+      },
+      "paints": {
+        "first-paint": 1220,
+        "first-contentful-paint": 1220
+      },
+      "document": {
+        "response_end_ms": 1653.2999992370605,
+        "transfer_bytes": 1842278
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 504,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 505,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 506,
+          "duration_ms": 106,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 508,
+          "duration_ms": 104,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 508,
+          "duration_ms": 95,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 510,
+          "duration_ms": 102,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 511,
+          "duration_ms": 101,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 512,
+          "duration_ms": 100,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 513,
+          "duration_ms": 99,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 514,
+          "duration_ms": 188,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 517,
+          "duration_ms": 184,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 517,
+          "duration_ms": 188,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 518,
+          "duration_ms": 187,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 519,
+          "duration_ms": 188,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 521,
+          "duration_ms": 187,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 522,
+          "duration_ms": 195,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 960,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 1000,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 1008,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 1011,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 1012,
+          "duration_ms": 15,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 1023,
+          "duration_ms": 74,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 1025,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 1027,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 1029,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 1031,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 1033,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 1128,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        },
+        {
+          "name": "pxiEyp8kv8JHgFVrJJfecg.woff2",
+          "start_ms": 1135,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 7884,
+          "decoded_bytes": 7884
+        },
+        {
+          "name": "kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2",
+          "start_ms": 1146,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4026236,
+          "decoded_bytes": 4026236
+        },
+        {
+          "name": "log",
+          "start_ms": 4532,
+          "duration_ms": 66,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 9486,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 9610,
+          "duration_ms": 16,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        },
+        {
+          "name": "glyphicons-halflings-regular.woff",
+          "start_ms": 13840,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 23320,
+          "decoded_bytes": 23320
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "cache": "cold",
+      "sample": 2,
+      "revision": "412306dbfff88e3a4b028d63304a888570168c5b",
+      "marks": {
+        "router_started": 7101.3,
+        "values_load_start": 8309.7,
+        "portfolio_import_start": 8587.2,
+        "portfolio_import_end": 10512.6,
+        "portfolio_build_start": 12743.3,
+        "portfolio_template_ready": 12778.9,
+        "portfolio_shell_ready": 13305.9,
+        "values_load_end": 13337.4,
+        "portfolio_attached": 13878.7,
+        "portfolio_frame": 14208.3,
+        "values_ready": 19087.7,
+        "values_frame": 19193.1
+      },
+      "paints": {
+        "first-paint": 1284,
+        "first-contentful-paint": 1384
+      },
+      "document": {
+        "response_end_ms": 1820.2999992370605,
+        "transfer_bytes": 1842278
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 597,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 600,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 600,
+          "duration_ms": 84,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 601,
+          "duration_ms": 80,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 602,
+          "duration_ms": 86,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 602,
+          "duration_ms": 86,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 603,
+          "duration_ms": 173,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 604,
+          "duration_ms": 177,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 604,
+          "duration_ms": 86,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 605,
+          "duration_ms": 173,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 608,
+          "duration_ms": 169,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 608,
+          "duration_ms": 169,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 610,
+          "duration_ms": 170,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 675,
+          "duration_ms": 107,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 676,
+          "duration_ms": 108,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 676,
+          "duration_ms": 109,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 985,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 994,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 995,
+          "duration_ms": 82,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 996,
+          "duration_ms": 82,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 997,
+          "duration_ms": 80,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 998,
+          "duration_ms": 80,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 999,
+          "duration_ms": 6,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 1001,
+          "duration_ms": 5,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 1002,
+          "duration_ms": 81,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 1003,
+          "duration_ms": 81,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 1005,
+          "duration_ms": 192,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "log",
+          "start_ms": 4622,
+          "duration_ms": 66,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 10383,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 12831,
+          "duration_ms": 17,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 13911,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        },
+        {
+          "name": "glyphicons-halflings-regular.woff",
+          "start_ms": 14495,
+          "duration_ms": 2,
+          "transfer_bytes": 0,
+          "encoded_bytes": 23320,
+          "decoded_bytes": 23320
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "cache": "warm",
+      "sample": 2,
+      "revision": "564ee7f7fbc4c3b2931cc5b9eb384dd3ce7dacfa",
+      "marks": {
+        "router_started": 6533.6,
+        "values_load_start": 7396,
+        "portfolio_import_start": 7638.4,
+        "portfolio_import_end": 9422.9,
+        "portfolio_build_start": 11838.3,
+        "portfolio_template_ready": 11846.5,
+        "portfolio_shell_ready": 12540.6,
+        "values_load_end": 12621.5,
+        "portfolio_attached": 13120.2,
+        "portfolio_frame": 13286.8,
+        "values_ready": 17014.7,
+        "values_frame": 17123.9
+      },
+      "paints": {
+        "first-paint": 1192,
+        "first-contentful-paint": 1192
+      },
+      "document": {
+        "response_end_ms": 1728.099998474121,
+        "transfer_bytes": 1842278
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 483,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 484,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 484,
+          "duration_ms": 207,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 489,
+          "duration_ms": 96,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 490,
+          "duration_ms": 200,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 493,
+          "duration_ms": 89,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 494,
+          "duration_ms": 191,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 495,
+          "duration_ms": 187,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 496,
+          "duration_ms": 190,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 497,
+          "duration_ms": 188,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 498,
+          "duration_ms": 93,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 499,
+          "duration_ms": 291,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 500,
+          "duration_ms": 290,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 500,
+          "duration_ms": 383,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 501,
+          "duration_ms": 382,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 502,
+          "duration_ms": 381,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 931,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 982,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 982,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 983,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 984,
+          "duration_ms": 17,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 984,
+          "duration_ms": 13,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 985,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 986,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 987,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 988,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 989,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "glyphicons-halflings-regular.woff",
+          "start_ms": 1105,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 23320,
+          "decoded_bytes": 23320
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 1107,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        },
+        {
+          "name": "pxiEyp8kv8JHgFVrJJfecg.woff2",
+          "start_ms": 1112,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 7884,
+          "decoded_bytes": 7884
+        },
+        {
+          "name": "kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2",
+          "start_ms": 1123,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4026236,
+          "decoded_bytes": 4026236
+        },
+        {
+          "name": "log",
+          "start_ms": 4692,
+          "duration_ms": 17,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 9322,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 9428,
+          "duration_ms": 17,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "cache": "cold",
+      "sample": 3,
+      "revision": "de2d4aa2370a6469f91e0b5470b2e29cdeccb79b",
+      "marks": {
+        "router_started": 7149.5,
+        "values_load_start": 8045.9,
+        "portfolio_import_start": 8326.8,
+        "portfolio_import_end": 10322.5,
+        "portfolio_build_start": 12830,
+        "portfolio_template_ready": 12847.1,
+        "portfolio_shell_ready": 13616.8,
+        "values_load_end": 13655.4,
+        "portfolio_attached": 14353,
+        "portfolio_frame": 14599.5,
+        "values_ready": 18147.4,
+        "values_frame": 18308.5
+      },
+      "paints": {
+        "first-paint": 1244,
+        "first-contentful-paint": 1404
+      },
+      "document": {
+        "response_end_ms": 1858.7000007629395,
+        "transfer_bytes": 1842278
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 420,
+          "duration_ms": 5,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 423,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 425,
+          "duration_ms": 74,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 426,
+          "duration_ms": 74,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 427,
+          "duration_ms": 73,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 428,
+          "duration_ms": 74,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 428,
+          "duration_ms": 72,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 430,
+          "duration_ms": 81,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 430,
+          "duration_ms": 81,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 431,
+          "duration_ms": 82,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 433,
+          "duration_ms": 163,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 433,
+          "duration_ms": 177,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 434,
+          "duration_ms": 169,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "text.css",
+          "start_ms": 434,
+          "duration_ms": 171,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 434,
+          "duration_ms": 261,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 434,
+          "duration_ms": 168,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 944,
+          "duration_ms": 52,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 1001,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 1002,
+          "duration_ms": 95,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 1003,
+          "duration_ms": 93,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 1004,
+          "duration_ms": 14,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 1007,
+          "duration_ms": 14,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 1008,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 1009,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 1010,
+          "duration_ms": 85,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 1011,
+          "duration_ms": 88,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 1012,
+          "duration_ms": 189,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "log",
+          "start_ms": 5433,
+          "duration_ms": 77,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 10181,
+          "duration_ms": 16,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 12921,
+          "duration_ms": 22,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 14416,
+          "duration_ms": 2,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "cache": "warm",
+      "sample": 3,
+      "revision": "3c981dd44a6e77b50327a57948dcf8c85173f6a9",
+      "marks": {
+        "router_started": 6644.6,
+        "values_load_start": 7511.1,
+        "portfolio_import_start": 7808.9,
+        "portfolio_import_end": 9579.8,
+        "portfolio_build_start": 12264.7,
+        "portfolio_template_ready": 12298.6,
+        "portfolio_shell_ready": 13027.7,
+        "values_load_end": 13101.7,
+        "portfolio_attached": 13707.6,
+        "portfolio_frame": 13847.3,
+        "values_ready": 17634.7,
+        "values_frame": 17726.1
+      },
+      "paints": {
+        "first-paint": 1040,
+        "first-contentful-paint": 1040
+      },
+      "document": {
+        "response_end_ms": 1695.3999996185303,
+        "transfer_bytes": 1842278
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 329,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 329,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 330,
+          "duration_ms": 69,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 333,
+          "duration_ms": 67,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 333,
+          "duration_ms": 65,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 334,
+          "duration_ms": 66,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 334,
+          "duration_ms": 65,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 335,
+          "duration_ms": 160,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 336,
+          "duration_ms": 165,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 337,
+          "duration_ms": 164,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 338,
+          "duration_ms": 162,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "text.css",
+          "start_ms": 339,
+          "duration_ms": 162,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 339,
+          "duration_ms": 162,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 339,
+          "duration_ms": 162,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 339,
+          "duration_ms": 167,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 339,
+          "duration_ms": 163,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 857,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 874,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 896,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 897,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 898,
+          "duration_ms": 13,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 906,
+          "duration_ms": 11,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 907,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 909,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 910,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 911,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 912,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 1001,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        },
+        {
+          "name": "pxiEyp8kv8JHgFVrJJfecg.woff2",
+          "start_ms": 1004,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 7884,
+          "decoded_bytes": 7884
+        },
+        {
+          "name": "kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2",
+          "start_ms": 1011,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4026236,
+          "decoded_bytes": 4026236
+        },
+        {
+          "name": "log",
+          "start_ms": 4507,
+          "duration_ms": 14,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 9453,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 9602,
+          "duration_ms": 25,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        }
+      ]
+    },
+    {
+      "label": "optimized",
+      "cache": "cold",
+      "sample": 1,
+      "revision": "7b63ca5de60c45d2b35c0f67be3a1f64c41e4219",
+      "marks": {
+        "router_started": 4991.4,
+        "values_load_start": 5833,
+        "portfolio_import_start": 6328,
+        "portfolio_import_end": 9395,
+        "portfolio_build_start": 12866,
+        "portfolio_template_ready": 12906.7,
+        "portfolio_shell_ready": 13454.9,
+        "values_load_end": 13514.2,
+        "portfolio_attached": 14116,
+        "portfolio_frame": 14503.6,
+        "values_ready": 18890.5,
+        "values_frame": 19093.6
+      },
+      "paints": {
+        "first-paint": 1296,
+        "first-contentful-paint": 1296
+      },
+      "document": {
+        "response_end_ms": 1704.3999996185303,
+        "transfer_bytes": 1840429
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 419,
+          "duration_ms": 74,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 423,
+          "duration_ms": 74,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 423,
+          "duration_ms": 85,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 424,
+          "duration_ms": 168,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 424,
+          "duration_ms": 174,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 425,
+          "duration_ms": 172,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 426,
+          "duration_ms": 173,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 427,
+          "duration_ms": 174,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 428,
+          "duration_ms": 172,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 428,
+          "duration_ms": 173,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 429,
+          "duration_ms": 173,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 491,
+          "duration_ms": 111,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 491,
+          "duration_ms": 120,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 492,
+          "duration_ms": 117,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 493,
+          "duration_ms": 115,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 495,
+          "duration_ms": 115,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 860,
+          "duration_ms": 32,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 896,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 897,
+          "duration_ms": 97,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 898,
+          "duration_ms": 96,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 898,
+          "duration_ms": 15,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 899,
+          "duration_ms": 94,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 900,
+          "duration_ms": 6,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 901,
+          "duration_ms": 5,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 902,
+          "duration_ms": 15,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 903,
+          "duration_ms": 90,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 904,
+          "duration_ms": 194,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "log",
+          "start_ms": 3503,
+          "duration_ms": 17,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 9235,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 13013,
+          "duration_ms": 20,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 14196,
+          "duration_ms": 5,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        }
+      ]
+    },
+    {
+      "label": "optimized",
+      "cache": "warm",
+      "sample": 1,
+      "revision": "c7cf75a464924904c2dd980fb63e3687da1fa979",
+      "marks": {
+        "router_started": 6799.2,
+        "values_load_start": 7914.2,
+        "portfolio_import_start": 8222.1,
+        "portfolio_import_end": 9824.7,
+        "portfolio_build_start": 12124.2,
+        "portfolio_template_ready": 12142.5,
+        "portfolio_shell_ready": 12742.2,
+        "values_load_end": 12794.5,
+        "portfolio_attached": 13392.7,
+        "portfolio_frame": 13514.9,
+        "values_ready": 16696.8,
+        "values_frame": 16882
+      },
+      "paints": {
+        "first-paint": 1180,
+        "first-contentful-paint": 1180
+      },
+      "document": {
+        "response_end_ms": 1737.5,
+        "transfer_bytes": 1840429
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 405,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 406,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 407,
+          "duration_ms": 79,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 409,
+          "duration_ms": 76,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 410,
+          "duration_ms": 76,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 411,
+          "duration_ms": 177,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 413,
+          "duration_ms": 176,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 415,
+          "duration_ms": 266,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 416,
+          "duration_ms": 268,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 417,
+          "duration_ms": 267,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 417,
+          "duration_ms": 278,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 417,
+          "duration_ms": 282,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 417,
+          "duration_ms": 364,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 417,
+          "duration_ms": 363,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 417,
+          "duration_ms": 365,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 418,
+          "duration_ms": 282,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 894,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 911,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 917,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 918,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 918,
+          "duration_ms": 17,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 928,
+          "duration_ms": 53,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 929,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 929,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 932,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 933,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 934,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 1009,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        },
+        {
+          "name": "pxiEyp8kv8JHgFVrJJfecg.woff2",
+          "start_ms": 1015,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 7884,
+          "decoded_bytes": 7884
+        },
+        {
+          "name": "kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2",
+          "start_ms": 1023,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4026236,
+          "decoded_bytes": 4026236
+        },
+        {
+          "name": "log",
+          "start_ms": 4484,
+          "duration_ms": 19,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 9737,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 12228,
+          "duration_ms": 19,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        }
+      ]
+    },
+    {
+      "label": "optimized",
+      "cache": "cold",
+      "sample": 2,
+      "revision": "ae683c9ca5df2e64ff84f4fde19c76a9302fd382",
+      "marks": {
+        "router_started": 7146.3,
+        "values_load_start": 8103.2,
+        "portfolio_import_start": 8398.7,
+        "portfolio_import_end": 10130.2,
+        "portfolio_build_start": 12513.2,
+        "portfolio_template_ready": 12531.2,
+        "portfolio_shell_ready": 12949.3,
+        "values_load_end": 13001.9,
+        "portfolio_attached": 13537.7,
+        "portfolio_frame": 13829.9,
+        "values_ready": 17535,
+        "values_frame": 17731.3
+      },
+      "paints": {
+        "first-paint": 1032,
+        "first-contentful-paint": 1112
+      },
+      "document": {
+        "response_end_ms": 1649,
+        "transfer_bytes": 1840429
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 404,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 407,
+          "duration_ms": 2,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 408,
+          "duration_ms": 14,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 409,
+          "duration_ms": 86,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 411,
+          "duration_ms": 87,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 412,
+          "duration_ms": 89,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 413,
+          "duration_ms": 83,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 414,
+          "duration_ms": 82,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 415,
+          "duration_ms": 85,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 417,
+          "duration_ms": 89,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 417,
+          "duration_ms": 97,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 418,
+          "duration_ms": 175,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 419,
+          "duration_ms": 175,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 420,
+          "duration_ms": 89,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 422,
+          "duration_ms": 172,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 493,
+          "duration_ms": 102,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 752,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 762,
+          "duration_ms": 3,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 762,
+          "duration_ms": 35,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 764,
+          "duration_ms": 32,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 764,
+          "duration_ms": 42,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 765,
+          "duration_ms": 46,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 793,
+          "duration_ms": 6,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 795,
+          "duration_ms": 5,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 798,
+          "duration_ms": 100,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 798,
+          "duration_ms": 101,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 800,
+          "duration_ms": 197,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "log",
+          "start_ms": 5102,
+          "duration_ms": 91,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 10000,
+          "duration_ms": 6,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 12598,
+          "duration_ms": 16,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 13601,
+          "duration_ms": 5,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        }
+      ]
+    },
+    {
+      "label": "optimized",
+      "cache": "warm",
+      "sample": 2,
+      "revision": "5fd4d80027763c9df4051c7fc008aaca23c449e3",
+      "marks": {
+        "router_started": 6397.4,
+        "values_load_start": 7306.6,
+        "portfolio_import_start": 7592.9,
+        "portfolio_import_end": 9225.9,
+        "portfolio_build_start": 12010.6,
+        "portfolio_template_ready": 12027.4,
+        "portfolio_shell_ready": 12533.8,
+        "values_load_end": 12597.3,
+        "portfolio_attached": 13494.6,
+        "portfolio_frame": 13638,
+        "values_ready": 16897.5,
+        "values_frame": 17034.6
+      },
+      "paints": {
+        "first-paint": 1000,
+        "first-contentful-paint": 1000
+      },
+      "document": {
+        "response_end_ms": 1519.599998474121,
+        "transfer_bytes": 1840429
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 425,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 427,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 427,
+          "duration_ms": 66,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 431,
+          "duration_ms": 72,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 431,
+          "duration_ms": 163,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 432,
+          "duration_ms": 73,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 432,
+          "duration_ms": 159,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 432,
+          "duration_ms": 160,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 434,
+          "duration_ms": 161,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 491,
+          "duration_ms": 103,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 491,
+          "duration_ms": 104,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 491,
+          "duration_ms": 106,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 491,
+          "duration_ms": 104,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 492,
+          "duration_ms": 107,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 492,
+          "duration_ms": 107,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 492,
+          "duration_ms": 106,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 758,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 799,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 806,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 807,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 808,
+          "duration_ms": 20,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 820,
+          "duration_ms": 73,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 822,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 823,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 823,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 826,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 828,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 915,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        },
+        {
+          "name": "pxiEyp8kv8JHgFVrJJfecg.woff2",
+          "start_ms": 920,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 7884,
+          "decoded_bytes": 7884
+        },
+        {
+          "name": "kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2",
+          "start_ms": 928,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4026236,
+          "decoded_bytes": 4026236
+        },
+        {
+          "name": "log",
+          "start_ms": 4402,
+          "duration_ms": 14,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 9134,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 9232,
+          "duration_ms": 17,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        }
+      ]
+    },
+    {
+      "label": "optimized",
+      "cache": "cold",
+      "sample": 3,
+      "revision": "eb7a6182057ef602a50b0f7edcf7c2dce52ac912",
+      "marks": {
+        "router_started": 6312.2,
+        "values_load_start": 7145.3,
+        "portfolio_import_start": 7407.6,
+        "portfolio_import_end": 9241.9,
+        "portfolio_build_start": 11674.8,
+        "portfolio_template_ready": 11706,
+        "portfolio_shell_ready": 12217.5,
+        "values_load_end": 12254.4,
+        "portfolio_attached": 12936.8,
+        "portfolio_frame": 13411.6,
+        "values_ready": 17430,
+        "values_frame": 17641.6
+      },
+      "paints": {
+        "first-paint": 1032,
+        "first-contentful-paint": 1112
+      },
+      "document": {
+        "response_end_ms": 1460.900001525879,
+        "transfer_bytes": 1840429
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 349,
+          "duration_ms": 56,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 402,
+          "duration_ms": 2,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 403,
+          "duration_ms": 97,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 403,
+          "duration_ms": 96,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 404,
+          "duration_ms": 97,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 405,
+          "duration_ms": 13,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 406,
+          "duration_ms": 95,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 407,
+          "duration_ms": 95,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 409,
+          "duration_ms": 92,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 410,
+          "duration_ms": 92,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 414,
+          "duration_ms": 89,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 415,
+          "duration_ms": 95,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 415,
+          "duration_ms": 99,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 416,
+          "duration_ms": 100,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 417,
+          "duration_ms": 99,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 417,
+          "duration_ms": 101,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 748,
+          "duration_ms": 5,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 757,
+          "duration_ms": 4,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 758,
+          "duration_ms": 41,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 759,
+          "duration_ms": 44,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 760,
+          "duration_ms": 46,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 762,
+          "duration_ms": 52,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 763,
+          "duration_ms": 43,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 764,
+          "duration_ms": 42,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 765,
+          "duration_ms": 134,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 765,
+          "duration_ms": 136,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 798,
+          "duration_ms": 147,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "log",
+          "start_ms": 4019,
+          "duration_ms": 14,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 9083,
+          "duration_ms": 20,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 11778,
+          "duration_ms": 36,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 13011,
+          "duration_ms": 6,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        }
+      ]
+    },
+    {
+      "label": "optimized",
+      "cache": "warm",
+      "sample": 3,
+      "revision": "3c9adbe4e2d01ef0117059ae35b86fb4fd513ee6",
+      "marks": {
+        "router_started": 7173.3,
+        "values_load_start": 8009.9,
+        "portfolio_import_start": 8278.8,
+        "portfolio_import_end": 10042.7,
+        "portfolio_build_start": 12710.1,
+        "portfolio_template_ready": 12735.5,
+        "portfolio_shell_ready": 13601.2,
+        "values_load_end": 13670.8,
+        "portfolio_attached": 14373.2,
+        "portfolio_frame": 14512,
+        "values_ready": 17778.7,
+        "values_frame": 17934.3
+      },
+      "paints": {
+        "first-paint": 1304,
+        "first-contentful-paint": 1304
+      },
+      "document": {
+        "response_end_ms": 1710.099998474121,
+        "transfer_bytes": 1840429
+      },
+      "summary": "$12,172.80",
+      "holdings": 8,
+      "resources": [
+        {
+          "name": "runner-v3.min.css",
+          "start_ms": 397,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 33308,
+          "decoded_bytes": 33308
+        },
+        {
+          "name": "font-awesome.min.css",
+          "start_ms": 397,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 31091,
+          "decoded_bytes": 31091
+        },
+        {
+          "name": "button.css",
+          "start_ms": 398,
+          "duration_ms": 173,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4913,
+          "decoded_bytes": 4913
+        },
+        {
+          "name": "checkbox.css",
+          "start_ms": 401,
+          "duration_ms": 174,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4078,
+          "decoded_bytes": 4078
+        },
+        {
+          "name": "switch.css",
+          "start_ms": 402,
+          "duration_ms": 171,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4217,
+          "decoded_bytes": 4217
+        },
+        {
+          "name": "navigation-link.css",
+          "start_ms": 402,
+          "duration_ms": 168,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10614,
+          "decoded_bytes": 10614
+        },
+        {
+          "name": "card.css",
+          "start_ms": 402,
+          "duration_ms": 169,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3550,
+          "decoded_bytes": 3550
+        },
+        {
+          "name": "slider.css",
+          "start_ms": 402,
+          "duration_ms": 170,
+          "transfer_bytes": 0,
+          "encoded_bytes": 6009,
+          "decoded_bytes": 6009
+        },
+        {
+          "name": "text-inputs.css",
+          "start_ms": 402,
+          "duration_ms": 172,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13596,
+          "decoded_bytes": 13596
+        },
+        {
+          "name": "radiobutton.css",
+          "start_ms": 402,
+          "duration_ms": 175,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3040,
+          "decoded_bytes": 3040
+        },
+        {
+          "name": "iconbutton.css",
+          "start_ms": 402,
+          "duration_ms": 177,
+          "transfer_bytes": 0,
+          "encoded_bytes": 10394,
+          "decoded_bytes": 10394
+        },
+        {
+          "name": "menu.css",
+          "start_ms": 402,
+          "duration_ms": 168,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3816,
+          "decoded_bytes": 3816
+        },
+        {
+          "name": "text.css",
+          "start_ms": 402,
+          "duration_ms": 174,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3146,
+          "decoded_bytes": 3146
+        },
+        {
+          "name": "progress-indicator.css",
+          "start_ms": 403,
+          "duration_ms": 174,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1086,
+          "decoded_bytes": 1086
+        },
+        {
+          "name": "fileloader.css",
+          "start_ms": 403,
+          "duration_ms": 177,
+          "transfer_bytes": 0,
+          "encoded_bytes": 5806,
+          "decoded_bytes": 5806
+        },
+        {
+          "name": "avatar.css",
+          "start_ms": 403,
+          "duration_ms": 173,
+          "transfer_bytes": 0,
+          "encoded_bytes": 3515,
+          "decoded_bytes": 3515
+        },
+        {
+          "name": "jquery.min.js",
+          "start_ms": 738,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 87533,
+          "decoded_bytes": 87533
+        },
+        {
+          "name": "jquery-migrate.min.js",
+          "start_ms": 784,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13992,
+          "decoded_bytes": 13992
+        },
+        {
+          "name": "css2",
+          "start_ms": 789,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "css2",
+          "start_ms": 791,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "core@1.6.7.js",
+          "start_ms": 791,
+          "duration_ms": 21,
+          "transfer_bytes": 0,
+          "encoded_bytes": 12298,
+          "decoded_bytes": 12298
+        },
+        {
+          "name": "dom@1.6.10.js",
+          "start_ms": 799,
+          "duration_ms": 69,
+          "transfer_bytes": 0,
+          "encoded_bytes": 9358,
+          "decoded_bytes": 9358
+        },
+        {
+          "name": "logo-35.png",
+          "start_ms": 800,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 1503,
+          "decoded_bytes": 1503
+        },
+        {
+          "name": "made-with-anvil.png",
+          "start_ms": 802,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 13549,
+          "decoded_bytes": 13549
+        },
+        {
+          "name": "skulpt.min.js",
+          "start_ms": 802,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 639343,
+          "decoded_bytes": 639343
+        },
+        {
+          "name": "skulpt-stdlib.js",
+          "start_ms": 803,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 88247,
+          "decoded_bytes": 88247
+        },
+        {
+          "name": "runner2.bundle.js",
+          "start_ms": 803,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 785942,
+          "decoded_bytes": 785942
+        },
+        {
+          "name": "fontawesome-webfont.woff2",
+          "start_ms": 1081,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 77160,
+          "decoded_bytes": 77160
+        },
+        {
+          "name": "pxiEyp8kv8JHgFVrJJfecg.woff2",
+          "start_ms": 1082,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 7884,
+          "decoded_bytes": 7884
+        },
+        {
+          "name": "kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2",
+          "start_ms": 1084,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 4026236,
+          "decoded_bytes": 4026236
+        },
+        {
+          "name": "log",
+          "start_ms": 4873,
+          "duration_ms": 18,
+          "transfer_bytes": 0,
+          "encoded_bytes": 0,
+          "decoded_bytes": 0
+        },
+        {
+          "name": "532.bundle.js",
+          "start_ms": 9953,
+          "duration_ms": 0,
+          "transfer_bytes": 0,
+          "encoded_bytes": 170307,
+          "decoded_bytes": 170307
+        },
+        {
+          "name": "folio-mark.svg",
+          "start_ms": 10070,
+          "duration_ms": 15,
+          "transfer_bytes": 0,
+          "encoded_bytes": 395,
+          "decoded_bytes": 395
+        }
+      ]
+    }
+  ],
+  "fixture": {
+    "securities": 8,
+    "sessions": 1305,
+    "market_value": 12172.800000000001
+  },
+  "browser": "159.0.8154.6"
+}
