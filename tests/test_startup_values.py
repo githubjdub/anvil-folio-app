@@ -1,8 +1,8 @@
 """Saved values appear before history; stale or failed reads cannot enable a partial analysis."""
 import ast
+import builtins
 import copy
 from contextlib import nullcontext
-import runpy
 from types import SimpleNamespace
 import unittest
 
@@ -304,7 +304,8 @@ class StartupValuesTests(unittest.TestCase):
 class HoldingsSnapshotTests(unittest.TestCase):
     def fixture(self):
         from test_holdings_dashboard import point, source
-        functions = runpy.run_path(str(APP / 'client_code/holdings_dashboard.py'))
+        from client_test_loader import client_module, PACKAGE
+        functions = vars(client_module('holdings_dashboard'))
         path = APP / 'client_code/Components/PortfolioHoldings/__init__.py'
         names = Names(path.with_name('form_template.html').read_text())
         class Template:
@@ -317,8 +318,17 @@ class HoldingsSnapshotTests(unittest.TestCase):
         tree = ast.parse(path.read_text())
         tree.body = [node for node in tree.body if isinstance(node, ast.ClassDef)]
         namespace = dict(functions, PortfolioHoldingsTemplate=Template,
+                         __package__=PACKAGE + '.Components.PortfolioHoldings',
+                         __spec__=None,
                          handle=lambda *args: lambda fn: fn,
                          defer=lambda *args, **kwargs: None)
+        namespace['history_imports'] = []
+        def import_client(name, globals=None, locals=None, fromlist=(), level=0):
+            if level and name == 'holdings_dashboard':
+                namespace['history_imports'].extend(fromlist)
+                return SimpleNamespace(**{key: namespace[key] for key in fromlist})
+            return builtins.__import__(name, globals, locals, fromlist, level)
+        namespace['__builtins__'] = dict(vars(builtins), __import__=import_client)
         exec(compile(tree, str(path), 'exec'), namespace)
         form = namespace['PortfolioHoldings']()
         analysis = source([point(100, 1), point(100, 2), point(110, 2), point(110, 2)])
@@ -381,6 +391,7 @@ class HoldingsSnapshotTests(unittest.TestCase):
         form.search_box.text = ''
         form.table_filter_change()
         preview_rows = form.holdings_panel.items
+        self.assertEqual(namespace['history_imports'], [])
         form.set_analysis(analysis)
         form.redraw()
         self.assertTrue(form.quarter_dropdown.enabled)
@@ -403,6 +414,7 @@ class HoldingsSnapshotTests(unittest.TestCase):
         self.assertEqual(form.activity_panel.items_assignments, activity_assignments)
         self.assertTrue(form.quarter_dropdown.enabled)
         self.assertEqual(len(form.quarter_dropdown.items), len(snapshot['periods']))
+        self.assertEqual(namespace['history_imports'], [])
 
     def test_changed_history_replaces_rows_without_losing_filters(self):
         form, analysis, snapshot, namespace = self.fixture()
@@ -427,6 +439,7 @@ class HoldingsSnapshotTests(unittest.TestCase):
         form.quarter_change()
         self.assertEqual(form._snapshot, namespace['build_dashboard'](analysis, quarter_key=snapshot['periods'][0]['key']))
         self.assertEqual(form.value_label.text, '$100.00')
+        self.assertEqual(namespace['history_imports'], ['build_dashboard'])
 
 
 if __name__ == '__main__':

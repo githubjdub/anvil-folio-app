@@ -15,6 +15,7 @@ from datetime import date, timedelta
 import math
 
 from .portfolio_periods import quarterly_returns
+from .portfolio_display import empty_summary
 
 
 def _date(value):
@@ -53,14 +54,7 @@ def summarize_portfolio(history):
   Closed markets may place a quarter-end close up to seven days before its
   calendar end. The server's validated session series supplies interior dates.
   """
-  summary = {
-    "value": None, "holding_count": 0, "prior_quarter_return": None,
-    "prior_quarter_label": "Prior-quarter return", "long_return": None,
-    "long_return_label": "Available-period return", "top20_weight": None,
-    "as_of": None, "return_is_provisional": False,
-    "return_note": "Sync a portfolio to calculate its time-weighted return.",
-    "prior_quarter_note": "A complete quarter of invested history is required.",
-  }
+  summary = empty_summary()
   if history is None:
     return summary
 

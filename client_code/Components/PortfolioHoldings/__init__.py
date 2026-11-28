@@ -1,6 +1,6 @@
 from anvil import *
 from ._anvil_designer import PortfolioHoldingsTemplate
-from ...holdings_dashboard import build_dashboard, filter_holdings, quarter_periods, ACTIVITIES
+from ...portfolio_display import filter_holdings, ACTIVITIES
 from ...deferred_work import defer
 
 
@@ -68,7 +68,11 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
     self._snapshots = {}
     self._dirty = True
     dates = (source_analysis.get("selection_data") or {}).get("dates") or []
-    periods = snapshot["periods"] if snapshot is not None else quarter_periods(dates)
+    if snapshot is not None:
+      periods = snapshot["periods"]
+    else:
+      from ...holdings_dashboard import quarter_periods
+      periods = quarter_periods(dates)
     self.quarter_dropdown.items = [(item["label"] + (" · latest" if index == len(periods) - 1 else ""), item["key"])
                                   for index, item in reversed(list(enumerate(periods)))]
     keys = [item["key"] for item in periods]
@@ -102,6 +106,7 @@ class PortfolioHoldings(PortfolioHoldingsTemplate):
   def _render_snapshot(self):
     key = self.quarter_dropdown.selected_value
     if key not in self._snapshots:
+      from ...holdings_dashboard import build_dashboard
       self._snapshots[key] = build_dashboard(self._source, self._selected, key, self._transactions)
     self._display_snapshot(self._snapshots[key])
 

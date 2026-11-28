@@ -5,14 +5,11 @@ The optional baseline is compared for exact result equality as well as timing.
 """
 from datetime import date, timedelta
 import json
-from pathlib import Path
 import runpy
 from statistics import median
 import sys
 from time import perf_counter
-
-APP = Path(__file__).resolve().parents[1]
-
+from client_test_loader import client_module
 
 def fixture(count):
     start = date(2021, 1, 4)
@@ -63,7 +60,7 @@ def measure(current, baseline, source, transactions):
 
 
 if __name__ == '__main__':
-    current = runpy.run_path(str(APP / 'client_code/holdings_dashboard.py'))
+    current = vars(client_module('holdings_dashboard'))
     baseline = runpy.run_path(sys.argv[1]) if len(sys.argv) > 1 else None
     results = []
     for count in (8, 50):

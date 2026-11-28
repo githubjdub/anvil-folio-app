@@ -1,17 +1,11 @@
 """Header return semantics; run python -m unittest discover -s tests."""
 from datetime import date, timedelta
 import copy
-import importlib
-from pathlib import Path
-import sys
-import types
 import unittest
+from client_test_loader import client_module
 
 
-package = types.ModuleType("folio_client_for_tests")
-package.__path__ = [str(Path(__file__).resolve().parents[1] / "client_code")]
-sys.modules[package.__name__] = package
-summary_module = importlib.import_module(package.__name__ + ".portfolio_summary")
+summary_module = client_module('portfolio_summary')
 summarize_portfolio = summary_module.summarize_portfolio
 
 

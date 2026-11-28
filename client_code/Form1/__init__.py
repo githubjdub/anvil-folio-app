@@ -7,7 +7,7 @@ import anvil.js
 from ._anvil_designer import Form1Template
 from anvil import *
 from .. import chart_theme
-from ..portfolio_summary import summarize_portfolio
+from ..portfolio_display import empty_summary
 from ..site_tracking import record_page
 from ..account_profile import ensure_username, sign_in
 from ..workspace_cache import account_workspace, invalidate_workspace, startup_workspace
@@ -1526,7 +1526,15 @@ class Form1(Form1Template):
     )
 
   def _render_portfolio_summary(self):
-    summary = self._startup_overview["summary"] if self._startup_overview is not None else summarize_portfolio(self._history)
+    if self._startup_overview is not None:
+      summary = self._startup_overview["summary"]
+    elif self._history is None:
+      summary = empty_summary()
+    else:
+      # Saved values and the empty shell do not need the history calculators.
+      # This path first runs when history is ready, including background prep.
+      from ..portfolio_summary import summarize_portfolio
+      summary = summarize_portfolio(self._history)
     self.summary_value_label.text = "—" if summary["value"] is None else self._format_currency(summary["value"])
     self.summary_holdings_label.text = str(summary["holding_count"]) if self._history is not None or self._startup_overview is not None else "—"
     self.summary_date_label.text = ("As of %s%s" % (summary["as_of"], " · provisional" if summary["return_is_provisional"] else "")) if summary["as_of"] else "Sync to calculate"

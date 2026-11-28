@@ -1,12 +1,16 @@
 """Cash-flow and historical snapshot examples independent of the Anvil runtime."""
 
 import copy
-import sys
-from pathlib import Path
 import unittest
+from client_test_loader import client_module
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "client_code"))
-from holdings_dashboard import build_dashboard, filter_holdings, quarter_periods, quarterly_share_history, display_share_history, remaining_fifo_basis
+dashboard_module = client_module('holdings_dashboard')
+build_dashboard = dashboard_module.build_dashboard
+filter_holdings = dashboard_module.filter_holdings
+quarter_periods = dashboard_module.quarter_periods
+quarterly_share_history = dashboard_module.quarterly_share_history
+display_share_history = dashboard_module.display_share_history
+remaining_fifo_basis = dashboard_module.remaining_fifo_basis
 
 
 def point(value, shares, bought=0, sold=0, cost=100):

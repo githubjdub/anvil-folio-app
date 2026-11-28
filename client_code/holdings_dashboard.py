@@ -9,11 +9,9 @@ from datetime import date, timedelta
 import math
 
 
-ACTIVITIES = (
-  ("new", "New positions"), ("added", "Bought more"),
-  ("trimmed", "Sold some"), ("closed", "Closed positions"),
-  ("mixed", "Bought and sold"),
-)
+# Keep the public helpers available here for existing callers. Startup Forms
+# import the lightweight display module directly, without this calculator.
+from .portfolio_display import ACTIVITIES, display_share_history, filter_holdings
 
 
 def quarter_periods(dates):
@@ -81,15 +79,6 @@ def quarterly_share_history(days, dates, periods, end):
   for item in history:
     item["height"] = max(2, 100 * item["shares"] / maximum) if item["shares"] and maximum else 2
   return history
-
-
-def display_share_history(history):
-  """Small presentation rows shared by the bars and their accessible details."""
-  return [dict(item,
-    shares_text="Unavailable" if item["shares"] is None else format(item["shares"], ",.8f").rstrip("0").rstrip("."),
-    change_text="—" if item["change"] is None else "%+.1f%%" % (100 * item["change"]),
-    label_text=item["label"] + (" · partial" if item["partial"] else ""),
-  ) for item in history]
 
 
 def _basis_trades(source, transactions, dates):
@@ -321,19 +310,3 @@ def build_dashboard(source, selected_symbols=None, quarter_key=None, transaction
   return result
 
 
-def filter_holdings(rows, query="", activity="all", sort="value", position="open"):
-  """Filters affect the table alone; total portfolio market value stays fixed."""
-  query = str(query or "").strip().lower()
-  filtered = [row for row in rows
-              if (not query or query in (row["symbol"] + " " + row["company_name"]
-                                         + " " + row["sector"]).lower())
-              and (activity == "all" or row["activity"] == activity)
-              and (position == "all" or row["is_open"])]
-  if sort == "symbol":
-    return sorted(filtered, key=lambda row: row["symbol"])
-  if sort == "return":
-    return sorted(filtered, key=lambda row: (row["return"] is None,
-                  -(row["return"] or 0), row["symbol"]))
-  if sort == "shares":
-    return sorted(filtered, key=lambda row: (-row["shares"], row["symbol"]))
-  return sorted(filtered, key=lambda row: (-row["market_value"], row["symbol"]))

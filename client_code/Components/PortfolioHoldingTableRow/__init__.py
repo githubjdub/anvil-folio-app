@@ -1,6 +1,6 @@
 from anvil import *
 from ._anvil_designer import PortfolioHoldingTableRowTemplate
-from ...holdings_dashboard import display_share_history
+from ...portfolio_display import display_share_history
 
 
 class PortfolioHoldingTableRow(PortfolioHoldingTableRowTemplate):
