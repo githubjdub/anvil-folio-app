@@ -21,6 +21,7 @@ original_directory = portfolios._directory_for
 original_fetch = portfolio_analytics._fetch_history
 original_saved_analysis = portfolios._saved_analysis
 original_profile_summary = investor_profiles.profile_summary_for
+original_workspace_for = portfolios._workspace_for
 users = []
 directory_calls = []
 history_reads = []
@@ -54,6 +55,17 @@ def forbidden_fetch(*args, **kwargs):
 
 def forbidden_profile_summary(*args, **kwargs):
     raise AssertionError('Initial saved values waited for investor metrics or ranking')
+
+
+def startup_with_full_profile():
+    """Measure the previous cached-values path with full profile metadata."""
+    portfolios._workspace_for = lambda user, include_investor=True: original_workspace_for(user, include_investor=True)
+    try:
+        result = portfolios.get_portfolio_startup()
+        assert not result['workspace']['profile']['investor_pending']
+        return result
+    finally:
+        portfolios._workspace_for = original_workspace_for
 
 
 try:
@@ -105,7 +117,8 @@ try:
     portfolios._directory_for = counted_directory
     portfolios._saved_analysis = counted_saved_analysis
     timings = {name: [] for name in ('account_metadata', 'saved_portfolio', 'analysis_json_encoding',
-                                     'startup_values_before', 'startup_values', 'values_json_encoding', 'deferred_history')}
+                                     'startup_values_before', 'startup_values_full_profile',
+                                     'startup_values', 'values_json_encoding', 'deferred_history')}
     for sample in range(7):
         before = perf_counter()
         workspace = portfolios.get_portfolio_workspace()
@@ -117,7 +130,9 @@ try:
         before = perf_counter()
         encoded = json.dumps(restored['analysis'], separators=(',', ':')).encode()
         timings['analysis_json_encoding'].append((perf_counter()-before)*1000)
-        calls = [('startup_values_before', uncached_startup), ('startup_values', portfolios.get_portfolio_startup)]
+        calls = [('startup_values_before', uncached_startup),
+                 ('startup_values_full_profile', startup_with_full_profile),
+                 ('startup_values', portfolios.get_portfolio_startup)]
         for name, function in calls if sample % 2 == 0 else reversed(calls):
             directory_calls.clear()
             history_reads.clear()
@@ -128,9 +143,13 @@ try:
             if name == 'startup_values':
                 startup = result
                 assert history_reads == [], history_reads
+            elif name == 'startup_values_full_profile':
+                full_profile_startup = result
+                assert history_reads == [], history_reads
             else:
                 old_overview = result
                 assert history_reads == [identifier]
+        assert startup['overview'] == full_profile_startup['overview']
         assert startup['overview'] == old_overview, {
             key: (startup['overview'][key], old_overview[key]) for key in old_overview
             if startup['overview'][key] != old_overview[key]}
@@ -247,6 +266,7 @@ finally:
     portfolio_analytics._fetch_history = original_fetch
     portfolios._saved_analysis = original_saved_analysis
     investor_profiles.profile_summary_for = original_profile_summary
+    portfolios._workspace_for = original_workspace_for
     for user in users:
         for name in ('security_sectors', 'investor_profiles', 'portfolio_directory', 'portfolios'):
             for row in getattr(app_tables, name).search(owner=user):

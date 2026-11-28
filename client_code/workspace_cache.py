@@ -131,7 +131,14 @@ def account_workspace(force=False, require_profile=True):
   revision = _revision
   result = anvil.server.call("get_portfolio_workspace")
   current = anvil.users.get_user()
-  if current is None or current.get_id() != account_id or revision != _revision:
+  if current is None or current.get_id() != account_id:
+    return None
+  if revision != _revision:
+    # Profile navigation may finish the same pending metadata first. Reuse
+    # that complete snapshot without accepting this older response.
+    if (profile_pending and _account_id == account_id and _workspace is not None
+        and not _workspace.get("profile", {}).get("investor_pending", False)):
+      return _workspace
     return None
   _workspace = result
   _loaded_at = time()

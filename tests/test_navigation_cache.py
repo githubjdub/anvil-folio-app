@@ -639,9 +639,27 @@ class WorkspaceCacheTests(unittest.TestCase):
         self.cache['startup_workspace']('p1')
         newest = []
         self.hook = lambda: newest.append(self.cache['account_workspace'](force=True))
-        self.assertIsNone(self.cache['account_workspace']())
+        result = self.cache['account_workspace']()
+        self.assertIs(result, newest[0])
         self.assertIs(self.cache['account_workspace'](), newest[0])
         self.assertEqual(self.calls, 3)
+
+    def test_overlapping_profile_read_reuses_the_first_complete_response(self):
+        self.startup_profile_pending = True
+        self.cache['startup_workspace']('p1')
+        completed = []
+        self.hook = lambda: completed.append(self.cache['account_workspace']())
+        result = self.cache['account_workspace']()
+        self.assertIs(result, completed[0])
+        self.assertIs(self.cache['account_workspace'](), result)
+        self.assertEqual(self.calls, 3)
+
+    def test_profile_completion_rejects_invalidated_metadata_without_a_replacement(self):
+        self.startup_profile_pending = True
+        self.cache['startup_workspace']('p1')
+        self.hook = self.cache['invalidate_workspace']
+        self.assertIsNone(self.cache['account_workspace']())
+        self.assertIsNone(self.cache['_workspace'])
 
     def test_profile_completion_is_discarded_after_account_switch(self):
         self.startup_profile_pending = True

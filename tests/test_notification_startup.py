@@ -50,7 +50,7 @@ class BadgeHarness:
             server=SimpleNamespace(call_s=call_s, RuntimeUnavailableError=RuntimeUnavailableError,
                                    AppOfflineError=AppOfflineError),
             users=SimpleNamespace(get_user=lambda: harness.user)),
-            account_workspace=lambda: dict(profile=dict(username="fixture"), membership={},
+            account_workspace=lambda require_profile=True: dict(profile=dict(username="fixture"), membership={},
                                            creator=dict(enabled=False, email=None), portfolios=[]))
         exec(compile(ast.Module(body=[cls], type_ignores=[]), str(FORM / "__init__.py"), "exec"), ns)
         self.form = f = ns["Form1"]()

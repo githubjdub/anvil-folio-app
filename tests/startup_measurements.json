@@ -516,5 +516,49 @@
       "transfer_bytes": 330643
     },
     "browser_startup": "End-to-end browser startup and visible values latency remain unmeasured. Manual Editor checks remain for opening a saved portfolio, switching Performance and Transactions views, and editing invalid share quantities."
+  },
+  "deferred_profile_and_share_bars": {
+    "verified_at_utc": "2026-11-28T00:14:37Z",
+    "changes": [
+      "Send saved portfolio values with basic account metadata, then complete investor metrics, avatar, verification and ranking after values render.",
+      "Require full profile metadata for Profile navigation and reuse a completed same-account cache when overlapping requests finish.",
+      "Build quarterly share-history bars after holdings values render, in batches of eight holdings with one queued batch at a time.",
+      "Cancel obsolete bar batches after filtering or account reset. Opening quarterly details early prepares that holding immediately."
+    ],
+    "server_execution": {
+      "scope": "Same-runtime comparison of cached-value startup with and without full investor-profile metadata. Seven alternating samples, eight securities and 1305 history sessions. Browser rendering, RPC transport and cold runtime startup are excluded.",
+      "before_ms": {
+        "median": 129.5,
+        "min": 118.0,
+        "max": 147.1
+      },
+      "after_ms": {
+        "median": 87.9,
+        "min": 78.6,
+        "max": 90.4
+      },
+      "median_reduction_percent": 32.1,
+      "profile_note": "Profile computation is deferred until after values appear. Total session work includes a later full account-workspace read."
+    },
+    "history_bar_forms_before_initial_values": {
+      "scope": "Component counts from five-year fixtures with five quarterly bars per holding, derived from the tested row-construction path.",
+      "eight_holdings": {"before": 40, "after": 0},
+      "fifty_holdings": {"before": 250, "after": 0}
+    },
+    "checks": {
+      "unit_tests_passed": 318,
+      "app_files_validated": 186,
+      "validation_issues": 0,
+      "client_behavior": "Passed deferred bar construction, early detail opening, reuse, empty history, filter/reset cancellation, partial profile completion, overlapping reads, explicit cache invalidation, account switches and unexpected failure propagation.",
+      "live_behavior": "Saved values bypassed missing investor metrics and ranking. Full account metadata subsequently restored investor metrics. Values matched the full analysis, with zero full-history decodes or market fetches before values. Legacy upgrades, sector overrides, edits, unavailable portfolios and account isolation passed. Temporary fixtures removed."
+    },
+    "http_reachability": {
+      "scope": "HTTP document only, excluding browser rendering, login and portfolio RPCs",
+      "status": 200,
+      "ttfb_ms": 319.4,
+      "total_ms": 330.2,
+      "transfer_bytes": 331282
+    },
+    "browser_startup": "End-to-end browser loading time remains unmeasured. Manual Editor checks remain for values appearing before profile ranking and history bars, early detail opening, immediate Profile navigation, and a holdings search with no matches."
   }
 }
